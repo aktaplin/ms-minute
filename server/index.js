@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const express = require('express');
 const mlb = require('./lib/mlb');
+const { generateDailyReport } = require('./lib/generate');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +24,16 @@ app.get('/api/dev/mlb', async (req, res) => {
       mlb.getStandings(),
     ]);
     res.json({ lastGame, boxScore, nextGame, standings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Dev-only: generate a full report on demand
+app.get('/api/dev/report', async (req, res) => {
+  try {
+    const report = await generateDailyReport();
+    res.json(report);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
