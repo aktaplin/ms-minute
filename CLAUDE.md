@@ -42,4 +42,4 @@ Steps 1–5 = real production app. Steps 6–7 = killer feature.
 - Claude: Haiku for all writing (narrative, player notes, stat explanation); prompt cache the voice system prompt
 - MLB API: free, no key, base URL `https://statsapi.mlb.com`
 - SMS: Twilio; wrap in `server/lib/sms.js` with a dev-mode log flag
-- YouTube: Data API v3, MLB channel ID `UCqzDdCzAprzCNhNUtM8omcQ`
+- YouTube: Data API v3, MLB channel ID `UCoLrcjPV5PbUrUyXq5mjc_A`

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "generate": "node -e \"require('dotenv').config({path: require('path').join(__dirname, '../.env')}); require('./lib/cron').runWithRetry()\""
+    "generate": "node -e \"require('dotenv').config({path: require('path').join(__dirname, '../.env')}); require('./lib/cron').runAllTeams()\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

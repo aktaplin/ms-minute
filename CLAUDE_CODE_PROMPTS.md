@@ -2,6 +2,20 @@
 
 Drop these into Claude Code as you start each phase. Each one assumes the previous phases are done. Adapt as needed.
 
+## Status (as of 2026-05-02)
+
+- **Phase 0** — Project setup — ✅ done
+- **Phase 1** — MLB Stats API — ✅ done (extended to multi-team: Mariners, Giants, Dodgers)
+- **Phase 2** — Report generation — ✅ done; YouTube channel ID is `UCoLrcjPV5PbUrUyXq5mjc_A` (MLB migrated; CLAUDE.md is stale)
+- **Phase 3** — API endpoint + caching — ✅ done; cache key is `${date}-${teamKey}`
+- **Phase 4** — Daily cron — ✅ done
+- **Phase 5** — Frontend port — ✅ done
+- **Phase 6** — Phone signup + Twilio — ❌ not started — **next**
+- **Phase 7** — Live game watcher — ❌ not started; `getLiveGame()` MLB lib function is already built and ready
+- **Phase 8** — Polish — partial (Railway deploy done via `railway.toml`; analytics, PWA, glossary not started)
+
+**Out-of-band work completed beyond original plan:** multi-team architecture (registry-driven theming, `/api/teams`, `/mariners` `/giants` `/dodgers` URL routing, per-team cron, `brandTitle` in voice prompt), tighter YouTube recap search with publish-window filter.
+
 ## Phase 0 — Project setup
 
 > I'm building a Mariners daily report app called "The M's Minute." I have a working React prototype in `ms-minute-prototype.jsx` and full context in the README plus PRODUCT, DESIGN, ARCHITECTURE, OPTIMIZATIONS, and GAPS docs. Please read all of those first.
@@ -66,11 +80,9 @@ Drop these into Claude Code as you start each phase. Each one assumes the previo
 > Port the prototype to the new frontend.
 >
 > Take `ms-minute-prototype.jsx` and adapt it:
-> - Move each section component into its own file under `src/components/`
 > - Keep all the styling and design exactly as-is — don't touch the visual system
 > - Replace the entire `loadReport()` function with a single `fetch('/api/report')` call. The backend now returns the full Report object so no client-side prompting needed.
 > - Keep the progressive rendering pattern in case the backend ever streams partial data
-> - Keep the hourly session cache as a defense in depth
 
 ## Phase 6 — Phone signup & Twilio
 
