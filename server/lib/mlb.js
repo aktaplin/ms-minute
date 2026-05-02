@@ -1,8 +1,11 @@
 'use strict';
 
 const MLB_BASE = 'https://statsapi.mlb.com';
-const MARINERS_ID = 136;
-const AL_WEST_DIVISION_ID = 200;
+
+const TEAM_CONFIGS = {
+  mariners: { id: 136, divisionId: 200, leagueId: 103, abbr: 'SEA', name: 'Seattle Mariners', divisionName: 'AL West' },
+  giants:   { id: 137, divisionId: 203, leagueId: 104, abbr: 'SF',  name: 'San Francisco Giants', divisionName: 'NL West' },
+};
 
 const _cache = new Map();
 
@@ -33,50 +36,50 @@ function _ptDate(offsetDays = 0) {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 }
 
-async function _getGamesOnDate(dateStr) {
+async function _getGamesOnDate(dateStr, teamId) {
   const data = await _mlbFetch(
-    `/api/v1/schedule?sportId=1&teamId=${MARINERS_ID}&date=${dateStr}` +
+    `/api/v1/schedule?sportId=1&teamId=${teamId}&date=${dateStr}` +
     `&hydrate=linescore,decisions,probablePitcher,team`
   );
   if (!data.dates || data.dates.length === 0) return [];
   return data.dates[0].games || [];
 }
 
-// Most recent completed regular-season Mariners game
-async function getLastGame() {
+// Most recent completed regular-season game for the given team
+async function getLastGame(teamId) {
   for (let i = 1; i <= 10; i++) {
     const dateStr = _ptDate(-i);
-    const games = await _getGamesOnDate(dateStr);
+    const games = await _getGamesOnDate(dateStr, teamId);
     const game = games.find(
       g => g.status.abstractGameState === 'Final' && g.gameType === 'R'
     );
     if (!game) continue;
 
     const { teams, venue, gamePk } = game;
-    const marinersSide = teams.home.team.id === MARINERS_ID ? 'home' : 'away';
-    const mariners = teams[marinersSide];
-    const opponent = teams[marinersSide === 'home' ? 'away' : 'home'];
+    const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
+    const team = teams[teamSide];
+    const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
 
     return {
       gamePk,
       date: dateStr,
-      marinersSide,
-      marinersScore: mariners.score,
+      teamSide,
+      marinersScore: team.score,
       opponentScore: opponent.score,
       opponentName: opponent.team.name,
       opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
       venue: venue.name,
-      win: !!mariners.isWinner,
+      win: !!team.isWinner,
     };
   }
-  throw new Error('No completed Mariners game found in the last 10 days');
+  throw new Error(`No completed game found in the last 10 days for team ${teamId}`);
 }
 
 // Top offensive performers + starting pitcher for a given game
-async function getBoxScore(gamePk) {
+async function getBoxScore(gamePk, teamId) {
   const data = await _mlbFetch(`/api/v1/game/${gamePk}/boxscore`);
 
-  const marinersSide = data.teams.home.team.id === MARINERS_ID ? 'home' : 'away';
+  const marinersSide = data.teams.home.team.id === teamId ? 'home' : 'away';
   const marinersTeam = data.teams[marinersSide];
 
   const batters = Object.values(marinersTeam.players)
@@ -119,20 +122,20 @@ async function getBoxScore(gamePk) {
   return { offense: batters, startingPitcher };
 }
 
-// Next scheduled regular-season Mariners game (not yet started)
-async function getNextGame() {
+// Next scheduled regular-season game for the given team (not yet started)
+async function getNextGame(teamId) {
   for (let i = 0; i <= 10; i++) {
     const dateStr = _ptDate(i);
-    const games = await _getGamesOnDate(dateStr);
+    const games = await _getGamesOnDate(dateStr, teamId);
     const game = games.find(
       g => g.status.abstractGameState === 'Preview' && g.gameType === 'R'
     );
     if (!game) continue;
 
     const { teams, venue, gameDate } = game;
-    const marinersSide = teams.home.team.id === MARINERS_ID ? 'home' : 'away';
-    const mariners = teams[marinersSide];
-    const opponent = teams[marinersSide === 'home' ? 'away' : 'home'];
+    const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
+    const team = teams[teamSide];
+    const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
 
     const gameTime = new Date(gameDate).toLocaleTimeString('en-US', {
       timeZone: 'America/Los_Angeles',
@@ -147,23 +150,22 @@ async function getNextGame() {
       opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
       venue: venue.name,
       gameTime: `${gameTime} PT`,
-      probablePitcher: mariners.probablePitcher?.fullName ?? 'TBD',
+      probablePitcher: team.probablePitcher?.fullName ?? 'TBD',
     };
   }
   return null;
 }
 
-// AL West standings
-async function getStandings() {
+async function getStandings(divisionId, leagueId) {
   const season = new Date().getFullYear();
   const data = await _mlbFetch(
-    `/api/v1/standings?leagueId=103&season=${season}&standingsTypes=regularSeason`
+    `/api/v1/standings?leagueId=${leagueId}&season=${season}&standingsTypes=regularSeason`
   );
 
-  const alWest = data.records.find(r => r.division.id === AL_WEST_DIVISION_ID);
-  if (!alWest) throw new Error('AL West standings not found');
+  const division = data.records.find(r => r.division.id === divisionId);
+  if (!division) throw new Error(`Division ${divisionId} standings not found`);
 
-  return alWest.teamRecords.map(tr => ({
+  return division.teamRecords.map(tr => ({
     teamId: tr.team.id,
     team: tr.team.name,
     wins: tr.wins,
@@ -205,4 +207,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { getLastGame, getBoxScore, getNextGame, getStandings, getLiveGame };
+module.exports = { TEAM_CONFIGS, getLastGame, getBoxScore, getNextGame, getStandings, getLiveGame };

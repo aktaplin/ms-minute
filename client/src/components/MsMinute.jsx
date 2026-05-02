@@ -39,7 +39,7 @@ function SectionHead({ label }) {
   );
 }
 
-function ScoreCard({ data }) {
+function ScoreCard({ data, teamAbbr }) {
   if (!data) return null;
   return (
     <div>
@@ -49,7 +49,7 @@ function ScoreCard({ data }) {
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: NAVY, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
             {data.mScore}–{data.oScore}
           </div>
-          <div style={{ fontSize: 11, color: INK2, marginBottom: 10 }}>SEA vs. {data.oppAbbr}</div>
+          <div style={{ fontSize: 11, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? TEAL : WIN_RED, borderBottom: `2px solid ${data.won ? TEAL : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
             {data.won ? 'Win' : 'Loss'}
           </div>
@@ -168,8 +168,8 @@ function StatOfGameCard({ stat }) {
   );
 }
 
-function YouTubeCard({ videoId, oppName }) {
-  const query = `Seattle Mariners ${oppName} highlights`;
+function YouTubeCard({ videoId, oppName, teamName }) {
+  const query = `${teamName} ${oppName} highlights`;
   const fallbackUrl = `https://www.youtube.com/@MLB/search?query=${encodeURIComponent(query)}`;
   return (
     <div>
@@ -179,7 +179,7 @@ function YouTubeCard({ videoId, oppName }) {
           <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
             <iframe
               src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
-              title="Mariners Game Highlights"
+              title="Game Highlights"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
@@ -202,11 +202,11 @@ function YouTubeCard({ videoId, oppName }) {
   );
 }
 
-function StandingsCard({ rows }) {
+function StandingsCard({ rows, divisionName }) {
   if (!rows?.length) return null;
   return (
     <div>
-      <SectionHead label="AL West Standings" />
+      <SectionHead label={`${divisionName} Standings`} />
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${NAVY}` }}>
@@ -233,18 +233,18 @@ function StandingsCard({ rows }) {
   );
 }
 
-function NextGameCard({ data }) {
+function NextGameCard({ data, teamAbbr }) {
   if (!data) return null;
   return (
     <div>
       <SectionHead label="Next Game" />
       <div style={{ borderLeft: `3px solid ${TEAL}`, paddingLeft: 14 }}>
-        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: NAVY, marginBottom: 6, ...OPSZ9 }}>SEA vs. {data.oppAbbr}</div>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: NAVY, marginBottom: 6, ...OPSZ9 }}>{teamAbbr} vs. {data.oppAbbr}</div>
         <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
           <div style={{ fontStyle: 'italic' }}>{data.oppName}</div>
           <div>{data.venue}</div>
           <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
-          {data.pitcher && <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>M's probable: </span>{data.pitcher}</div>}
+          {data.pitcher && <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable: </span>{data.pitcher}</div>}
         </div>
       </div>
     </div>
@@ -276,20 +276,25 @@ export default function MsMinute() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [team, setTeam] = useState('mariners');
 
-  useEffect(() => { loadReport(); }, []);
+  useEffect(() => { loadReport(team); }, [team]);
 
-  async function loadReport() {
+  async function loadReport(selectedTeam) {
     setLoading(true);
     setError(null);
     setData(null);
     try {
-      const res = await fetch('/api/report');
+      const res = await fetch(`/api/report?team=${selectedTeam}`);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const report = await res.json();
 
       const sp = report.boxScore.startingPitcher;
       setData({
+        teamId: report.teamId,
+        teamName: report.teamName,
+        teamAbbr: report.teamAbbr,
+        divisionName: report.divisionName,
         gameData: {
           mScore: report.lastGame.marinersScore,
           oScore: report.lastGame.opponentScore,
@@ -318,7 +323,7 @@ export default function MsMinute() {
           .sort((a, b) => a.divisionRank - b.divisionRank)
           .map(t => ({
             name: t.team,
-            isM: t.teamId === 136,
+            isM: t.teamId === report.teamId,
             w: t.wins,
             l: t.losses,
             gb: t.gb,
@@ -360,7 +365,7 @@ export default function MsMinute() {
             <div style={{ height: 4, background: NAVY, marginBottom: 16 }} />
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEAL, borderTop: `1px solid ${TEAL}`, borderBottom: `1px solid ${TEAL}`, padding: '3px 14px', display: 'inline-block' }}>
-                Seattle Mariners · Daily Edition
+                {team === 'mariners' ? 'Seattle Mariners' : 'San Francisco Giants'} · Daily Edition
               </span>
             </div>
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: NAVY, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
@@ -391,21 +396,48 @@ export default function MsMinute() {
           {/* Content */}
           {data && (
             <>
-              <ScoreCard data={data.gameData} />
+              <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} />
               <NarrativeCard text={data.narrative} />
               <OffenseCard players={data.offense} />
               <StatOfGameCard stat={data.statOfGame} />
-              <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} />
-              <StandingsCard rows={data.standings} />
-              <NextGameCard data={data.nextGame} />
+              <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} />
+              <StandingsCard rows={data.standings} divisionName={data.divisionName} />
+              <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} />
 
               <div style={{ height: 2, background: NAVY, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
-                <button onClick={loadReport} style={{ background: 'transparent', border: `1px solid ${NAVY}`, color: NAVY, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${NAVY}`, color: NAVY, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
               </div>
             </>
           )}
+
+          {/* Team toggle — always in footer */}
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: data ? 16 : 52, paddingBottom: 8 }}>
+            <div style={{ display: 'inline-flex', border: `1px solid ${NAVY}` }}>
+              {[{ key: 'mariners', label: 'SEA' }, { key: 'giants', label: 'SF' }].map(({ key, label }, i) => (
+                <button
+                  key={key}
+                  onClick={() => setTeam(key)}
+                  style={{
+                    background: team === key ? NAVY : 'transparent',
+                    color: team === key ? PAPER : NAVY,
+                    border: 'none',
+                    borderLeft: i > 0 ? `1px solid ${NAVY}` : 'none',
+                    padding: '4px 16px',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    fontFamily: INTER,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
         </div>
       </div>

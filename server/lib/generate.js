@@ -6,8 +6,8 @@ const mlb = require('./mlb');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
 
-// Cached system prompt — placed first so all three Claude calls share the same prefix
-const SYS_VOICE = `You write for The M's Minute, a daily Seattle Mariners briefing for fans.
+function _sysVoice(teamName) {
+  return `You write for The M's Minute, a daily ${teamName} briefing for fans.
 
 Voice: Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. Grounded in what actually occurred — not in sentiment about it.
 
@@ -18,6 +18,7 @@ Rules:
 - No filler phrases like "It was a great game" or "The team played well."
 - Let the facts carry the emotion — a walk-off HR speaks for itself.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
+}
 
 // Stat curriculum: the pool Claude picks from each day, ordered basic → advanced.
 // Claude selects whichever stat is most interestingly illustrated by that game.
@@ -106,14 +107,14 @@ function _resolveStatValue(statOfGame, boxScore) {
   return { ...statOfGame, value: String(realValue) };
 }
 
-async function _callClaude(userPrompt, maxTokens = 400) {
+async function _callClaude(userPrompt, maxTokens = 400, teamName) {
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: maxTokens,
     system: [
       {
         type: 'text',
-        text: SYS_VOICE,
+        text: _sysVoice(teamName),
         cache_control: { type: 'ephemeral' },
       },
     ],
@@ -131,14 +132,14 @@ function _formatDate(dateStr) {
   });
 }
 
-async function _fetchYouTubeVideoId(lastGame) {
+async function _fetchYouTubeVideoId(lastGame, teamName) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) {
     console.warn('[generate] YOUTUBE_API_KEY not set — skipping video lookup');
     return null;
   }
   try {
-    const q = encodeURIComponent(`Seattle Mariners ${lastGame.opponentName} highlights`);
+    const q = encodeURIComponent(`${teamName} ${lastGame.opponentName} highlights`);
     const url =
       `https://www.googleapis.com/youtube/v3/search` +
       `?part=snippet&channelId=UCqzDdCzAprzCNhNUtM8omcQ` +
@@ -153,19 +154,21 @@ async function _fetchYouTubeVideoId(lastGame) {
   }
 }
 
-async function generateDailyReport() {
-  console.log('[generate] Fetching game data...');
-  const lastGame = await mlb.getLastGame();
+async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
+  const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName } = teamConfig;
+  console.log(`[generate] Fetching game data for ${teamName}...`);
+  const lastGame = await mlb.getLastGame(teamId);
   const [boxScore, nextGame, standings] = await Promise.all([
-    mlb.getBoxScore(lastGame.gamePk),
-    mlb.getNextGame(),
-    mlb.getStandings(),
+    mlb.getBoxScore(lastGame.gamePk, teamId),
+    mlb.getNextGame(teamId),
+    mlb.getStandings(divisionId, leagueId),
   ]);
 
   // Build context strings for Claude prompts
   const result = lastGame.win
     ? `won ${lastGame.marinersScore}–${lastGame.opponentScore}`
     : `lost ${lastGame.marinersScore}–${lastGame.opponentScore}`;
+  const teamShort = teamName.split(' ').pop();
 
   const batterLines = boxScore.offense
     .map(b =>
@@ -181,14 +184,14 @@ async function generateDailyReport() {
     : 'Starter info unavailable';
 
   const narrativePrompt =
-    `Write a 3-sentence recap of yesterday's Mariners game.\n\n` +
-    `Game: Seattle Mariners ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
+    `Write a 3-sentence recap of yesterday's ${teamShort} game.\n\n` +
+    `Game: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
     `Hitters:\n${batterLines}\n\n` +
     `Starting pitcher: ${spLine}\n\n` +
     `Wrap every player name in <em> tags. Return only the 3 sentences. No intro, no outro.`;
 
   const playerNotesPrompt =
-    `Write a one-line journalist note for each of these Mariners players from yesterday's game.\n\n` +
+    `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
     `${batterLines}\n` +
     (sp ? `\nStarting pitcher — ${spLine}` : '') +
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
@@ -199,7 +202,7 @@ async function generateDailyReport() {
     `they know the basic box score (hits, runs, ERA) but not much beyond that. Your job is to teach them ` +
     `one stat per day, cycling through a curriculum from basic to advanced.\n\n` +
     `TODAY'S GAME\n` +
-    `${lastGame.opponentName} at ${lastGame.venue} — Mariners ${result}\n` +
+    `${lastGame.opponentName} at ${lastGame.venue} — ${teamShort} ${result}\n` +
     `Hitters:\n${batterLines}\n` +
     `Starting pitcher: ${spLine}\n\n` +
     `STAT CURRICULUM (pick the one most interesting or well-illustrated by today's game):\n` +
@@ -221,10 +224,10 @@ async function generateDailyReport() {
 
   console.log('[generate] Running Claude + YouTube in parallel...');
   const [narrative, playerNotesRaw, statRaw, ytVideoId] = await Promise.all([
-    _callClaude(narrativePrompt, 400),
-    _callClaude(playerNotesPrompt, 600),
-    _callClaude(statPrompt, 600),
-    _fetchYouTubeVideoId(lastGame),
+    _callClaude(narrativePrompt, 400, teamName),
+    _callClaude(playerNotesPrompt, 600, teamName),
+    _callClaude(statPrompt, 600, teamName),
+    _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
   let playerNotes = [];
@@ -257,6 +260,10 @@ async function generateDailyReport() {
 
   const report = {
     generatedAt: new Date().toISOString(),
+    teamId,
+    teamName,
+    teamAbbr,
+    divisionName,
     lastGame,
     boxScore,
     standings,
