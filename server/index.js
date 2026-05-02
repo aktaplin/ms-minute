@@ -77,6 +77,15 @@ app.get('/api/dev/report', async (req, res) => {
   }
 });
 
+// In production, serve the built React app for all non-API routes
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   startCron();
