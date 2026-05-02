@@ -117,25 +117,53 @@ function StatOfGameCard({ stat }) {
     <div>
       <SectionHead label="Stat of the Game" />
       <div style={{ background: NAVY, padding: '18px 20px' }}>
-        {/* Full stat name as the kicker */}
-        {stat.statName && (
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: LTEAL, marginBottom: 8 }}>
-            {stat.statName}
-          </div>
-        )}
-        {/* Big number + abbreviation — shown only when a concrete value exists */}
-        {stat.value && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 42, fontWeight: 900, color: PAPER, lineHeight: 1 }}>{stat.value}</div>
-            {stat.abbr && (
-              <div style={{ fontSize: 12, color: LTEAL, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.abbr}</div>
+
+        {/* Stat identity: abbreviation + full name */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+          {stat.abbr && (
+            <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 28, fontWeight: 900, color: PAPER, lineHeight: 1 }}>
+              {stat.abbr}
+            </span>
+          )}
+          {stat.statName && (
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: 13, fontStyle: 'italic', color: LTEAL }}>
+              {stat.statName}
+            </span>
+          )}
+        </div>
+
+        {/* Value + player — shown when a concrete value exists */}
+        {(stat.value || stat.player) && (
+          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(168,200,200,0.2)' }}>
+            {stat.value && (
+              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 36, fontWeight: 900, color: PAPER, lineHeight: 1, marginRight: 10 }}>
+                {stat.value}
+              </span>
+            )}
+            {stat.player && (
+              <span style={{ fontSize: 11, color: LTEAL, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {stat.player}
+              </span>
             )}
           </div>
         )}
-        {stat.player && (
-          <div style={{ fontSize: 10, color: LTEAL, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{stat.player}</div>
+
+        {/* What the stat means */}
+        {stat.definition && (
+          <p style={{ fontFamily: 'Georgia, serif', fontSize: 13, lineHeight: 1.8, color: LGREY, marginBottom: 10 }}>{stat.definition}</p>
         )}
-        <p style={{ fontFamily: 'Georgia, serif', fontSize: 13, lineHeight: 1.75, color: LGREY, marginBottom: 0 }}>{stat.explanation}</p>
+
+        {/* League average callout */}
+        {stat.leagueContext && (
+          <div style={{ borderLeft: `3px solid ${LTEAL}`, paddingLeft: 10, marginBottom: 10 }}>
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: 12, lineHeight: 1.7, color: LTEAL, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
+          </div>
+        )}
+
+        {/* How today's game illustrates it */}
+        {stat.todayContext && (
+          <p style={{ fontFamily: 'Georgia, serif', fontSize: 13, lineHeight: 1.8, color: LGREY, marginBottom: 0 }}>{stat.todayContext}</p>
+        )}
       </div>
     </div>
   );

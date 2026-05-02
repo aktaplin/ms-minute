@@ -157,16 +157,23 @@ async function generateDailyReport() {
     `Instructions:\n` +
     `- Pick ONE stat from the curriculum that today's game illustrates particularly well.\n` +
     `- Prefer variety over time — don't always pick HR or ERA. Lean toward intermediate/advanced stats when the game data supports it.\n` +
-    `- If the stat's exact value is calculable from the data above, use it. If not (e.g. WAR, wRC+), you may use an approximate or contextual value, or set value to null.\n` +
-    `- The explanation must: (1) define the stat in plain English, (2) give league-average context and what separates average from elite, (3) ground it in today's specific game data.\n\n` +
-    `Return only valid JSON:\n` +
-    `{"statName": "Full stat name", "abbr": "Abbreviation", "player": "Player name or null", "value": "Numeric value as a string, or null", "explanation": "3–4 sentences. Factual and educational."}`;
+    `- If the stat's exact value is calculable from the data above, use it. If not (e.g. WAR, wRC+), you may use an approximate or contextual value, or set value to null.\n\n` +
+    `Return only valid JSON with these exact fields:\n` +
+    `{\n` +
+    `  "statName": "Full stat name (e.g. Runs Batted In)",\n` +
+    `  "abbr": "Abbreviation (e.g. RBI)",\n` +
+    `  "player": "Player name this stat applies to, or null for team-level stats",\n` +
+    `  "value": "The specific numeric value as a short string (e.g. \\"3\\" or \\"0.71\\"), or null if not calculable",\n` +
+    `  "leagueContext": "One sentence: what is average, and what separates average from elite. Include real numbers (e.g. \\"League average OPS is around .720; anything above .900 is elite\\").",\n` +
+    `  "definition": "1–2 sentences: what this stat measures in plain English, including what the abbreviation stands for.",\n` +
+    `  "todayContext": "1–2 sentences: how today\\'s specific game data illustrates this stat. Be precise — reference the actual numbers."\n` +
+    `}`;
 
   console.log('[generate] Running Claude + YouTube in parallel...');
   const [narrative, playerNotesRaw, statRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400),
     _callClaude(playerNotesPrompt, 600),
-    _callClaude(statPrompt, 500),
+    _callClaude(statPrompt, 600),
     _fetchYouTubeVideoId(lastGame),
   ]);
 
@@ -188,11 +195,13 @@ async function generateDailyReport() {
       abbr: parsed.abbr,
       player: parsed.player ?? null,
       value: parsed.value ?? null,
-      explanation: parsed.explanation,
+      leagueContext: parsed.leagueContext ?? null,
+      definition: parsed.definition ?? null,
+      todayContext: parsed.todayContext ?? null,
     };
   } catch {
     console.warn('[generate] Failed to parse stat JSON');
-    statOfGame = { statName: null, abbr: null, player: null, value: null, explanation: statRaw };
+    statOfGame = { statName: null, abbr: null, player: null, value: null, leagueContext: null, definition: statRaw, todayContext: null };
   }
 
   const report = {
