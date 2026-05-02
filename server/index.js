@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const express = require('express');
@@ -82,9 +83,9 @@ app.get('/api/dev/report', async (req, res) => {
   }
 });
 
-// In production, serve the built React app for all non-API routes
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../client/dist');
+// Serve the built React app if client/dist exists (i.e. in production)
+const clientDist = path.join(__dirname, '../client/dist');
+if (fs.existsSync(path.join(clientDist, 'index.html'))) {
   app.use(express.static(clientDist));
   app.get('*', (req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
