@@ -28,4 +28,13 @@ function saveReport(date, report) {
   ).run(date, JSON.stringify(report), Date.now());
 }
 
-module.exports = { getReport, saveReport };
+function getRecentStatAbbrs(teamKey, limit = 7) {
+  const rows = db.prepare(
+    "SELECT json FROM reports WHERE date LIKE ? ORDER BY date DESC LIMIT ?"
+  ).all(`%-${teamKey}`, limit);
+  return rows
+    .map(r => { try { return JSON.parse(r.json).statOfGame?.abbr ?? null; } catch { return null; } })
+    .filter(Boolean);
+}
+
+module.exports = { getReport, saveReport, getRecentStatAbbrs };
