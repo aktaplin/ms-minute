@@ -2,6 +2,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const mlb = require('./mlb');
+const db = require('./db');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
@@ -197,6 +198,12 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
     `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
 
+  const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? 'mariners';
+  const recentAbbrs = db.getRecentStatAbbrs(teamKey);
+  const recentExclusion = recentAbbrs.length > 0
+    ? `- Do NOT pick any of these stats, which were used in recent reports: ${recentAbbrs.join(', ')}.\n`
+    : '';
+
   const statPrompt =
     `You are writing the "Stat of the Game" for a baseball newsletter. The reader is learning baseball — ` +
     `they know the basic box score (hits, runs, ERA) but not much beyond that. Your job is to teach them ` +
@@ -210,6 +217,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
     `Instructions:\n` +
     `- Pick ONE stat from the curriculum that today's game illustrates particularly well.\n` +
     `- Prefer variety over time — don't always pick HR or ERA. Lean toward intermediate/advanced stats when the game data supports it.\n` +
+    recentExclusion +
     `- If the stat's exact value is calculable from the data above, use it. If not (e.g. WAR, wRC+), you may use an approximate or contextual value, or set value to null.\n\n` +
     `Return only valid JSON with these exact fields:\n` +
     `{\n` +
