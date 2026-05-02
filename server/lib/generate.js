@@ -52,6 +52,9 @@ function _detectNotableStat(boxScore, lastGame) {
     return {
       label: `${multiHR.name}: ${multiHR.homeRuns} home runs`,
       context: `${multiHR.name} crushed ${multiHR.homeRuns} home runs, driving in ${multiHR.rbi} runs. He's batting ${multiHR.avg} on the season.`,
+      player: multiHR.name,
+      value: String(multiHR.homeRuns),
+      abbr: 'HR',
     };
   }
 
@@ -61,6 +64,9 @@ function _detectNotableStat(boxScore, lastGame) {
     return {
       label: `${bigRBI.name}: ${bigRBI.rbi} RBI`,
       context: `${bigRBI.name} drove in ${bigRBI.rbi} runs going ${bigRBI.hits}-for-${bigRBI.atBats}. He's batting ${bigRBI.avg} on the season.`,
+      player: bigRBI.name,
+      value: String(bigRBI.rbi),
+      abbr: 'RBI',
     };
   }
 
@@ -72,6 +78,9 @@ function _detectNotableStat(boxScore, lastGame) {
       return {
         label: `${sp.name}: ${whip} WHIP`,
         context: `${sp.name} allowed only ${sp.hits} hit${sp.hits !== 1 ? 's' : ''} and ${sp.walks} walk${sp.walks !== 1 ? 's' : ''} over ${sp.inningsPitched} innings (${sp.strikeOuts} strikeouts). His game WHIP was ${whip}.`,
+        player: sp.name,
+        value: whip,
+        abbr: 'WHIP',
       };
     }
   }
@@ -81,6 +90,9 @@ function _detectNotableStat(boxScore, lastGame) {
     return {
       label: `One-run win: ${lastGame.marinersScore}–${lastGame.opponentScore}`,
       context: `The Mariners squeaked out a one-run victory, ${lastGame.marinersScore}–${lastGame.opponentScore}, over the ${lastGame.opponentName}. One-run games are the closest thing baseball has to a coin flip.`,
+      player: null,
+      value: `${lastGame.marinersScore}–${lastGame.opponentScore}`,
+      abbr: 'SCORE',
     };
   }
 
@@ -89,6 +101,9 @@ function _detectNotableStat(boxScore, lastGame) {
   return {
     label: `${best.name}: ${best.hits}-for-${best.atBats}`,
     context: `${best.name} led the offense going ${best.hits}-for-${best.atBats} with ${best.rbi} RBI, batting ${best.avg} on the season.`,
+    player: best.name,
+    value: `${best.hits}/${best.atBats}`,
+    abbr: 'H/AB',
   };
 }
 
@@ -143,7 +158,7 @@ async function generateDailyReport() {
     `Game: Seattle Mariners ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
     `Hitters:\n${batterLines}\n\n` +
     `Starting pitcher: ${spLine}\n\n` +
-    `Return only the 3 sentences. No intro, no outro.`;
+    `Wrap every player name in <em> tags. Return only the 3 sentences. No intro, no outro.`;
 
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these Mariners players from yesterday's game.\n\n` +
@@ -187,6 +202,9 @@ async function generateDailyReport() {
     playerNotes,
     statOfGame: {
       label: detectedStat.label,
+      player: detectedStat.player,
+      value: detectedStat.value,
+      abbr: detectedStat.abbr,
       explanation: statExplanation,
     },
     ytVideoId,

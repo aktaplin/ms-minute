@@ -36,7 +36,7 @@ function _ptDate(offsetDays = 0) {
 async function _getGamesOnDate(dateStr) {
   const data = await _mlbFetch(
     `/api/v1/schedule?sportId=1&teamId=${MARINERS_ID}&date=${dateStr}` +
-    `&hydrate=linescore,decisions,probablePitcher`
+    `&hydrate=linescore,decisions,probablePitcher,team`
   );
   if (!data.dates || data.dates.length === 0) return [];
   return data.dates[0].games || [];
@@ -64,6 +64,7 @@ async function getLastGame() {
       marinersScore: mariners.score,
       opponentScore: opponent.score,
       opponentName: opponent.team.name,
+      opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
       venue: venue.name,
       win: !!mariners.isWinner,
     };
@@ -137,6 +138,7 @@ async function getNextGame() {
     return {
       date: dateStr,
       opponentName: opponent.team.name,
+      opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
       venue: venue.name,
       gameTime: `${gameTime} PT`,
       probablePitcher: mariners.probablePitcher?.fullName ?? 'TBD',
