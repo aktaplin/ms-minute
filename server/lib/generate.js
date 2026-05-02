@@ -133,6 +133,12 @@ function _formatDate(dateStr) {
   });
 }
 
+// Format YYYY-MM-DD as M/D/YY (MLB's title convention, e.g. "5/1/26")
+function _slashDate(isoDate) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return `${m}/${d}/${String(y).slice(-2)}`;
+}
+
 async function _fetchYouTubeVideoId(lastGame, teamName) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) {
@@ -140,11 +146,22 @@ async function _fetchYouTubeVideoId(lastGame, teamName) {
     return null;
   }
   try {
-    const q = encodeURIComponent(`${teamName} ${lastGame.opponentName} highlights`);
+    // Bound the publish window to the 48 hours starting at the game's PT date
+    // so YouTube only ranks recap videos uploaded around the actual game.
+    const startMs = Date.parse(`${lastGame.date}T00:00:00-07:00`);
+    const publishedAfter  = new Date(startMs).toISOString();
+    const publishedBefore = new Date(startMs + 48 * 60 * 60 * 1000).toISOString();
+
+    const q = encodeURIComponent(
+      `${teamName} ${lastGame.opponentName} recap ${_slashDate(lastGame.date)}`
+    );
     const url =
       `https://www.googleapis.com/youtube/v3/search` +
       `?part=snippet&channelId=UCoLrcjPV5PbUrUyXq5mjc_A` +
-      `&q=${q}&order=date&maxResults=1&type=video&key=${key}`;
+      `&q=${q}&type=video&maxResults=3` +
+      `&publishedAfter=${encodeURIComponent(publishedAfter)}` +
+      `&publishedBefore=${encodeURIComponent(publishedBefore)}` +
+      `&key=${key}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`YouTube API ${res.status}`);
     const data = await res.json();
