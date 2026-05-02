@@ -8,21 +8,6 @@ const MUTED   = '#5C5347';
 const LGREY   = '#C8D4DC';
 const WIN_RED = '#8B1A1A';
 
-const THEMES = {
-  mariners: {
-    navy:  '#0C2340',
-    teal:  '#005C5C',
-    lteal: '#A8C8C8',
-    title: "The M's Minute",
-  },
-  giants: {
-    navy:  '#27251F',
-    teal:  '#7B2D00',
-    lteal: '#FD5A1E',
-    title: "The G's Minute",
-  },
-};
-
 const FRAUNCES = "'Fraunces', Georgia, serif";
 const INTER    = "'Inter', system-ui, sans-serif";
 const OPSZ9    = { fontVariationSettings: "'opsz' 9" };
@@ -38,6 +23,11 @@ function formatDate(dateStr) {
     weekday: 'long', month: 'long', day: 'numeric',
     timeZone: 'America/Los_Angeles',
   });
+}
+
+function pathToTeamKey(pathname, validKeys) {
+  const seg = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+  return validKeys.includes(seg) ? seg : null;
 }
 
 function SectionHead({ label, t }) {
@@ -263,36 +253,63 @@ function NextGameCard({ data, teamAbbr, t }) {
   );
 }
 
-function Skeleton({ height = 16, width = '100%', style = {} }) {
-  return (
-    <div style={{
-      height, width, background: PAPER2, borderRadius: 2,
-      animation: 'pulse 1.5s ease-in-out infinite', ...style,
-    }} />
-  );
-}
-
-function SectionSkeleton({ lines = 3 }) {
-  return (
-    <div style={{ marginTop: 28 }}>
-      <div style={{ height: 2, background: PAPER2, marginBottom: 6 }} />
-      <Skeleton height={10} width={80} style={{ marginBottom: 14 }} />
-      {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={i} height={15} width={i === lines - 1 ? '65%' : '100%'} style={{ marginBottom: 8 }} />
-      ))}
-    </div>
-  );
-}
-
 export default function MsMinute() {
+  const [teams, setTeams] = useState(null);
+  const [team, setTeamState] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [team, setTeam] = useState('mariners');
 
-  const t = THEMES[team];
+  // Bootstrap: fetch the team registry, then derive initial team from the URL
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/teams')
+      .then(r => r.json())
+      .then(({ teams: list }) => {
+        if (cancelled) return;
+        setTeams(list);
+        const validKeys = list.map(x => x.key);
+        const fromPath = pathToTeamKey(window.location.pathname, validKeys);
+        const stored = localStorage.getItem('teamKey');
+        const initial =
+          fromPath ??
+          (validKeys.includes(stored) ? stored : null) ??
+          validKeys[0];
+        // If the URL didn't already specify a team, normalize it
+        if (!fromPath) {
+          window.history.replaceState({}, '', `/${initial}`);
+        }
+        setTeamState(initial);
+      })
+      .catch(err => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
+  }, []);
 
-  useEffect(() => { loadReport(team); }, [team]);
+  // Browser back/forward
+  useEffect(() => {
+    if (!teams) return;
+    const validKeys = teams.map(x => x.key);
+    function onPop() {
+      const k = pathToTeamKey(window.location.pathname, validKeys) ?? validKeys[0];
+      setTeamState(k);
+    }
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [teams]);
+
+  // Fetch the report whenever the selected team changes
+  useEffect(() => {
+    if (!team) return;
+    loadReport(team);
+    localStorage.setItem('teamKey', team);
+    document.title = teamConfig?.brandTitle ?? "The M's Minute";
+  }, [team]);
+
+  function selectTeam(nextKey) {
+    if (nextKey === team) return;
+    window.history.pushState({}, '', `/${nextKey}`);
+    setTeamState(nextKey);
+  }
 
   async function loadReport(selectedTeam) {
     setLoading(true);
@@ -310,7 +327,7 @@ export default function MsMinute() {
         teamAbbr: report.teamAbbr,
         divisionName: report.divisionName,
         gameData: {
-          mScore: report.lastGame.marinersScore,
+          mScore: report.lastGame.teamScore,
           oScore: report.lastGame.opponentScore,
           oppAbbr: report.lastGame.opponentAbbr,
           oppName: report.lastGame.opponentName,
@@ -360,6 +377,13 @@ export default function MsMinute() {
     }
   }
 
+  // Resolve the active team config (theme + branding). Fall back to a neutral
+  // navy/teal until the registry has loaded so the masthead doesn't flash white.
+  const teamConfig = teams?.find(x => x.key === team);
+  const t = teamConfig?.theme ?? { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' };
+  const brandTitle = teamConfig?.brandTitle ?? "The M's Minute";
+  const editionLabel = teamConfig?.edition ?? '';
+
   return (
     <>
       <style>{`
@@ -379,11 +403,11 @@ export default function MsMinute() {
             <div style={{ height: 4, background: t.navy, marginBottom: 16 }} />
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.teal, borderTop: `1px solid ${t.teal}`, borderBottom: `1px solid ${t.teal}`, padding: '3px 14px', display: 'inline-block' }}>
-                {team === 'mariners' ? 'Seattle Mariners' : 'San Francisco Giants'} · Daily Edition
+                {editionLabel || ' '}
               </span>
             </div>
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
-              {t.title}
+              {brandTitle}
             </h1>
             <div style={{ textAlign: 'center', fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
               {todayFormatted()}
@@ -395,12 +419,12 @@ export default function MsMinute() {
             <div style={{ margin: '24px 0', padding: '18px', border: `1px solid ${WIN_RED}` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
               <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6, fontFamily: INTER, fontStyle: 'italic' }}>{error}</div>
-              <button onClick={loadReport} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
+              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
             </div>
           )}
 
           {/* Loading spinner — before any data arrives */}
-          {loading && !data && (
+          {loading && !data && !error && (
             <div style={{ textAlign: 'center', padding: '52px 0' }}>
               <div style={{ width: 24, height: 24, border: `2px solid ${PAPER2}`, borderTopColor: t.teal, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
               <div style={{ fontSize: 14, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>Compiling today's edition…</div>
@@ -426,32 +450,34 @@ export default function MsMinute() {
             </>
           )}
 
-          {/* Team toggle — always in footer */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: data ? 16 : 52, paddingBottom: 8 }}>
-            <div style={{ display: 'inline-flex', border: `1px solid ${t.navy}` }}>
-              {[{ key: 'mariners', label: 'SEA' }, { key: 'giants', label: 'SF' }].map(({ key, label }, i) => (
-                <button
-                  key={key}
-                  onClick={() => setTeam(key)}
-                  style={{
-                    background: team === key ? t.navy : 'transparent',
-                    color: team === key ? PAPER : t.navy,
-                    border: 'none',
-                    borderLeft: i > 0 ? `1px solid ${t.navy}` : 'none',
-                    padding: '4px 16px',
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    fontFamily: INTER,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* Team toggle — always in footer, driven by /api/teams */}
+          {teams && (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: data ? 16 : 52, paddingBottom: 8 }}>
+              <div style={{ display: 'inline-flex', border: `1px solid ${t.navy}` }}>
+                {teams.map((tm, i) => (
+                  <button
+                    key={tm.key}
+                    onClick={() => selectTeam(tm.key)}
+                    style={{
+                      background: team === tm.key ? t.navy : 'transparent',
+                      color: team === tm.key ? PAPER : t.navy,
+                      border: 'none',
+                      borderLeft: i > 0 ? `1px solid ${t.navy}` : 'none',
+                      padding: '4px 16px',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      fontFamily: INTER,
+                    }}
+                  >
+                    {tm.abbr}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </div>

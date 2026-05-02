@@ -7,8 +7,8 @@ const db = require('./db');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
 
-function _sysVoice(teamName) {
-  return `You write for The M's Minute, a daily ${teamName} briefing for fans.
+function _sysVoice(brandTitle, teamName) {
+  return `You write for ${brandTitle}, a daily ${teamName} briefing for fans.
 
 Voice: Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. Grounded in what actually occurred — not in sentiment about it.
 
@@ -108,14 +108,14 @@ function _resolveStatValue(statOfGame, boxScore) {
   return { ...statOfGame, value: String(realValue) };
 }
 
-async function _callClaude(userPrompt, maxTokens = 400, teamName) {
+async function _callClaude(userPrompt, maxTokens, brandTitle, teamName) {
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: maxTokens,
     system: [
       {
         type: 'text',
-        text: _sysVoice(teamName),
+        text: _sysVoice(brandTitle, teamName),
         cache_control: { type: 'ephemeral' },
       },
     ],
@@ -155,8 +155,8 @@ async function _fetchYouTubeVideoId(lastGame, teamName) {
   }
 }
 
-async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
-  const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName } = teamConfig;
+async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEAM_KEY]) {
+  const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
   const [boxScore, nextGame, standings] = await Promise.all([
@@ -167,8 +167,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
 
   // Build context strings for Claude prompts
   const result = lastGame.win
-    ? `won ${lastGame.marinersScore}–${lastGame.opponentScore}`
-    : `lost ${lastGame.marinersScore}–${lastGame.opponentScore}`;
+    ? `won ${lastGame.teamScore}–${lastGame.opponentScore}`
+    : `lost ${lastGame.teamScore}–${lastGame.opponentScore}`;
   const teamShort = teamName.split(' ').pop();
 
   const batterLines = boxScore.offense
@@ -198,7 +198,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
     `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
 
-  const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? 'mariners';
+  const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
   const recentAbbrs = db.getRecentStatAbbrs(teamKey);
   const recentExclusion = recentAbbrs.length > 0
     ? `- Do NOT pick any of these stats, which were used in recent reports: ${recentAbbrs.join(', ')}.\n`
@@ -232,9 +232,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
 
   console.log('[generate] Running Claude + YouTube in parallel...');
   const [narrative, playerNotesRaw, statRaw, ytVideoId] = await Promise.all([
-    _callClaude(narrativePrompt, 400, teamName),
-    _callClaude(playerNotesPrompt, 600, teamName),
-    _callClaude(statPrompt, 600, teamName),
+    _callClaude(narrativePrompt, 400, brandTitle, teamName),
+    _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
+    _callClaude(statPrompt, 600, brandTitle, teamName),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
@@ -271,6 +271,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS.mariners) {
     teamId,
     teamName,
     teamAbbr,
+    brandTitle,
     divisionName,
     lastGame,
     boxScore,

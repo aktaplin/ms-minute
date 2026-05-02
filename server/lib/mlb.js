@@ -3,9 +3,34 @@
 const MLB_BASE = 'https://statsapi.mlb.com';
 
 const TEAM_CONFIGS = {
-  mariners: { id: 136, divisionId: 200, leagueId: 103, abbr: 'SEA', name: 'Seattle Mariners', divisionName: 'AL West' },
-  giants:   { id: 137, divisionId: 203, leagueId: 104, abbr: 'SF',  name: 'San Francisco Giants', divisionName: 'NL West' },
+  mariners: {
+    id: 136, divisionId: 200, leagueId: 103,
+    abbr: 'SEA', name: 'Seattle Mariners', divisionName: 'AL West',
+    brandTitle: "The M's Minute",
+    edition: 'Seattle Mariners · Daily Edition',
+    theme: { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' },
+  },
+  giants: {
+    id: 137, divisionId: 203, leagueId: 104,
+    abbr: 'SF', name: 'San Francisco Giants', divisionName: 'NL West',
+    brandTitle: "The G's Minute",
+    edition: 'San Francisco Giants · Daily Edition',
+    theme: { navy: '#27251F', teal: '#7B2D00', lteal: '#FD5A1E' },
+  },
+  dodgers: {
+    id: 119, divisionId: 203, leagueId: 104,
+    abbr: 'LAD', name: 'Los Angeles Dodgers', divisionName: 'NL West',
+    brandTitle: "The D's Minute",
+    edition: 'Los Angeles Dodgers · Daily Edition',
+    theme: { navy: '#005A9C', teal: '#A5ACAF', lteal: '#EF3E42' },
+  },
 };
+
+const DEFAULT_TEAM_KEY = 'mariners';
+
+function resolveTeamKey(input) {
+  return Object.prototype.hasOwnProperty.call(TEAM_CONFIGS, input) ? input : DEFAULT_TEAM_KEY;
+}
 
 const _cache = new Map();
 
@@ -64,7 +89,7 @@ async function getLastGame(teamId) {
       gamePk,
       date: dateStr,
       teamSide,
-      marinersScore: team.score,
+      teamScore: team.score,
       opponentScore: opponent.score,
       opponentName: opponent.team.name,
       opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
@@ -79,10 +104,10 @@ async function getLastGame(teamId) {
 async function getBoxScore(gamePk, teamId) {
   const data = await _mlbFetch(`/api/v1/game/${gamePk}/boxscore`);
 
-  const marinersSide = data.teams.home.team.id === teamId ? 'home' : 'away';
-  const marinersTeam = data.teams[marinersSide];
+  const teamSide = data.teams.home.team.id === teamId ? 'home' : 'away';
+  const teamData = data.teams[teamSide];
 
-  const batters = Object.values(marinersTeam.players)
+  const batters = Object.values(teamData.players)
     .filter(p => p.stats.batting && p.stats.batting.atBats > 0)
     .map(p => ({
       name: p.person.fullName,
@@ -103,8 +128,8 @@ async function getBoxScore(gamePk, teamId) {
     .slice(0, 4)
     .map(({ _score, ...rest }) => rest);
 
-  const spId = marinersTeam.pitchers[0];
-  const sp = marinersTeam.players[`ID${spId}`];
+  const spId = teamData.pitchers[0];
+  const sp = teamData.players[`ID${spId}`];
   const startingPitcher = sp
     ? {
         name: sp.person.fullName,
@@ -207,4 +232,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, getLastGame, getBoxScore, getNextGame, getStandings, getLiveGame };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getLiveGame };
