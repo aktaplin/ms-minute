@@ -32,7 +32,7 @@ function SectionHead({ label }) {
   return (
     <div style={{ marginTop: 28, marginBottom: 14 }}>
       <div style={{ height: 2, background: NAVY, marginBottom: 6 }} />
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: TEAL }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: TEAL }}>
         {label}
       </div>
     </div>
@@ -49,20 +49,20 @@ function ScoreCard({ data }) {
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: NAVY, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
             {data.mScore}–{data.oScore}
           </div>
-          <div style={{ fontSize: 10, color: INK2, marginBottom: 10 }}>SEA vs. {data.oppAbbr}</div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? TEAL : WIN_RED, borderBottom: `2px solid ${data.won ? TEAL : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
+          <div style={{ fontSize: 11, color: INK2, marginBottom: 10 }}>SEA vs. {data.oppAbbr}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? TEAL : WIN_RED, borderBottom: `2px solid ${data.won ? TEAL : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
             {data.won ? 'Win' : 'Loss'}
           </div>
         </div>
         <div style={{ flex: 1, paddingLeft: 18 }}>
-          <div style={{ fontFamily: INTER, fontSize: 13, fontStyle: 'italic', color: INK2, marginBottom: 10 }}>{data.oppName}</div>
-          <div style={{ fontSize: 11, color: MUTED, lineHeight: 2 }}>
+          <div style={{ fontFamily: INTER, fontSize: 15, fontStyle: 'italic', color: INK2, marginBottom: 10 }}>{data.oppName}</div>
+          <div style={{ fontSize: 12, color: MUTED, lineHeight: 2 }}>
             <div>{data.venue}</div>
             <div>{data.gameDate}</div>
           </div>
           {data.startingPitcher && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 10, color: INK2 }}>
-              <span style={{ color: TEAL, fontWeight: 700, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 11, color: INK2 }}>
+              <span style={{ color: TEAL, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
               {data.startingPitcher.name} · {data.startingPitcher.ip} IP · {data.startingPitcher.k} K · {data.startingPitcher.er} ER
             </div>
           )}
@@ -78,7 +78,7 @@ function NarrativeCard({ text }) {
     <div>
       <SectionHead label="Recap" />
       <p
-        style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.85, color: INK, fontStyle: 'italic', textAlign: 'justify', hyphens: 'auto' }}
+        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, fontStyle: 'italic', textAlign: 'justify', hyphens: 'auto' }}
         dangerouslySetInnerHTML={{ __html: text }}
       />
     </div>
@@ -95,19 +95,19 @@ function OffenseCard({ players }) {
           <div key={p.name} style={{ paddingTop: i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontFamily: FRAUNCES, fontSize: 16, fontWeight: 900, color: NAVY, ...OPSZ9 }}>{p.name}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: TEAL, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
+                <span style={{ fontFamily: FRAUNCES, fontSize: 18, fontWeight: 900, color: NAVY, ...OPSZ9 }}>{p.name}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: TEAL, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {p.stats.map(s => (
                   <div key={s.lbl} style={{ border: `1px solid ${NAVY}`, padding: '2px 7px', textAlign: 'center', minWidth: 32 }}>
-                    <div style={{ fontFamily: INTER, fontSize: 13, fontWeight: 700, color: NAVY, lineHeight: 1.1 }}>{s.val}</div>
-                    <div style={{ fontSize: 7, color: TEAL, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
+                    <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: NAVY, lineHeight: 1.1 }}>{s.val}</div>
+                    <div style={{ fontSize: 8, color: TEAL, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
                   </div>
                 ))}
               </div>
             </div>
-            {p.note && <p style={{ fontFamily: INTER, fontSize: 12, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>{p.note}</p>}
+            {p.note && <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>{p.note}</p>}
           </div>
         ))}
       </div>
@@ -129,7 +129,7 @@ function StatOfGameCard({ stat }) {
             </span>
           )}
           {stat.statName && (
-            <span style={{ fontFamily: INTER, fontSize: 13, fontStyle: 'italic', color: LTEAL }}>
+            <span style={{ fontFamily: INTER, fontSize: 15, fontStyle: 'italic', color: LTEAL }}>
               {stat.statName}
             </span>
           )}
@@ -143,7 +143,7 @@ function StatOfGameCard({ stat }) {
               </span>
             )}
             {stat.player && (
-              <span style={{ fontSize: 11, color: LTEAL, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 12, color: LTEAL, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {stat.player}
               </span>
             )}
@@ -151,17 +151,17 @@ function StatOfGameCard({ stat }) {
         )}
 
         {stat.definition && (
-          <p style={{ fontFamily: INTER, fontSize: 13, lineHeight: 1.8, color: LGREY, marginBottom: 10 }}>{stat.definition}</p>
+          <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 10 }}>{stat.definition}</p>
         )}
 
         {stat.leagueContext && (
           <div style={{ borderLeft: `3px solid ${LTEAL}`, paddingLeft: 10, marginBottom: 10 }}>
-            <p style={{ fontFamily: INTER, fontSize: 12, lineHeight: 1.7, color: LTEAL, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
+            <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: LTEAL, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
           </div>
         )}
 
         {stat.todayContext && (
-          <p style={{ fontFamily: INTER, fontSize: 13, lineHeight: 1.8, color: LGREY, marginBottom: 0 }}>{stat.todayContext}</p>
+          <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 0 }}>{stat.todayContext}</p>
         )}
       </div>
     </div>
@@ -188,13 +188,13 @@ function YouTubeCard({ videoId, oppName }) {
         ) : (
           <a href={fallbackUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', background: NAVY, textDecoration: 'none', gap: 10 }}>
             <div style={{ fontSize: 32, color: PAPER, opacity: 0.5 }}>▶</div>
-            <div style={{ fontSize: 10, color: LTEAL, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
+            <div style={{ fontSize: 11, color: LTEAL, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
           </a>
         )}
-        <div style={{ padding: '7px 12px', borderTop: `1px solid ${NAVY}`, fontSize: 10, color: MUTED, fontStyle: 'italic', fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '7px 12px', borderTop: `1px solid ${NAVY}`, fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Official MLB Highlights</span>
           {videoId && (
-            <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: TEAL, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
+            <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: TEAL, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
           )}
         </div>
       </div>
@@ -211,20 +211,20 @@ function StandingsCard({ rows }) {
         <thead>
           <tr style={{ borderBottom: `1px solid ${NAVY}` }}>
             {['', 'Team', 'W', 'L', 'GB'].map(h => (
-              <th key={h} style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEAL, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
+              <th key={h} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEAL, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((t, i) => (
             <tr key={t.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
-              <td style={{ padding: '7px 6px', fontSize: 10, color: MUTED, width: 20 }}>{i + 1}</td>
-              <td style={{ padding: '7px 6px', fontSize: 13, fontWeight: t.isM ? 700 : 400, color: t.isM ? NAVY : INK, fontFamily: t.isM ? FRAUNCES : 'inherit', ...(t.isM ? OPSZ9 : {}) }}>
+              <td style={{ padding: '7px 6px', fontSize: 11, color: MUTED, width: 20 }}>{i + 1}</td>
+              <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: t.isM ? 700 : 400, color: t.isM ? NAVY : INK, fontFamily: t.isM ? FRAUNCES : 'inherit', ...(t.isM ? OPSZ9 : {}) }}>
                 {t.isM ? <span>▸ {t.name}</span> : t.name}
               </td>
-              <td style={{ padding: '7px 6px', fontSize: 12, color: INK, textAlign: 'right', fontFamily: INTER }}>{t.w}</td>
-              <td style={{ padding: '7px 6px', fontSize: 12, color: INK2, textAlign: 'right', fontFamily: INTER }}>{t.l}</td>
-              <td style={{ padding: '7px 6px', fontSize: 11, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t.gb}`}</td>
+              <td style={{ padding: '7px 6px', fontSize: 14, color: INK, textAlign: 'right', fontFamily: INTER }}>{t.w}</td>
+              <td style={{ padding: '7px 6px', fontSize: 14, color: INK2, textAlign: 'right', fontFamily: INTER }}>{t.l}</td>
+              <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t.gb}`}</td>
             </tr>
           ))}
         </tbody>
@@ -239,12 +239,12 @@ function NextGameCard({ data }) {
     <div>
       <SectionHead label="Next Game" />
       <div style={{ borderLeft: `3px solid ${TEAL}`, paddingLeft: 14 }}>
-        <div style={{ fontFamily: FRAUNCES, fontSize: 20, fontWeight: 900, color: NAVY, marginBottom: 6, ...OPSZ9 }}>SEA vs. {data.oppAbbr}</div>
-        <div style={{ fontSize: 12, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: NAVY, marginBottom: 6, ...OPSZ9 }}>SEA vs. {data.oppAbbr}</div>
+        <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
           <div style={{ fontStyle: 'italic' }}>{data.oppName}</div>
           <div>{data.venue}</div>
-          <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
-          {data.pitcher && <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em' }}>M's probable: </span>{data.pitcher}</div>}
+          <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
+          {data.pitcher && <div><span style={{ color: TEAL, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>M's probable: </span>{data.pitcher}</div>}
         </div>
       </div>
     </div>
@@ -264,9 +264,9 @@ function SectionSkeleton({ lines = 3 }) {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ height: 2, background: PAPER2, marginBottom: 6 }} />
-      <Skeleton height={9} width={80} style={{ marginBottom: 14 }} />
+      <Skeleton height={10} width={80} style={{ marginBottom: 14 }} />
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={i} height={13} width={i === lines - 1 ? '65%' : '100%'} style={{ marginBottom: 8 }} />
+        <Skeleton key={i} height={15} width={i === lines - 1 ? '65%' : '100%'} style={{ marginBottom: 8 }} />
       ))}
     </div>
   );
@@ -359,14 +359,14 @@ export default function MsMinute() {
           <div style={{ paddingTop: 28 }}>
             <div style={{ height: 4, background: NAVY, marginBottom: 16 }} />
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEAL, borderTop: `1px solid ${TEAL}`, borderBottom: `1px solid ${TEAL}`, padding: '3px 14px', display: 'inline-block' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEAL, borderTop: `1px solid ${TEAL}`, borderBottom: `1px solid ${TEAL}`, padding: '3px 14px', display: 'inline-block' }}>
                 Seattle Mariners · Daily Edition
               </span>
             </div>
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: NAVY, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
               The M's Minute
             </h1>
-            <div style={{ textAlign: 'center', fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
               {todayFormatted()}
             </div>
           </div>
@@ -374,9 +374,9 @@ export default function MsMinute() {
           {/* Error — nothing loaded */}
           {error && !data && (
             <div style={{ margin: '24px 0', padding: '18px', border: `1px solid ${WIN_RED}` }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
-              <div style={{ fontSize: 13, color: INK2, lineHeight: 1.6, fontFamily: INTER, fontStyle: 'italic' }}>{error}</div>
-              <button onClick={loadReport} style={{ marginTop: 12, background: NAVY, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
+              <div style={{ fontSize: 10, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
+              <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6, fontFamily: INTER, fontStyle: 'italic' }}>{error}</div>
+              <button onClick={loadReport} style={{ marginTop: 12, background: NAVY, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
             </div>
           )}
 
@@ -384,7 +384,7 @@ export default function MsMinute() {
           {loading && !data && (
             <div style={{ textAlign: 'center', padding: '52px 0' }}>
               <div style={{ width: 24, height: 24, border: `2px solid ${PAPER2}`, borderTopColor: TEAL, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>Compiling today's edition…</div>
+              <div style={{ fontSize: 14, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>Compiling today's edition…</div>
             </div>
           )}
 
@@ -401,8 +401,8 @@ export default function MsMinute() {
 
               <div style={{ height: 2, background: NAVY, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
-                <button onClick={loadReport} style={{ background: 'transparent', border: `1px solid ${NAVY}`, color: NAVY, padding: '5px 12px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                <div style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
+                <button onClick={loadReport} style={{ background: 'transparent', border: `1px solid ${NAVY}`, color: NAVY, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
               </div>
             </>
           )}
