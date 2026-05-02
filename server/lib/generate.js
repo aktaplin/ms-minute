@@ -56,6 +56,56 @@ ADVANCED
 - Pull%/Oppo% (spray tendencies — pull-heavy or opposite-field)
 `.trim();
 
+// Maps stat abbreviations to their field names in the boxScore data
+const STAT_FIELD_MAP = {
+  // Batting — season
+  BA:   { source: 'batter', field: 'avg' },
+  AVG:  { source: 'batter', field: 'avg' },
+  OBP:  { source: 'batter', field: 'obp' },
+  SLG:  { source: 'batter', field: 'slg' },
+  OPS:  { source: 'batter', field: 'ops' },
+  // Batting — game
+  H:    { source: 'batter', field: 'hits' },
+  HR:   { source: 'batter', field: 'homeRuns' },
+  RBI:  { source: 'batter', field: 'rbi' },
+  R:    { source: 'batter', field: 'runs' },
+  AB:   { source: 'batter', field: 'atBats' },
+  // Pitching — season
+  ERA:  { source: 'pitcher', field: 'seasonEra' },
+  WHIP: { source: 'pitcher', field: 'seasonWhip' },
+  'K/9': { source: 'pitcher', field: 'seasonK9' },
+  // Pitching — game
+  IP:   { source: 'pitcher', field: 'inningsPitched' },
+  K:    { source: 'pitcher', field: 'strikeOuts' },
+  ER:   { source: 'pitcher', field: 'earnedRuns' },
+  BB:   { source: 'pitcher', field: 'walks' },
+};
+
+// Replaces Claude's returned value with the verified API value when available
+function _resolveStatValue(statOfGame, boxScore) {
+  const { abbr, player } = statOfGame;
+  if (!abbr || !player) return statOfGame;
+
+  const mapping = STAT_FIELD_MAP[abbr.toUpperCase()] ?? STAT_FIELD_MAP[abbr];
+  if (!mapping) return statOfGame;
+
+  const nameLower = player.toLowerCase();
+  let realValue = null;
+
+  if (mapping.source === 'batter') {
+    const batter = boxScore.offense.find(b => b.name.toLowerCase() === nameLower);
+    if (batter != null) realValue = batter[mapping.field];
+  } else {
+    const sp = boxScore.startingPitcher;
+    if (sp != null && sp.name.toLowerCase() === nameLower) realValue = sp[mapping.field];
+  }
+
+  // Reject API placeholders (e.g. '.---', '--') that mean "no data"
+  if (realValue == null || realValue === '.---' || realValue === '--') return statOfGame;
+
+  return { ...statOfGame, value: String(realValue) };
+}
+
 async function _callClaude(userPrompt, maxTokens = 400) {
   const response = await client.messages.create({
     model: MODEL,
@@ -199,6 +249,7 @@ async function generateDailyReport() {
       definition: parsed.definition ?? null,
       todayContext: parsed.todayContext ?? null,
     };
+    statOfGame = _resolveStatValue(statOfGame, boxScore);
   } catch {
     console.warn('[generate] Failed to parse stat JSON');
     statOfGame = { statName: null, abbr: null, player: null, value: null, leagueContext: null, definition: statRaw, todayContext: null };
