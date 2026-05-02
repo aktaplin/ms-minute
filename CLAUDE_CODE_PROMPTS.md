@@ -55,7 +55,7 @@ Drop these into Claude Code as you start each phase. Each one assumes the previo
 
 > Schedule report generation.
 >
-> - Add a node-cron job that runs every day at 11:00 AM Pacific Time
+> - Add a node-cron job that runs every day at 5:00 AM Pacific Time
 > - Calls `generateDailyReport()`, writes to the cache
 > - Logs success/failure
 > - On failure, retries up to 3 times with exponential backoff

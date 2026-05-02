@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "generate": "node -e \"require('dotenv').config({path: require('path').join(__dirname, '../.env')}); require('./lib/cron').runWithRetry()\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^16.4.0",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "node-cron": "^4.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

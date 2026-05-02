@@ -5,6 +5,7 @@ const express = require('express');
 const mlb = require('./lib/mlb');
 const { generateDailyReport } = require('./lib/generate');
 const db = require('./lib/db');
+const { startCron } = require('./lib/cron');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -78,4 +79,5 @@ app.get('/api/dev/report', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  startCron();
 });
