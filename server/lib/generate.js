@@ -143,7 +143,7 @@ async function _fetchYouTubeVideoId(lastGame, teamName) {
     const q = encodeURIComponent(`${teamName} ${lastGame.opponentName} highlights`);
     const url =
       `https://www.googleapis.com/youtube/v3/search` +
-      `?part=snippet&channelId=UCqzDdCzAprzCNhNUtM8omcQ` +
+      `?part=snippet&channelId=UCoLrcjPV5PbUrUyXq5mjc_A` +
       `&q=${q}&order=date&maxResults=1&type=video&key=${key}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`YouTube API ${res.status}`);

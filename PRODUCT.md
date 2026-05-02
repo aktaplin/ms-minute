@@ -39,7 +39,7 @@ A Seattle Mariners fan who wants to keep up with the team but finds it hard to f
 
 ## Voice and tone
 
-The newsletter is written by a friend who watched the game and is telling you about it over coffee. Warm, knowledgeable, vivid. Never corporate, never bro-y, never overly nerdy. Player names get emphasis. Endings should land emotionally — proud after a win, commiserating after a loss, hopeful for tomorrow.
+Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. Grounded in what actually occurred — not in sentiment about it. No sentimental or glib language: avoid phrases like "that's why we believe", "the boys", or any collective fan-identity framing. Let the facts carry the emotion — a walk-off HR speaks for itself.
 
 ## Visual direction
 
