@@ -9,13 +9,52 @@ const MODEL = 'claude-haiku-4-5';
 // Cached system prompt — placed first so all three Claude calls share the same prefix
 const SYS_VOICE = `You write for The M's Minute, a daily Seattle Mariners briefing for fans.
 
-Voice: A knowledgeable friend who watched the game and is telling you about it over coffee. Warm, vivid, emotionally resonant. Never corporate, never bro-y, never overly nerdy. Player names get emphasis. After a win, be proud. After a loss, commiserate. Always leave the reader hopeful for tomorrow.
+Voice: Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. Grounded in what actually occurred — not in sentiment about it.
 
 Rules:
 - Plain English only. No jargon without a brief explanation.
 - Short, punchy sentences.
+- No sentimental or glib language. Avoid phrases like "that's why we believe", "the boys", "this team has heart", or any collective fan-identity framing.
 - No filler phrases like "It was a great game" or "The team played well."
+- Let the facts carry the emotion — a walk-off HR speaks for itself.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
+
+// Stat curriculum: the pool Claude picks from each day, ordered basic → advanced.
+// Claude selects whichever stat is most interestingly illustrated by that game.
+const STAT_CURRICULUM = `
+BASIC
+- BA  (Batting Average): hits / at-bats
+- OBP (On-Base Percentage): how often a batter reaches base
+- SLG (Slugging Percentage): total bases per at-bat
+- OPS (On-Base Plus Slugging): OBP + SLG combined
+- ERA (Earned Run Average): earned runs allowed per 9 innings
+- WHIP (Walks + Hits per Inning Pitched)
+- K   (Strikeout): batter or pitcher perspective
+- BB  (Walk / Base on Balls)
+- HR  (Home Run)
+- RBI (Runs Batted In)
+
+INTERMEDIATE
+- ISO (Isolated Power): SLG minus BA — measures raw power, not singles
+- BABIP (Batting Average on Balls in Play): excludes HRs and strikeouts; reveals luck vs. skill
+- K%  (Strikeout Rate): strikeouts per plate appearance
+- BB% (Walk Rate): walks per plate appearance
+- K/9 (Strikeouts per 9 Innings): pitcher strikeout rate normalized to a full game
+- BB/9 (Walks per 9 Innings)
+- HR/9 (Home Runs per 9 Innings)
+- FIP (Fielding Independent Pitching): ERA-like but only counts K, BB, HR — removes defense
+- LOB% (Left on Base %): how often a pitcher strands baserunners
+
+ADVANCED
+- wOBA (Weighted On-Base Average): weights each way of reaching base by its actual run value
+- wRC+ (Weighted Runs Created Plus): offensive value relative to league average, park-adjusted; 100 = average
+- xFIP (Expected FIP): like FIP but normalizes HR rate to league average
+- WAR  (Wins Above Replacement): total value over a replacement-level player, in wins
+- SIERA (Skill-Interactive ERA): ERA estimator using batted-ball types
+- GB%/FB%/LD% (Ground Ball, Fly Ball, Line Drive rates)
+- Hard%/Soft% (contact quality by exit velocity)
+- Pull%/Oppo% (spray tendencies — pull-heavy or opposite-field)
+`.trim();
 
 async function _callClaude(userPrompt, maxTokens = 400) {
   const response = await client.messages.create({
@@ -40,71 +79,6 @@ function _formatDate(dateStr) {
     day: 'numeric',
     timeZone: 'America/Los_Angeles',
   });
-}
-
-// Detect the most interesting stat from the box score to explain
-function _detectNotableStat(boxScore, lastGame) {
-  const { offense, startingPitcher: sp } = boxScore;
-
-  // Multi-HR game
-  const multiHR = offense.find(b => b.homeRuns >= 2);
-  if (multiHR) {
-    return {
-      label: `${multiHR.name}: ${multiHR.homeRuns} home runs`,
-      context: `${multiHR.name} crushed ${multiHR.homeRuns} home runs, driving in ${multiHR.rbi} runs. He's batting ${multiHR.avg} on the season.`,
-      player: multiHR.name,
-      value: String(multiHR.homeRuns),
-      abbr: 'HR',
-    };
-  }
-
-  // 3+ RBI
-  const bigRBI = offense.find(b => b.rbi >= 3);
-  if (bigRBI) {
-    return {
-      label: `${bigRBI.name}: ${bigRBI.rbi} RBI`,
-      context: `${bigRBI.name} drove in ${bigRBI.rbi} runs going ${bigRBI.hits}-for-${bigRBI.atBats}. He's batting ${bigRBI.avg} on the season.`,
-      player: bigRBI.name,
-      value: String(bigRBI.rbi),
-      abbr: 'RBI',
-    };
-  }
-
-  // SP WHIP under 1.00 (min 4 IP)
-  if (sp) {
-    const ip = parseFloat(sp.inningsPitched);
-    if (ip >= 4 && (sp.walks + sp.hits) / ip < 1.0) {
-      const whip = ((sp.walks + sp.hits) / ip).toFixed(2);
-      return {
-        label: `${sp.name}: ${whip} WHIP`,
-        context: `${sp.name} allowed only ${sp.hits} hit${sp.hits !== 1 ? 's' : ''} and ${sp.walks} walk${sp.walks !== 1 ? 's' : ''} over ${sp.inningsPitched} innings (${sp.strikeOuts} strikeouts). His game WHIP was ${whip}.`,
-        player: sp.name,
-        value: whip,
-        abbr: 'WHIP',
-      };
-    }
-  }
-
-  // 1-run win
-  if (lastGame.win && lastGame.marinersScore - lastGame.opponentScore === 1) {
-    return {
-      label: `One-run win: ${lastGame.marinersScore}–${lastGame.opponentScore}`,
-      context: `The Mariners squeaked out a one-run victory, ${lastGame.marinersScore}–${lastGame.opponentScore}, over the ${lastGame.opponentName}. One-run games are the closest thing baseball has to a coin flip.`,
-      player: null,
-      value: `${lastGame.marinersScore}–${lastGame.opponentScore}`,
-      abbr: 'SCORE',
-    };
-  }
-
-  // Fallback: top hitter
-  const best = offense[0];
-  return {
-    label: `${best.name}: ${best.hits}-for-${best.atBats}`,
-    context: `${best.name} led the offense going ${best.hits}-for-${best.atBats} with ${best.rbi} RBI, batting ${best.avg} on the season.`,
-    player: best.name,
-    value: `${best.hits}/${best.atBats}`,
-    abbr: 'H/AB',
-  };
 }
 
 async function _fetchYouTubeVideoId(lastGame) {
@@ -138,19 +112,22 @@ async function generateDailyReport() {
     mlb.getStandings(),
   ]);
 
-  const detectedStat = _detectNotableStat(boxScore, lastGame);
-
   // Build context strings for Claude prompts
   const result = lastGame.win
     ? `won ${lastGame.marinersScore}–${lastGame.opponentScore}`
     : `lost ${lastGame.marinersScore}–${lastGame.opponentScore}`;
 
   const batterLines = boxScore.offense
-    .map(b => `${b.name} (${b.position}): ${b.hits}-${b.atBats}, ${b.homeRuns} HR, ${b.rbi} RBI, ${b.runs} R, avg ${b.avg}`)
+    .map(b =>
+      `${b.name} (${b.position}): ${b.hits}/${b.atBats}, ${b.homeRuns} HR, ${b.rbi} RBI, ${b.runs} R` +
+      ` | season: avg ${b.avg}, OBP ${b.obp}, SLG ${b.slg}, OPS ${b.ops}`
+    )
     .join('\n');
 
-  const spLine = boxScore.startingPitcher
-    ? `${boxScore.startingPitcher.name}: ${boxScore.startingPitcher.inningsPitched} IP, ${boxScore.startingPitcher.strikeOuts} K, ${boxScore.startingPitcher.earnedRuns} ER, ${boxScore.startingPitcher.hits} H, ${boxScore.startingPitcher.walks} BB`
+  const sp = boxScore.startingPitcher;
+  const spLine = sp
+    ? `${sp.name}: ${sp.inningsPitched} IP, ${sp.strikeOuts} K, ${sp.earnedRuns} ER, ${sp.hits} H, ${sp.walks} BB` +
+      ` | season: ERA ${sp.seasonEra}, WHIP ${sp.seasonWhip}, K/9 ${sp.seasonK9}`
     : 'Starter info unavailable';
 
   const narrativePrompt =
@@ -163,33 +140,59 @@ async function generateDailyReport() {
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these Mariners players from yesterday's game.\n\n` +
     `${batterLines}\n` +
-    (boxScore.startingPitcher ? `\nStarting pitcher — ${spLine}` : '') +
+    (sp ? `\nStarting pitcher — ${spLine}` : '') +
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
     `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
 
   const statPrompt =
-    `Explain this baseball stat to a casual fan who knows only the basics.\n\n` +
-    `Stat: ${detectedStat.label}\n` +
-    `Context: ${detectedStat.context}\n\n` +
-    `Write 2–3 sentences. First: what this stat means. Second: why this performance was notable. Keep it warm and educational.\n` +
-    `Return only the explanation.`;
+    `You are writing the "Stat of the Game" for a baseball newsletter. The reader is learning baseball — ` +
+    `they know the basic box score (hits, runs, ERA) but not much beyond that. Your job is to teach them ` +
+    `one stat per day, cycling through a curriculum from basic to advanced.\n\n` +
+    `TODAY'S GAME\n` +
+    `${lastGame.opponentName} at ${lastGame.venue} — Mariners ${result}\n` +
+    `Hitters:\n${batterLines}\n` +
+    `Starting pitcher: ${spLine}\n\n` +
+    `STAT CURRICULUM (pick the one most interesting or well-illustrated by today's game):\n` +
+    `${STAT_CURRICULUM}\n\n` +
+    `Instructions:\n` +
+    `- Pick ONE stat from the curriculum that today's game illustrates particularly well.\n` +
+    `- Prefer variety over time — don't always pick HR or ERA. Lean toward intermediate/advanced stats when the game data supports it.\n` +
+    `- If the stat's exact value is calculable from the data above, use it. If not (e.g. WAR, wRC+), you may use an approximate or contextual value, or set value to null.\n` +
+    `- The explanation must: (1) define the stat in plain English, (2) give league-average context and what separates average from elite, (3) ground it in today's specific game data.\n\n` +
+    `Return only valid JSON:\n` +
+    `{"statName": "Full stat name", "abbr": "Abbreviation", "player": "Player name or null", "value": "Numeric value as a string, or null", "explanation": "3–4 sentences. Factual and educational."}`;
 
   console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, playerNotesRaw, statExplanation, ytVideoId] = await Promise.all([
+  const [narrative, playerNotesRaw, statRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400),
     _callClaude(playerNotesPrompt, 600),
-    _callClaude(statPrompt, 300),
+    _callClaude(statPrompt, 500),
     _fetchYouTubeVideoId(lastGame),
   ]);
 
   let playerNotes = [];
   try {
-    // Strip markdown fences if the model wrapped the JSON anyway
     const cleaned = playerNotesRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
     playerNotes = JSON.parse(cleaned);
   } catch {
-    console.warn('[generate] Failed to parse player notes JSON, extracting manually');
+    console.warn('[generate] Failed to parse player notes JSON');
     playerNotes = boxScore.offense.map(b => ({ name: b.name, note: '' }));
+  }
+
+  let statOfGame = null;
+  try {
+    const cleaned = statRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+    const parsed = JSON.parse(cleaned);
+    statOfGame = {
+      statName: parsed.statName,
+      abbr: parsed.abbr,
+      player: parsed.player ?? null,
+      value: parsed.value ?? null,
+      explanation: parsed.explanation,
+    };
+  } catch {
+    console.warn('[generate] Failed to parse stat JSON');
+    statOfGame = { statName: null, abbr: null, player: null, value: null, explanation: statRaw };
   }
 
   const report = {
@@ -200,13 +203,7 @@ async function generateDailyReport() {
     nextGame,
     narrative,
     playerNotes,
-    statOfGame: {
-      label: detectedStat.label,
-      player: detectedStat.player,
-      value: detectedStat.value,
-      abbr: detectedStat.abbr,
-      explanation: statExplanation,
-    },
+    statOfGame,
     ytVideoId,
   };
 

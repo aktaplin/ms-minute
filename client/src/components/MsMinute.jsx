@@ -117,11 +117,13 @@ function StatOfGameCard({ stat }) {
     <div>
       <SectionHead label="Stat of the Game" />
       <div style={{ background: NAVY, padding: '18px 20px' }}>
-        {stat.abbr && (
+        {/* Full stat name as the kicker */}
+        {stat.statName && (
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: LTEAL, marginBottom: 8 }}>
-            {stat.abbr}
+            {stat.statName}
           </div>
         )}
+        {/* Big number + abbreviation — shown only when a concrete value exists */}
         {stat.value && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
             <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 42, fontWeight: 900, color: PAPER, lineHeight: 1 }}>{stat.value}</div>

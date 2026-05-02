@@ -90,6 +90,9 @@ async function getBoxScore(gamePk) {
       rbi: p.stats.batting.rbi,
       runs: p.stats.batting.runs,
       avg: p.seasonStats?.batting?.avg ?? '.---',
+      obp: p.seasonStats?.batting?.obp ?? '.---',
+      slg: p.seasonStats?.batting?.slg ?? '.---',
+      ops: p.seasonStats?.batting?.ops ?? '.---',
       // Weighted score for sorting: hits + 2×HR + RBI
       _score: p.stats.batting.hits + 2 * p.stats.batting.homeRuns + p.stats.batting.rbi,
     }))
@@ -107,6 +110,9 @@ async function getBoxScore(gamePk) {
         earnedRuns: sp.stats.pitching?.earnedRuns ?? 0,
         hits: sp.stats.pitching?.hits ?? 0,
         walks: sp.stats.pitching?.baseOnBalls ?? 0,
+        seasonEra: sp.seasonStats?.pitching?.era ?? '--',
+        seasonWhip: sp.seasonStats?.pitching?.whip ?? '--',
+        seasonK9: sp.seasonStats?.pitching?.strikeOutsPer9Inn ?? '--',
       }
     : null;
 
