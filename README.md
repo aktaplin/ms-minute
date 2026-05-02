@@ -30,3 +30,7 @@ Read the docs in this order:
 4. `CLAUDE_CODE_PROMPTS.md` for ready-to-paste prompts to start each phase
 
 The single highest-value first move is **migrating the data layer from web-search-based scraping to the official MLB Stats API** (free, no key, much faster, infinitely cheaper). That alone unlocks scheduled jobs, the texting feature, and a real production deployment.
+
+## Ways of working
+* Always keep CLAUDE_CODE_PROMPTS.md up to date with what is done.
+* Always keep Current State section in this document up to date.
