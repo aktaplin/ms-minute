@@ -445,7 +445,7 @@ export default function MsMinute() {
         @keyframes spin  { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        em { color: ${t.teal}; font-style: normal; font-weight: 700; }
+        em { color: ${t.navy}; font-style: normal; font-weight: 700; }
         a  { color: inherit; }
       `}</style>
 
