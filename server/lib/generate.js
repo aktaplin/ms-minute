@@ -2,6 +2,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const mlb = require('./mlb');
+const oddsApi = require('./oddsApi');
 const db = require('./db');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -176,11 +177,23 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings] = await Promise.all([
+  const [boxScore, nextGame, standings, allTitleOdds] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
+    oddsApi.getWorldSeriesOdds(),
   ]);
+  const titleOdds = allTitleOdds?.[teamName] ?? null;
+
+  // Resolve team key for cache/history operations (used twice below)
+  const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
+
+  // Persist today's WS-winner number, then read the trailing window for the sparkline
+  const todayPt = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  if (titleOdds) {
+    db.saveTitleOdds(teamKey, todayPt, titleOdds.impliedProb, titleOdds.medianOdds);
+  }
+  const titleOddsTrend = db.getTitleOddsTrend(teamKey, 30);
 
   // Build context strings for Claude prompts
   const result = lastGame.win
@@ -236,7 +249,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
       : `Set this to null.`}\n` +
     `Wrap every player name in <em> tags. Return only valid JSON, no markdown fences.`;
 
-  const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
   const recentAbbrs = db.getRecentStatAbbrs(teamKey);
   const recentExclusion = recentAbbrs.length > 0
     ? `- Do NOT pick any of these stats, which were used in recent reports: ${recentAbbrs.join(', ')}.\n`
@@ -329,6 +341,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     playerNotes,
     pitching,
     statOfGame,
+    titleOdds,
+    titleOddsTrend,
     ytVideoId,
   };
 

@@ -226,6 +226,27 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
   );
 }
 
+// Tiny inline SVG line chart for a series of normalized values
+function Sparkline({ data, color, width = 120, height = 24 }) {
+  if (!data || data.length < 2) return null;
+  const probs = data.map(d => d.implied_prob);
+  const min = Math.min(...probs);
+  const max = Math.max(...probs);
+  const range = max - min || 1;
+  const points = probs
+    .map((p, i) => {
+      const x = (i / (probs.length - 1)) * (width - 2) + 1;
+      const y = height - 1 - ((p - min) / range) * (height - 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function StandingsCard({ rows, divisionName, t }) {
   if (!rows?.length) return null;
   return (
@@ -253,6 +274,38 @@ function StandingsCard({ rows, divisionName, t }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function TitleOddsCard({ data, trend, t }) {
+  if (!data) return null;
+  const pct = (data.impliedProb * 100).toFixed(1);
+  const oddsStr = data.medianOdds > 0 ? `+${data.medianOdds}` : String(data.medianOdds);
+  const first = trend?.[0]?.implied_prob;
+  const last  = trend?.[trend.length - 1]?.implied_prob;
+  const haveTrend = trend && trend.length >= 2 && first != null && last != null;
+  const deltaPp = haveTrend ? ((last - first) * 100).toFixed(1) : null;
+  const deltaSign = haveTrend ? (Number(deltaPp) >= 0 ? '+' : '') : '';
+  return (
+    <div>
+      <SectionHead label="WS Odds" t={t} />
+      <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 14 }}>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: t.navy, marginBottom: 6, ...OPSZ9 }}>{pct}%</div>
+        <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER, fontStyle: 'italic' }}>To win the World Series</div>
+        {haveTrend && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <Sparkline data={trend} color={t.navy} width={90} height={22} />
+            <span style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
+              {trend.length}d · {deltaSign}{deltaPp}pp
+            </span>
+          </div>
+        )}
+        <div style={{ fontSize: 12, color: MUTED, fontFamily: INTER, fontStyle: 'italic', marginTop: 6 }}>
+          <span style={{ color: t.teal, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', fontStyle: 'normal' }}>Median: </span>
+          <span style={{ color: t.navy, fontWeight: 700, fontStyle: 'normal' }}>{oddsStr}</span> · {data.bookmakerCount} US books
+        </div>
+      </div>
     </div>
   );
 }
@@ -404,6 +457,8 @@ export default function MsMinute() {
         })),
         pitching: report.pitching ?? null,
         statOfGame: report.statOfGame,
+        titleOdds: report.titleOdds ?? null,
+        titleOddsTrend: report.titleOddsTrend ?? [],
         standings: [...report.standings]
           .sort((a, b) => a.divisionRank - b.divisionRank)
           .map(row => ({
@@ -495,7 +550,10 @@ export default function MsMinute() {
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
-              <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
+                <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
+              </div>
 
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

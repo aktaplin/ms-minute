@@ -14,7 +14,15 @@ db.exec(`
     date TEXT PRIMARY KEY,
     json TEXT NOT NULL,
     created_at INTEGER NOT NULL
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS odds_history (
+    team_key TEXT NOT NULL,
+    date TEXT NOT NULL,
+    implied_prob REAL NOT NULL,
+    median_odds INTEGER,
+    PRIMARY KEY (team_key, date)
+  );
 `);
 
 function getReport(date) {
@@ -37,4 +45,17 @@ function getRecentStatAbbrs(teamKey, limit = 7) {
     .filter(Boolean);
 }
 
-module.exports = { getReport, saveReport, getRecentStatAbbrs };
+function saveTitleOdds(teamKey, date, impliedProb, medianOdds) {
+  db.prepare(
+    'INSERT OR REPLACE INTO odds_history (team_key, date, implied_prob, median_odds) VALUES (?, ?, ?, ?)'
+  ).run(teamKey, date, impliedProb, medianOdds);
+}
+
+function getTitleOddsTrend(teamKey, days = 30) {
+  const rows = db.prepare(
+    'SELECT date, implied_prob FROM odds_history WHERE team_key = ? ORDER BY date DESC LIMIT ?'
+  ).all(teamKey, days);
+  return rows.reverse();
+}
+
+module.exports = { getReport, saveReport, getRecentStatAbbrs, saveTitleOdds, getTitleOddsTrend };
