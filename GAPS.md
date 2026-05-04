@@ -15,7 +15,7 @@ The prototype calls `https://api.anthropic.com/v1/messages` directly from the br
 The prototype generates a fresh report every time the app loads (or once an hour, with the session cache). For a real app, the report should be generated **once per day** by a scheduled job and cached for all users.
 
 **What to build:**
-- A scheduled cron that runs once a day (around 11am PT, before the lunch crowd)
+- A scheduled cron that runs once a day (5am PT, so the report is ready before readers wake up)
 - Generates the report, caches it
 - Frontend just fetches the cached version
 

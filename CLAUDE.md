@@ -18,7 +18,7 @@ Phase 1 is next: MLB Stats API integration (`server/lib/mlb.js`).
 1. **Phase 1** — `server/lib/mlb.js` — MLB Stats API (no key needed, Mariners teamId=136)
 2. **Phase 2** — `server/lib/generate.js` — daily report generator (Claude Haiku + YouTube API)
 3. **Phase 3** — `GET /api/report` endpoint + SQLite cache
-4. **Phase 4** — node-cron daily job (11am PT)
+4. **Phase 4** — node-cron daily job (5am PT)
 5. **Phase 5** — Port `ms-minute-prototype.jsx` into `client/src/components/`, swap `loadReport()` to fetch from backend
 6. **Phase 6** — Phone signup + Twilio SMS
 7. **Phase 7** — Live game watcher (poll MLB every 60s, fire SMS when inning ≥7 and score within 2)

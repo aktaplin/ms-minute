@@ -97,7 +97,7 @@ The goal: a real production app with a backend service that can run scheduled jo
 │  └───────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Daily cron at noon PT                                │  │
+│  │  Daily cron at 5am PT                                 │  │
 │  │   1. Fetch yesterday's game from MLB Stats API       │  │
 │  │   2. Build report shell from MLB JSON (instant)      │  │
 │  │   3. Call Claude (Haiku) for narrative + stat        │  │
