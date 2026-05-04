@@ -117,6 +117,28 @@ function OffenseCard({ players, t }) {
   );
 }
 
+function PitchingCard({ data, t }) {
+  if (!data || (!data.starter && !data.bullpen)) return null;
+  const paragraph = {
+    fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK,
+    fontStyle: 'italic', textAlign: 'justify', hyphens: 'auto', margin: 0,
+  };
+  return (
+    <div>
+      <SectionHead label="Pitching" t={t} />
+      {data.starter && (
+        <p
+          style={{ ...paragraph, marginBottom: data.bullpen ? 14 : 0 }}
+          dangerouslySetInnerHTML={{ __html: data.starter }}
+        />
+      )}
+      {data.bullpen && (
+        <p style={paragraph} dangerouslySetInnerHTML={{ __html: data.bullpen }} />
+      )}
+    </div>
+  );
+}
+
 function StatOfGameCard({ stat, t }) {
   if (!stat) return null;
   return (
@@ -311,6 +333,37 @@ export default function MsMinute() {
     setTeamState(nextKey);
   }
 
+  async function regenerateReport() {
+    let token = localStorage.getItem('regenToken');
+    if (!token) {
+      token = window.prompt('Regen token:');
+      if (!token) return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/report/regenerate?team=all`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('regenToken');
+        throw new Error('Invalid regen token');
+      }
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const body = await res.json();
+      const failed = (body.results ?? []).filter(r => !r.ok);
+      if (failed.length) {
+        throw new Error(`Regen failed for: ${failed.map(f => `${f.team} (${f.error})`).join(', ')}`);
+      }
+      localStorage.setItem('regenToken', token);
+      await loadReport(team);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
   async function loadReport(selectedTeam) {
     setLoading(true);
     setError(null);
@@ -349,6 +402,7 @@ export default function MsMinute() {
             ...(b.rbi > 0 ? [{ val: b.rbi, lbl: 'RBI' }] : []),
           ].slice(0, 3),
         })),
+        pitching: report.pitching ?? null,
         statOfGame: report.statOfGame,
         standings: [...report.standings]
           .sort((a, b) => a.divisionRank - b.divisionRank)
@@ -437,6 +491,7 @@ export default function MsMinute() {
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
               <NarrativeCard text={data.narrative} t={t} />
               <OffenseCard players={data.offense} t={t} />
+              <PitchingCard data={data.pitching} t={t} />
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
@@ -445,7 +500,10 @@ export default function MsMinute() {
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
-                <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${t.navy}`, color: t.navy, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button onClick={regenerateReport} title="Bust cache and regenerate today's report" style={{ background: 'transparent', border: 'none', color: MUTED, padding: '5px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: INTER }}>Regenerate</button>
+                  <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${t.navy}`, color: t.navy, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                </div>
               </div>
             </>
           )}

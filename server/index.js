@@ -75,15 +75,21 @@ app.post('/api/report/regenerate', async (req, res) => {
   if (!token || req.headers.authorization !== `Bearer ${token}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const teamKey = resolveTeamKey(req.query.team);
-  try {
-    const report = await generateDailyReport(TEAM_CONFIGS[teamKey]);
-    db.saveReport(`${ptDateToday()}-${teamKey}`, report);
-    res.json({ ok: true, generatedAt: report.generatedAt });
-  } catch (err) {
-    console.error('[/api/report/regenerate]', err.message);
-    res.status(500).json({ error: err.message });
+  const teamKeys = req.query.team === 'all'
+    ? Object.keys(TEAM_CONFIGS)
+    : [resolveTeamKey(req.query.team)];
+  const results = [];
+  for (const key of teamKeys) {
+    try {
+      const report = await generateDailyReport(TEAM_CONFIGS[key]);
+      db.saveReport(`${ptDateToday()}-${key}`, report);
+      results.push({ team: key, ok: true, generatedAt: report.generatedAt });
+    } catch (err) {
+      console.error('[/api/report/regenerate]', key, err.message);
+      results.push({ team: key, ok: false, error: err.message });
+    }
   }
+  res.json({ results });
 });
 
 // Dev-only: generate a full report on demand

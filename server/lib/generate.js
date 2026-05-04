@@ -201,12 +201,19 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
       ` | season: ERA ${sp.seasonEra}, WHIP ${sp.seasonWhip}, K/9 ${sp.seasonK9}`
     : 'Starter info unavailable';
 
+  const reliefLines = (boxScore.relievers ?? [])
+    .map(r =>
+      `${r.name}: ${r.inningsPitched} IP, ${r.strikeOuts} K, ${r.earnedRuns} ER, ${r.hits} H, ${r.walks} BB` +
+      ` | season: ERA ${r.seasonEra}, WHIP ${r.seasonWhip}`
+    )
+    .join('\n');
+
   const narrativePrompt =
-    `Write a 3-sentence recap of yesterday's ${teamShort} game.\n\n` +
+    `Write a 4-sentence recap of yesterday's ${teamShort} game.\n\n` +
     `Game: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
     `Hitters:\n${batterLines}\n\n` +
     `Starting pitcher: ${spLine}\n\n` +
-    `Wrap every player name in <em> tags. Return only the 3 sentences. No intro, no outro.`;
+    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
 
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
@@ -214,6 +221,20 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     (sp ? `\nStarting pitcher — ${spLine}` : '') +
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
     `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
+
+  const pitchingPrompt =
+    `Write the "Pitching" section of yesterday's ${teamShort} game recap.\n\n` +
+    `Game: ${teamName} ${result} against the ${lastGame.opponentName}.\n\n` +
+    `Starting pitcher:\n${spLine}\n\n` +
+    (reliefLines
+      ? `Relief pitchers (in order of appearance):\n${reliefLines}\n\n`
+      : `No relief pitchers — the starter went the distance.\n\n`) +
+    `Return JSON with two fields:\n` +
+    `- "starter": Up to 3 sentences on the starting pitcher's outing. Reference the actual line — innings, strikeouts, runs, baserunners. Note the season context (ERA, WHIP) only if it sharpens the story.\n` +
+    `- "bullpen": ${reliefLines
+      ? `Exactly 2 sentences summarizing the relief pitchers as a group. Mention specific names where it matters (the high-leverage outing, the rough one), but treat them collectively.`
+      : `Set this to null.`}\n` +
+    `Wrap every player name in <em> tags. Return only valid JSON, no markdown fences.`;
 
   const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
   const recentAbbrs = db.getRecentStatAbbrs(teamKey);
@@ -248,10 +269,11 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `}`;
 
   console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, playerNotesRaw, statRaw, ytVideoId] = await Promise.all([
+  const [narrative, playerNotesRaw, statRaw, pitchingRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400, brandTitle, teamName),
     _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
     _callClaude(statPrompt, 600, brandTitle, teamName),
+    _callClaude(pitchingPrompt, 400, brandTitle, teamName),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
@@ -262,6 +284,15 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   } catch {
     console.warn('[generate] Failed to parse player notes JSON');
     playerNotes = boxScore.offense.map(b => ({ name: b.name, note: '' }));
+  }
+
+  let pitching = { starter: null, bullpen: null };
+  try {
+    const cleaned = pitchingRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+    const parsed = JSON.parse(cleaned);
+    pitching = { starter: parsed.starter ?? null, bullpen: parsed.bullpen ?? null };
+  } catch {
+    console.warn('[generate] Failed to parse pitching JSON');
   }
 
   let statOfGame = null;
@@ -296,6 +327,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     nextGame,
     narrative,
     playerNotes,
+    pitching,
     statOfGame,
     ytVideoId,
   };

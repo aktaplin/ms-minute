@@ -128,23 +128,29 @@ async function getBoxScore(gamePk, teamId) {
     .slice(0, 4)
     .map(({ _score, ...rest }) => rest);
 
-  const spId = teamData.pitchers[0];
-  const sp = teamData.players[`ID${spId}`];
-  const startingPitcher = sp
-    ? {
-        name: sp.person.fullName,
-        inningsPitched: sp.stats.pitching?.inningsPitched ?? '0.0',
-        strikeOuts: sp.stats.pitching?.strikeOuts ?? 0,
-        earnedRuns: sp.stats.pitching?.earnedRuns ?? 0,
-        hits: sp.stats.pitching?.hits ?? 0,
-        walks: sp.stats.pitching?.baseOnBalls ?? 0,
-        seasonEra: sp.seasonStats?.pitching?.era ?? '--',
-        seasonWhip: sp.seasonStats?.pitching?.whip ?? '--',
-        seasonK9: sp.seasonStats?.pitching?.strikeOutsPer9Inn ?? '--',
-      }
-    : null;
+  const pitcherIds = teamData.pitchers ?? [];
+  const toPitcher = (p) => ({
+    name: p.person.fullName,
+    inningsPitched: p.stats.pitching?.inningsPitched ?? '0.0',
+    strikeOuts: p.stats.pitching?.strikeOuts ?? 0,
+    earnedRuns: p.stats.pitching?.earnedRuns ?? 0,
+    hits: p.stats.pitching?.hits ?? 0,
+    walks: p.stats.pitching?.baseOnBalls ?? 0,
+    seasonEra: p.seasonStats?.pitching?.era ?? '--',
+    seasonWhip: p.seasonStats?.pitching?.whip ?? '--',
+    seasonK9: p.seasonStats?.pitching?.strikeOutsPer9Inn ?? '--',
+  });
 
-  return { offense: batters, startingPitcher };
+  const sp = pitcherIds[0] != null ? teamData.players[`ID${pitcherIds[0]}`] : null;
+  const startingPitcher = sp ? toPitcher(sp) : null;
+
+  const relievers = pitcherIds
+    .slice(1)
+    .map(id => teamData.players[`ID${id}`])
+    .filter(Boolean)
+    .map(toPitcher);
+
+  return { offense: batters, startingPitcher, relievers };
 }
 
 // Next scheduled regular-season game for the given team (not yet started)
