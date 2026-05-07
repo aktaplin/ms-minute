@@ -207,6 +207,23 @@ async function getStandings(divisionId, leagueId) {
   }));
 }
 
+// Returns a map of playerName (lowercase) → array of RBI counts, one entry per HR play.
+// Uses the completed-game feed, so the normal 5-minute cache applies.
+async function getHomeRunPlays(gamePk) {
+  const data = await _mlbFetch(`/api/v1.1/game/${gamePk}/feed/live`);
+  const allPlays = data.liveData?.plays?.allPlays ?? [];
+  const hrMap = {};
+  for (const play of allPlays) {
+    if (play.result?.event !== 'Home Run') continue;
+    const name = play.matchup?.batter?.fullName;
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (!hrMap[key]) hrMap[key] = [];
+    hrMap[key].push(play.result.rbi ?? 1);
+  }
+  return hrMap;
+}
+
 // Live state of a game in progress (short 30s cache)
 async function getLiveGame(gamePk) {
   const path = `/api/v1.1/game/${gamePk}/feed/live`;
@@ -238,4 +255,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getLiveGame };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getHomeRunPlays, getLiveGame };

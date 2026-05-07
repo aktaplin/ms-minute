@@ -19,7 +19,6 @@ Rules:
 - No sentimental or glib language. Avoid phrases like "that's why we believe", "the boys", "this team has heart", or any collective fan-identity framing.
 - No filler phrases like "It was a great game" or "The team played well."
 - Let the facts carry the emotion — a walk-off HR speaks for itself.
-- Baseball accuracy: a solo home run scores exactly 1 run; a 2-run HR scores 2; a 3-run HR scores 3; a grand slam scores 4. Never write "solo home run" and attribute more than 1 run to it. When you cannot determine the HR type from the data provided, omit the type qualifier entirely.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
 }
 
@@ -84,6 +83,25 @@ const STAT_FIELD_MAP = {
   ER:   { source: 'pitcher', field: 'earnedRuns' },
   BB:   { source: 'pitcher', field: 'walks' },
 };
+
+// Maps RBI count on a single HR play to a type label
+function _hrTypeLabel(rbi) {
+  if (rbi === 1) return 'solo';
+  if (rbi === 2) return '2-run';
+  if (rbi === 3) return '3-run';
+  if (rbi === 4) return 'grand slam';
+  return `${rbi}-run`;
+}
+
+// Builds the HR portion of a batter line, annotated with type from play-by-play.
+// Falls back to a bare count if the API data doesn't match the box score total.
+function _hrAnnotation(batter, hrMap) {
+  if (batter.homeRuns === 0) return '0 HR';
+  const plays = hrMap[batter.name.toLowerCase()];
+  if (!plays || plays.length !== batter.homeRuns) return `${batter.homeRuns} HR`;
+  const labels = plays.map(_hrTypeLabel).join(', ');
+  return `${batter.homeRuns} HR (${labels})`;
+}
 
 // Replaces Claude's returned value with the verified API value when available
 function _resolveStatValue(statOfGame, boxScore) {
@@ -178,11 +196,12 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, allTitleOdds] = await Promise.all([
+  const [boxScore, nextGame, standings, allTitleOdds, hrMap] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
     oddsApi.getWorldSeriesOdds(),
+    mlb.getHomeRunPlays(lastGame.gamePk),
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
@@ -204,7 +223,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
 
   const batterLines = boxScore.offense
     .map(b =>
-      `${b.name} (${b.position}): ${b.hits}/${b.atBats}, ${b.homeRuns} HR, ${b.rbi} RBI, ${b.runs} R` +
+      `${b.name} (${b.position}): ${b.hits}/${b.atBats}, ${_hrAnnotation(b, hrMap)}, ${b.rbi} RBI, ${b.runs} R` +
       ` | season: avg ${b.avg}, OBP ${b.obp}, SLG ${b.slg}, OPS ${b.ops}`
     )
     .join('\n');
@@ -227,8 +246,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `Game: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
     `Hitters:\n${batterLines}\n\n` +
     `Starting pitcher: ${spLine}\n\n` +
-    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.\n\n` +
-    `Note: the batter lines show each player's total HR and RBI for the game, but not play-by-play detail. Do not label a home run as "solo", "2-run", etc. unless the math is unambiguous from the data above.`;
+    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
 
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
