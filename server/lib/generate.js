@@ -197,11 +197,15 @@ function _formatScoringTimeline(scoringTimeline, teamShort, opponentName) {
   return scoringTimeline.map(entry => {
     const scorer = entry.isTeam ? teamShort : opponentName;
     const events = entry.events
-      .map(e => (e.rbi > 0 && e.batter) ? `${e.event} (${e.batter})` : e.event)
+      .map(e => {
+        const leader = e.teamScore > e.oppScore ? teamShort : e.teamScore < e.oppScore ? opponentName : 'tied';
+        const scoreStr = `${e.teamScore}–${e.oppScore} ${leader}`;
+        const desc = (e.rbi > 0 && e.batter) ? `${e.event} (${e.batter})` : e.event;
+        return `${desc} [${scoreStr}]`;
+      })
       .join(', ');
-    const scoreStr = `${entry.teamScore}–${entry.oppScore} ${entry.teamScore > entry.oppScore ? teamShort : entry.teamScore < entry.oppScore ? opponentName : 'tied'}`;
     const flag = entry.isLeadChange ? ' [lead change]' : '';
-    return `  Inning ${entry.inning} (${scorer}): ${events} → ${scoreStr}${flag}`;
+    return `  Inning ${entry.inning} (${scorer}): ${events}${flag}`;
   }).join('\n');
 }
 
