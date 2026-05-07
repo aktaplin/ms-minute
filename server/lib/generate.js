@@ -19,6 +19,7 @@ Rules:
 - No sentimental or glib language. Avoid phrases like "that's why we believe", "the boys", "this team has heart", or any collective fan-identity framing.
 - No filler phrases like "It was a great game" or "The team played well."
 - Let the facts carry the emotion — a walk-off HR speaks for itself.
+- Baseball accuracy: a solo home run scores exactly 1 run; a 2-run HR scores 2; a 3-run HR scores 3; a grand slam scores 4. Never write "solo home run" and attribute more than 1 run to it. When you cannot determine the HR type from the data provided, omit the type qualifier entirely.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
 }
 
@@ -226,7 +227,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `Game: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
     `Hitters:\n${batterLines}\n\n` +
     `Starting pitcher: ${spLine}\n\n` +
-    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
+    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.\n\n` +
+    `Note: the batter lines show each player's total HR and RBI for the game, but not play-by-play detail. Do not label a home run as "solo", "2-run", etc. unless the math is unambiguous from the data above.`;
 
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
