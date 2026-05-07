@@ -84,6 +84,25 @@ const STAT_FIELD_MAP = {
   BB:   { source: 'pitcher', field: 'walks' },
 };
 
+// Maps RBI count on a single HR play to a type label
+function _hrTypeLabel(rbi) {
+  if (rbi === 1) return 'solo';
+  if (rbi === 2) return '2-run';
+  if (rbi === 3) return '3-run';
+  if (rbi === 4) return 'grand slam';
+  return `${rbi}-run`;
+}
+
+// Builds the HR portion of a batter line, annotated with type from play-by-play.
+// Falls back to a bare count if the API data doesn't match the box score total.
+function _hrAnnotation(batter, hrMap) {
+  if (batter.homeRuns === 0) return '0 HR';
+  const plays = hrMap[batter.name.toLowerCase()];
+  if (!plays || plays.length !== batter.homeRuns) return `${batter.homeRuns} HR`;
+  const labels = plays.map(_hrTypeLabel).join(', ');
+  return `${batter.homeRuns} HR (${labels})`;
+}
+
 // Replaces Claude's returned value with the verified API value when available
 function _resolveStatValue(statOfGame, boxScore) {
   const { abbr, player } = statOfGame;
@@ -177,11 +196,12 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, allTitleOdds] = await Promise.all([
+  const [boxScore, nextGame, standings, allTitleOdds, hrMap] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
     oddsApi.getWorldSeriesOdds(),
+    mlb.getHomeRunPlays(lastGame.gamePk),
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
@@ -203,7 +223,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
 
   const batterLines = boxScore.offense
     .map(b =>
-      `${b.name} (${b.position}): ${b.hits}/${b.atBats}, ${b.homeRuns} HR, ${b.rbi} RBI, ${b.runs} R` +
+      `${b.name} (${b.position}): ${b.hits}/${b.atBats}, ${_hrAnnotation(b, hrMap)}, ${b.rbi} RBI, ${b.runs} R` +
       ` | season: avg ${b.avg}, OBP ${b.obp}, SLG ${b.slg}, OPS ${b.ops}`
     )
     .join('\n');
