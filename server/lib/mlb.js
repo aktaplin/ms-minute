@@ -242,12 +242,18 @@ async function getPlayByPlayData(gamePk, teamId) {
       if (!halfInnings[key]) {
         halfInnings[key] = { inning, half, events: [] };
       }
+      const rbi = play.result?.rbi ?? 0;
+      let eventLabel = play.result?.event ?? 'Unknown';
+      if (eventLabel === 'Home Run') {
+        const type = rbi === 1 ? 'Solo' : rbi === 2 ? '2-run' : rbi === 3 ? '3-run' : rbi === 4 ? 'Grand Slam' : `${rbi}-run`;
+        eventLabel = `${type} Home Run`;
+      }
       halfInnings[key].events.push({
-        event: play.result?.event ?? 'Unknown',
+        event: eventLabel,
         batter: play.matchup?.batter?.fullName ?? null,
-        rbi: play.result?.rbi ?? 0,
-        homeScore,
-        awayScore,
+        rbi,
+        teamScore: teamSide === 'home' ? homeScore : awayScore,
+        oppScore:  teamSide === 'home' ? awayScore : homeScore,
       });
     }
 
@@ -260,17 +266,15 @@ async function getPlayByPlayData(gamePk, teamId) {
     a.inning !== b.inning ? a.inning - b.inning : (a.half === 'top' ? -1 : 1)
   );
 
-  // Annotate each half-inning with scores, lead status, and which side is scoring
+  // Annotate each half-inning with lead status and which side is scoring
   let prevLeader = 'none';
   const scoringTimeline = sorted.map(entry => {
     const last = entry.events[entry.events.length - 1];
-    const teamScore  = teamSide === 'home' ? last.homeScore : last.awayScore;
-    const oppScore   = teamSide === 'home' ? last.awayScore : last.homeScore;
-    const isTeam     = (half => (half === 'bottom') === (teamSide === 'home'))(entry.half);
-    const leader     = teamScore > oppScore ? 'team' : teamScore < oppScore ? 'opp' : 'tied';
+    const isTeam = (entry.half === 'bottom') === (teamSide === 'home');
+    const leader = last.teamScore > last.oppScore ? 'team' : last.teamScore < last.oppScore ? 'opp' : 'tied';
     const isLeadChange = leader !== prevLeader && prevLeader !== 'none';
     prevLeader = leader;
-    return { inning: entry.inning, half: entry.half, isTeam, teamScore, oppScore, isLeadChange, events: entry.events };
+    return { inning: entry.inning, half: entry.half, isTeam, isLeadChange, events: entry.events };
   });
 
   return { hrMap, scoringTimeline };
