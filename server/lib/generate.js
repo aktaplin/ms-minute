@@ -192,16 +192,29 @@ async function _fetchYouTubeVideoId(lastGame, teamName) {
   }
 }
 
+function _formatScoringTimeline(scoringTimeline, teamShort, opponentName) {
+  if (!scoringTimeline || scoringTimeline.length === 0) return null;
+  return scoringTimeline.map(entry => {
+    const scorer = entry.isTeam ? teamShort : opponentName;
+    const events = entry.events
+      .map(e => (e.rbi > 0 && e.batter) ? `${e.event} (${e.batter})` : e.event)
+      .join(', ');
+    const scoreStr = `${entry.teamScore}–${entry.oppScore} ${entry.teamScore > entry.oppScore ? teamShort : entry.teamScore < entry.oppScore ? opponentName : 'tied'}`;
+    const flag = entry.isLeadChange ? ' [lead change]' : '';
+    return `  Inning ${entry.inning} (${scorer}): ${events} → ${scoreStr}${flag}`;
+  }).join('\n');
+}
+
 async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEAM_KEY]) {
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, allTitleOdds, hrMap] = await Promise.all([
+  const [boxScore, nextGame, standings, allTitleOdds, { hrMap, scoringTimeline }] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
     oddsApi.getWorldSeriesOdds(),
-    mlb.getHomeRunPlays(lastGame.gamePk),
+    mlb.getPlayByPlayData(lastGame.gamePk, teamId),
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
@@ -241,11 +254,19 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     )
     .join('\n');
 
+  const timelineText = _formatScoringTimeline(scoringTimeline, teamShort, lastGame.opponentName);
   const narrativePrompt =
-    `Write a 4-sentence recap of yesterday's ${teamShort} game.\n\n` +
-    `Game: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
-    `Hitters:\n${batterLines}\n\n` +
-    `Starting pitcher: ${spLine}\n\n` +
+    `Write a 4-sentence chronological recap of yesterday's ${teamShort} game.\n\n` +
+    `Result: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
+    (timelineText
+      ? `Scoring timeline (use this as your chronological backbone):\n${timelineText}\n\n`
+      : `Hitters:\n${batterLines}\n\n`) +
+    `Structure your 4 sentences as: (1) how the game started or who scored first, ` +
+    `(2) the key sequence or turning point, ` +
+    `(3) how the lead was held or extended after that, ` +
+    `(4) the final result with one grounding detail.\n\n` +
+    `Do not cover individual player stats in depth — those are handled in a separate section. ` +
+    `Name players only when they drove a scoring moment.\n\n` +
     `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
 
   const playerNotesPrompt =

@@ -207,21 +207,73 @@ async function getStandings(divisionId, leagueId) {
   }));
 }
 
-// Returns a map of playerName (lowercase) → array of RBI counts, one entry per HR play.
-// Uses the completed-game feed, so the normal 5-minute cache applies.
-async function getHomeRunPlays(gamePk) {
+// Returns play-by-play derived data for a completed game:
+//   hrMap: playerName (lowercase) → [rbi per HR play], for annotating batter lines
+//   scoringTimeline: ordered list of half-innings where runs scored, each with key events
+async function getPlayByPlayData(gamePk, teamId) {
   const data = await _mlbFetch(`/api/v1.1/game/${gamePk}/feed/live`);
   const allPlays = data.liveData?.plays?.allPlays ?? [];
+  const teamSide = data.gameData?.teams?.home?.id === teamId ? 'home' : 'away';
+
   const hrMap = {};
+  const halfInnings = {};  // key: "${inning}-${half}"
+  let prevHome = 0;
+  let prevAway = 0;
+
   for (const play of allPlays) {
-    if (play.result?.event !== 'Home Run') continue;
-    const name = play.matchup?.batter?.fullName;
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (!hrMap[key]) hrMap[key] = [];
-    hrMap[key].push(play.result.rbi ?? 1);
+    const homeScore = play.result?.homeScore ?? prevHome;
+    const awayScore = play.result?.awayScore ?? prevAway;
+    const inning = play.about?.inning;
+    const half = play.about?.halfInning; // 'top' | 'bottom'
+
+    // HR map
+    if (play.result?.event === 'Home Run') {
+      const name = play.matchup?.batter?.fullName;
+      if (name) {
+        const key = name.toLowerCase();
+        if (!hrMap[key]) hrMap[key] = [];
+        hrMap[key].push(play.result.rbi ?? 1);
+      }
+    }
+
+    // Scoring timeline: collect every play where the score changed
+    if ((homeScore !== prevHome || awayScore !== prevAway) && inning != null) {
+      const key = `${inning}-${half}`;
+      if (!halfInnings[key]) {
+        halfInnings[key] = { inning, half, events: [] };
+      }
+      halfInnings[key].events.push({
+        event: play.result?.event ?? 'Unknown',
+        batter: play.matchup?.batter?.fullName ?? null,
+        rbi: play.result?.rbi ?? 0,
+        homeScore,
+        awayScore,
+      });
+    }
+
+    prevHome = homeScore;
+    prevAway = awayScore;
   }
-  return hrMap;
+
+  // Sort half-innings chronologically (top before bottom within each inning)
+  const sorted = Object.values(halfInnings).sort((a, b) =>
+    a.inning !== b.inning ? a.inning - b.inning : (a.half === 'top' ? -1 : 1)
+  );
+
+  // Annotate each half-inning with scores, lead status, and which side is scoring
+  let prevLeader = 'none';
+  const scoringTimeline = sorted.map(entry => {
+    const last = entry.events[entry.events.length - 1];
+    const teamScore  = teamSide === 'home' ? last.homeScore : last.awayScore;
+    const oppScore   = teamSide === 'home' ? last.awayScore : last.homeScore;
+    const isTeam     = (half => (half === 'bottom') === (teamSide === 'home'))(entry.half);
+    const leader     = teamScore > oppScore ? 'team' : teamScore < oppScore ? 'opp' : 'tied';
+    const isLeadChange = leader !== prevLeader && prevLeader !== 'none';
+    prevLeader = leader;
+    return { inning: entry.inning, half: entry.half, isTeam, teamScore, oppScore, isLeadChange, events: entry.events };
+  });
+
+  return { hrMap, scoringTimeline };
 }
 
 // Live state of a game in progress (short 30s cache)
@@ -255,4 +307,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getHomeRunPlays, getLiveGame };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame };
