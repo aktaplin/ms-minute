@@ -274,6 +274,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `${batterLines}\n` +
     (sp ? `\nStarting pitcher — ${spLine}` : '') +
     `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
+    `HR type labels (solo, 2-run, etc.) tell you exactly how many runs that home run scored — ` +
+    `a player's total RBI may include other at-bats, so do not attribute all their RBI to the home run.\n` +
     `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
 
   const pitchingPrompt =
