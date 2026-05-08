@@ -31,6 +31,13 @@ const TEAM_CONFIGS = {
     edition: 'Los Angeles Angels · Daily Edition',
     theme: { navy: '#003263', teal: '#BA0021', lteal: '#C4CED3' },
   },
+  royals: {
+    id: 118, divisionId: 202, leagueId: 103,
+    abbr: 'KC', name: 'Kansas City Royals', divisionName: 'AL Central',
+    brandTitle: "The Royals' Minute",
+    edition: 'Kansas City Royals · Daily Edition',
+    theme: { navy: '#004687', teal: '#C09A5B', lteal: '#FFFFFF' },
+  },
 };
 
 const DEFAULT_TEAM_KEY = 'mariners';
