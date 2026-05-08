@@ -24,6 +24,13 @@ const TEAM_CONFIGS = {
     edition: 'Los Angeles Dodgers · Daily Edition',
     theme: { navy: '#005A9C', teal: '#A5ACAF', lteal: '#EF3E42' },
   },
+  angels: {
+    id: 108, divisionId: 200, leagueId: 103,
+    abbr: 'LAA', name: 'Los Angeles Angels', divisionName: 'AL West',
+    brandTitle: "The Halos' Minute",
+    edition: 'Los Angeles Angels · Daily Edition',
+    theme: { navy: '#003263', teal: '#BA0021', lteal: '#C4CED3' },
+  },
 };
 
 const DEFAULT_TEAM_KEY = 'mariners';
