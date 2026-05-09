@@ -38,6 +38,13 @@ const TEAM_CONFIGS = {
     edition: 'Kansas City Royals · Daily Edition',
     theme: { navy: '#004687', teal: '#C09A5B', lteal: '#FFFFFF' },
   },
+  yankees: {
+    id: 147, divisionId: 201, leagueId: 103,
+    abbr: 'NYY', name: 'New York Yankees', divisionName: 'AL East',
+    brandTitle: "The Yankees' Minute",
+    edition: 'New York Yankees · Daily Edition',
+    theme: { navy: '#003087', teal: '#1C2841', lteal: '#C4CED3' },
+  },
 };
 
 const DEFAULT_TEAM_KEY = 'mariners';
