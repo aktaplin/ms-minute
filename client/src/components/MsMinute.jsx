@@ -334,6 +334,7 @@ export default function MsMinute() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Bootstrap: fetch the team registry, then derive initial team from the URL
   useEffect(() => {
@@ -511,9 +512,31 @@ export default function MsMinute() {
           <div style={{ paddingTop: 28 }}>
             <div style={{ height: 4, background: t.navy, marginBottom: 16 }} />
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.teal, borderTop: `1px solid ${t.teal}`, borderBottom: `1px solid ${t.teal}`, padding: '3px 14px', display: 'inline-block' }}>
+              <button
+                onClick={() => teams && setPickerOpen(true)}
+                disabled={!teams}
+                style={{
+                  minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
+                  color: t.teal, borderTop: `1px solid ${t.teal}`, borderBottom: `1px solid ${t.teal}`,
+                  borderLeft: 'none', borderRight: 'none', background: 'transparent',
+                  padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 12,
+                  cursor: teams ? 'pointer' : 'default', fontFamily: INTER,
+                }}
+                aria-label="Choose edition"
+              >
                 {editionLabel || ' '}
-              </span>
+                {teams && (
+                  <svg
+                    aria-hidden="true"
+                    width="18" height="18" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor"
+                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ marginLeft: 4, flexShrink: 0 }}
+                  >
+                    <polyline points="6 9 12 16 18 9" />
+                  </svg>
+                )}
+              </button>
             </div>
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
               {brandTitle}
@@ -568,36 +591,82 @@ export default function MsMinute() {
             </>
           )}
 
-          {/* Team toggle — always in footer, driven by /api/teams */}
-          {teams && (
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: data ? 16 : 52, paddingBottom: 8 }}>
-              <div style={{ display: 'inline-flex', border: `1px solid ${t.navy}` }}>
-                {teams.map((tm, i) => (
-                  <button
-                    key={tm.key}
-                    onClick={() => selectTeam(tm.key)}
-                    style={{
-                      background: team === tm.key ? t.navy : 'transparent',
-                      color: team === tm.key ? PAPER : t.navy,
-                      border: 'none',
-                      borderLeft: i > 0 ? `1px solid ${t.navy}` : 'none',
-                      padding: '4px 16px',
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      fontFamily: INTER,
-                    }}
-                  >
-                    {tm.abbr}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
         </div>
+
+        {pickerOpen && teams && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose edition"
+            style={{
+              position: 'fixed', inset: 0, zIndex: 100,
+              background: PAPER, color: INK, overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
+              <button
+                onClick={() => setPickerOpen(false)}
+                aria-label="Close"
+                style={{
+                  width: 48, height: 48, background: 'transparent', border: 'none',
+                  cursor: 'pointer', fontSize: 26, lineHeight: 1, color: INK,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: INTER,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
+              <div style={{ height: 2, background: INK, marginBottom: 14 }} />
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, textAlign: 'center', marginBottom: 6 }}>
+                Choose Edition
+              </div>
+              <h2 style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: INK, textAlign: 'center', lineHeight: 1, letterSpacing: '-0.5px', margin: '0 0 28px', ...OPSZ9 }}>
+                Editions
+              </h2>
+
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {teams.map((tm, i) => {
+                  const selected = team === tm.key;
+                  return (
+                    <li key={tm.key}>
+                      <button
+                        onClick={() => { selectTeam(tm.key); setPickerOpen(false); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          width: '100%', minHeight: 64, padding: '14px 4px',
+                          background: 'transparent', border: 'none',
+                          borderTop: i === 0 ? `1px solid ${PAPER2}` : 'none',
+                          borderBottom: `1px solid ${PAPER2}`,
+                          cursor: 'pointer', textAlign: 'left',
+                          fontFamily: INTER,
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                          <span style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: tm.theme.navy, lineHeight: 1.1, ...OPSZ9 }}>
+                            {tm.brandTitle}
+                          </span>
+                          <span style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', letterSpacing: '0.04em' }}>
+                            {tm.edition}
+                          </span>
+                        </div>
+                        <span style={{
+                          flexShrink: 0, marginLeft: 12,
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+                          color: selected ? tm.theme.teal : 'transparent',
+                        }}>
+                          {selected ? '▸ Reading' : ''}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
