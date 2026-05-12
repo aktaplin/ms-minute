@@ -34,7 +34,7 @@ function SectionHead({ label, t }) {
   return (
     <div style={{ marginTop: 28, marginBottom: 14 }}>
       <div style={{ height: 2, background: t.navy, marginBottom: 6 }} />
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal }}>
+      <div style={{ fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
