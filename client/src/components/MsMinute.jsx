@@ -97,7 +97,7 @@ function OffenseCard({ players, t }) {
           <div key={p.name} style={{ paddingTop: i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontFamily: FRAUNCES, fontSize: 18, fontWeight: 900, color: t.navy, ...OPSZ9 }}>{p.name}</span>
+                <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: t.teal, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
