@@ -34,7 +34,7 @@ function SectionHead({ label, t }) {
   return (
     <div style={{ marginTop: 28, marginBottom: 14 }}>
       <div style={{ height: 2, background: t.navy, marginBottom: 6 }} />
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal }}>
         {label}
       </div>
     </div>
@@ -51,20 +51,20 @@ function ScoreCard({ data, teamAbbr, t }) {
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
             {data.mScore}–{data.oScore}
           </div>
-          <div style={{ fontSize: 11, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? t.teal : WIN_RED, borderBottom: `2px solid ${data.won ? t.teal : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
+          <div style={{ fontSize: 13, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? t.teal : WIN_RED, borderBottom: `2px solid ${data.won ? t.teal : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
             {data.won ? 'Win' : 'Loss'}
           </div>
         </div>
         <div style={{ flex: 1, paddingLeft: 18 }}>
           <div style={{ fontFamily: INTER, fontSize: 15, fontStyle: 'italic', color: INK2, marginBottom: 10 }}>{data.oppName}</div>
-          <div style={{ fontSize: 12, color: MUTED, lineHeight: 2 }}>
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
             <div>{data.venue}</div>
             <div>{data.gameDate}</div>
           </div>
           {data.startingPitcher && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 11, color: INK2 }}>
-              <span style={{ color: t.teal, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 13, color: INK2 }}>
+              <span style={{ color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
               {data.startingPitcher.name} · {data.startingPitcher.ip} IP · {data.startingPitcher.k} K · {data.startingPitcher.er} ER
             </div>
           )}
@@ -98,13 +98,13 @@ function OffenseCard({ players, t }) {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: FRAUNCES, fontSize: 18, fontWeight: 900, color: t.navy, ...OPSZ9 }}>{p.name}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: t.teal, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: t.teal, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {p.stats.map(s => (
                   <div key={s.lbl} style={{ border: `1px solid ${t.navy}`, padding: '2px 7px', textAlign: 'center', minWidth: 32 }}>
                     <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: t.navy, lineHeight: 1.1 }}>{s.val}</div>
-                    <div style={{ fontSize: 8, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
+                    <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
                   </div>
                 ))}
               </div>
@@ -167,7 +167,7 @@ function StatOfGameCard({ stat, t }) {
               </span>
             )}
             {stat.player && (
-              <span style={{ fontSize: 12, color: t.lteal, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 13, color: t.lteal, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {stat.player}
               </span>
             )}
@@ -212,13 +212,13 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
         ) : (
           <a href={fallbackUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', background: t.navy, textDecoration: 'none', gap: 10 }}>
             <div style={{ fontSize: 32, color: PAPER, opacity: 0.5 }}>▶</div>
-            <div style={{ fontSize: 11, color: t.lteal, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
+            <div style={{ fontSize: 12, color: t.lteal, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
           </a>
         )}
-        <div style={{ padding: '7px 12px', borderTop: `1px solid ${t.navy}`, fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '7px 12px', borderTop: `1px solid ${t.navy}`, fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Official MLB Highlights</span>
           {videoId && (
-            <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: t.teal, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
+            <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: t.teal, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
           )}
         </div>
       </div>
@@ -256,20 +256,20 @@ function StandingsCard({ rows, divisionName, t }) {
         <thead>
           <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
             {['', 'Team', 'W', 'L', 'GB'].map(h => (
-              <th key={h} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
+              <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((t2, i) => (
             <tr key={t2.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
-              <td style={{ padding: '7px 6px', fontSize: 11, color: MUTED, width: 20 }}>{i + 1}</td>
+              <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, width: 20 }}>{i + 1}</td>
               <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: t2.isM ? 700 : 400, color: t2.isM ? t.navy : INK, fontFamily: t2.isM ? FRAUNCES : 'inherit', ...(t2.isM ? OPSZ9 : {}) }}>
                 {t2.isM ? <span>▸ {t2.name}</span> : t2.name}
               </td>
               <td style={{ padding: '7px 6px', fontSize: 14, color: INK, textAlign: 'right', fontFamily: INTER }}>{t2.w}</td>
               <td style={{ padding: '7px 6px', fontSize: 14, color: INK2, textAlign: 'right', fontFamily: INTER }}>{t2.l}</td>
-              <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t2.gb}`}</td>
+              <td style={{ padding: '7px 6px', fontSize: 13, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t2.gb}`}</td>
             </tr>
           ))}
         </tbody>
@@ -296,13 +296,13 @@ function TitleOddsCard({ data, trend, t }) {
         {haveTrend && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
             <Sparkline data={trend} color={t.navy} width={90} height={22} />
-            <span style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 12, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
               {trend.length}d · {deltaSign}{deltaPp}pp
             </span>
           </div>
         )}
-        <div style={{ fontSize: 12, color: MUTED, fontFamily: INTER, fontStyle: 'italic', marginTop: 6 }}>
-          <span style={{ color: t.teal, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', fontStyle: 'normal' }}>Median: </span>
+        <div style={{ fontSize: 13, color: MUTED, fontFamily: INTER, fontStyle: 'italic', marginTop: 6 }}>
+          <span style={{ color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', fontStyle: 'normal' }}>Median: </span>
           <span style={{ color: t.navy, fontWeight: 700, fontStyle: 'normal' }}>{oddsStr}</span> · {data.bookmakerCount} US books
         </div>
       </div>
@@ -320,8 +320,8 @@ function NextGameCard({ data, teamAbbr, t }) {
         <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
           <div style={{ fontStyle: 'italic' }}>{data.oppName}</div>
           <div>{data.venue}</div>
-          <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
-          {data.pitcher && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable: </span>{data.pitcher}</div>}
+          <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
+          {data.pitcher && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable: </span>{data.pitcher}</div>}
         </div>
       </div>
     </div>
@@ -541,7 +541,7 @@ export default function MsMinute() {
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
               {brandTitle}
             </h1>
-            <div style={{ textAlign: 'center', fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
+            <div style={{ textAlign: 'center', fontSize: 13, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
               {todayFormatted()}
             </div>
           </div>
@@ -549,9 +549,9 @@ export default function MsMinute() {
           {/* Error — nothing loaded */}
           {error && !data && (
             <div style={{ margin: '24px 0', padding: '18px', border: `1px solid ${WIN_RED}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
               <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6, fontFamily: INTER, fontStyle: 'italic' }}>{error}</div>
-              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
+              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
             </div>
           )}
 
@@ -580,12 +580,12 @@ export default function MsMinute() {
 
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
+                <div style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {import.meta.env.DEV && (
-                    <button onClick={regenerateReport} title="Bust cache and regenerate today's report" style={{ background: 'transparent', border: 'none', color: MUTED, padding: '5px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: INTER }}>Regenerate</button>
+                    <button onClick={regenerateReport} title="Bust cache and regenerate today's report" style={{ background: 'transparent', border: 'none', color: MUTED, padding: '5px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: INTER }}>Regenerate</button>
                   )}
-                  <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${t.navy}`, color: t.navy, padding: '5px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                  <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${t.navy}`, color: t.navy, padding: '5px 12px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
                 </div>
               </div>
             </>
@@ -620,7 +620,7 @@ export default function MsMinute() {
 
             <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
               <div style={{ height: 2, background: INK, marginBottom: 14 }} />
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, textAlign: 'center', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, textAlign: 'center', marginBottom: 6 }}>
                 Choose Edition
               </div>
               <h2 style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: INK, textAlign: 'center', lineHeight: 1, letterSpacing: '-0.5px', margin: '0 0 28px', ...OPSZ9 }}>
@@ -648,13 +648,13 @@ export default function MsMinute() {
                           <span style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: tm.theme.navy, lineHeight: 1.1, ...OPSZ9 }}>
                             {tm.brandTitle}
                           </span>
-                          <span style={{ fontSize: 11, color: MUTED, fontStyle: 'italic', letterSpacing: '0.04em' }}>
+                          <span style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', letterSpacing: '0.04em' }}>
                             {tm.edition}
                           </span>
                         </div>
                         <span style={{
                           flexShrink: 0, marginLeft: 12,
-                          fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+                          fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
                           color: selected ? tm.theme.teal : 'transparent',
                         }}>
                           {selected ? '▸ Reading' : ''}
