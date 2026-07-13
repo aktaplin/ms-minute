@@ -13,13 +13,14 @@ All color pairs are WCAG AA verified.
 | `PAPER` | `#F6F1E7` | Main background — aged newsprint cream |
 | `PAPER2` | `#EDE7D8` | Subtle dividers, skeleton loaders |
 | `NAVY` | `#0C2340` | Headlines, masthead rules, structural borders, Stat of the Game card background. Mariners primary navy. |
-| `TEAL` | `#005C5C` | Section labels, kicker, "Win" indicator, accent rules. Mariners teal. |
+| `TEAL` | `#005C5C` | Section labels, kicker, accent rules. Mariners teal. |
 | `INK` | `#1A1A1A` | Primary body copy |
 | `INK2` | `#444444` | Secondary copy |
 | `MUTED` | `#5C5347` | Captions, dates, table rank numbers |
 | `LTEAL` | `#A8C8C8` | Labels and accents on NAVY backgrounds |
 | `LGREY` | `#C8D4DC` | Body copy on NAVY backgrounds |
-| `WIN_RED` | `#8B1A1A` | Loss indicator, error states |
+| `WIN_GREEN` | `#245C3B` | Win indicator (filled result tag). Team-independent, semantic. |
+| `WIN_RED` | `#8B1A1A` | Loss indicator (filled result tag), error states. Team-independent, semantic. |
 
 ### Contrast verification
 
@@ -38,6 +39,10 @@ NAVY bg (#0C2340):
   PAPER #F6F1E7  → 14.03:1  ✓
   LTEAL #A8C8C8  →  8.84:1  ✓
   LGREY #C8D4DC  → 10.46:1  ✓
+
+Result tags (cream PAPER text on filled color):
+  WIN_GREEN bg #245C3B  → 6.98:1  ✓
+  WIN_RED   bg #8B1A1A  → 8.25:1  ✓
 ```
 
 ## Typography

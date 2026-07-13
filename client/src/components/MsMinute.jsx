@@ -6,7 +6,8 @@ const INK     = '#1A1A1A';
 const INK2    = '#444444';
 const MUTED   = '#5C5347';
 const LGREY   = '#C8D4DC';
-const WIN_RED = '#8B1A1A';
+const WIN_RED   = '#8B1A1A';
+const WIN_GREEN = '#245C3B';
 
 const FRAUNCES = "'Fraunces', Georgia, serif";
 const INTER    = "'Inter', system-ui, sans-serif";
@@ -52,7 +53,12 @@ function ScoreCard({ data, teamAbbr, t }) {
             {data.mScore}–{data.oScore}
           </div>
           <div style={{ fontSize: 13, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: data.won ? t.teal : WIN_RED, borderBottom: `2px solid ${data.won ? t.teal : WIN_RED}`, display: 'inline-block', paddingBottom: 1 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
+            {data.won ? (
+              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            ) : (
+              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            )}
             {data.won ? 'Win' : 'Loss'}
           </div>
         </div>
