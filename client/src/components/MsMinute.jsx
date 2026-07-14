@@ -324,8 +324,13 @@ function OnThisDayCard({ data, t }) {
   );
 }
 
-function StatOfGameCard({ stat, t }) {
+function StatOfGameCard({ stat, t, columns = false }) {
   if (!stat) return null;
+  // On desktop the card runs the full well width, so the body text flows in two
+  // newspaper columns to keep the measure readable — same treatment as NarrativeCard.
+  const columnStyle = columns
+    ? { columnCount: 2, columnGap: 28, columnRule: '1px solid rgba(168,200,200,0.2)' }
+    : {};
   return (
     <div>
       <SectionHead label="Stat of the Game" t={t} />
@@ -359,19 +364,21 @@ function StatOfGameCard({ stat, t }) {
           </div>
         )}
 
-        {stat.definition && (
-          <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 10 }}>{stat.definition}</p>
-        )}
+        <div style={columnStyle}>
+          {stat.definition && (
+            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 10, breakInside: 'avoid' }}>{stat.definition}</p>
+          )}
 
-        {stat.leagueContext && (
-          <div style={{ borderLeft: `3px solid ${t.lteal}`, paddingLeft: 10, marginBottom: 10 }}>
-            <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.lteal, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
-          </div>
-        )}
+          {stat.leagueContext && (
+            <div style={{ borderLeft: `3px solid ${t.lteal}`, paddingLeft: 10, marginBottom: 10, breakInside: 'avoid' }}>
+              <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.lteal, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
+            </div>
+          )}
 
-        {stat.todayContext && (
-          <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 0 }}>{stat.todayContext}</p>
-        )}
+          {stat.todayContext && (
+            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 0, breakInside: 'avoid' }}>{stat.todayContext}</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -881,7 +888,7 @@ export default function MsMinute() {
                     <PitchArsenalCard data={data.pitchArsenal} t={t} />
                     <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
                   </div>
-                  <StatOfGameCard stat={data.statOfGame} t={t} />
+                  <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </>
               )}
             </>
