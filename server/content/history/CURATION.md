@@ -1,5 +1,9 @@
 # On This Day — curation notes
 
+**Status (July 2026): intentionally complete at 66 events.** Decision: quality bar over
+calendar coverage — the card fires ~2 days/week and hides on empty days. Add new events
+only when they earn their place (and always web-verify first).
+
 ## Rules
 - Every event **web-verified before shipping** (two independent sources, or one authoritative:
   SABR, Baseball-Reference box score, official club timeline/announcement).
