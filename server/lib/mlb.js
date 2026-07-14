@@ -151,6 +151,7 @@ async function getBoxScore(gamePk, teamId) {
 
   const pitcherIds = teamData.pitchers ?? [];
   const toPitcher = (p) => ({
+    id: p.person.id,
     name: p.person.fullName,
     inningsPitched: p.stats.pitching?.inningsPitched ?? '0.0',
     strikeOuts: p.stats.pitching?.strikeOuts ?? 0,
@@ -301,6 +302,105 @@ async function getPlayByPlayData(gamePk, teamId) {
   return { hrMap, scoringTimeline };
 }
 
+// Per-pitch aggregation for one pitcher in a completed game.
+// Returns { totalPitches, pitches: [{ code, name, count, gamePct, avgVelo, maxVelo, whiffs }] }
+// sorted by usage, or null if no pitch data exists for the pitcher.
+async function getPitchArsenal(gamePk, pitcherId) {
+  const data = await _mlbFetch(`/api/v1.1/game/${gamePk}/feed/live`);
+  const allPlays = data.liveData?.plays?.allPlays ?? [];
+
+  const byType = {};
+  let total = 0;
+
+  for (const play of allPlays) {
+    if (play.matchup?.pitcher?.id !== pitcherId) continue;
+    for (const ev of play.playEvents ?? []) {
+      if (!ev.isPitch) continue;
+      const type = ev.details?.type;
+      if (!type?.code) continue;
+
+      total++;
+      if (!byType[type.code]) {
+        byType[type.code] = {
+          code: type.code, name: type.description,
+          count: 0, veloSum: 0, veloCount: 0, maxVelo: null, whiffs: 0,
+        };
+      }
+      const t = byType[type.code];
+      t.count++;
+
+      const speed = ev.pitchData?.startSpeed;
+      if (typeof speed === 'number') {
+        t.veloSum += speed;
+        t.veloCount++;
+        if (t.maxVelo == null || speed > t.maxVelo) t.maxVelo = speed;
+      }
+      if ((ev.details?.description ?? '').includes('Swinging Strike')) t.whiffs++;
+    }
+  }
+
+  if (total === 0) return null;
+
+  const pitches = Object.values(byType)
+    .map(t => ({
+      code: t.code,
+      name: t.name,
+      count: t.count,
+      gamePct: Math.round((t.count / total) * 100),
+      avgVelo: t.veloCount > 0 ? Number((t.veloSum / t.veloCount).toFixed(1)) : null,
+      maxVelo: t.maxVelo != null ? Number(t.maxVelo.toFixed(1)) : null,
+      whiffs: t.whiffs,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return { totalPitches: total, pitches };
+}
+
+// Season-long pitch mix via the pitchArsenal stat group.
+// Returns { [pitchCode]: { pct, avgVelo } } or null (e.g., a debut with no season data).
+async function getSeasonPitchMix(pitcherId, season = new Date().getFullYear()) {
+  try {
+    const data = await _mlbFetch(
+      `/api/v1/people/${pitcherId}/stats?stats=pitchArsenal&season=${season}`
+    );
+    const splits = data.stats?.[0]?.splits ?? [];
+    if (splits.length === 0) return null;
+
+    const mix = {};
+    for (const s of splits) {
+      const stat = s.stat;
+      if (!stat?.type?.code) continue;
+      mix[stat.type.code] = {
+        pct: Math.round(stat.percentage * 100),
+        avgVelo: Number(stat.averageSpeed.toFixed(1)),
+      };
+    }
+    return Object.keys(mix).length > 0 ? mix : null;
+  } catch {
+    return null;
+  }
+}
+
+// Game arsenal merged with season usage: each pitch gains seasonPct + deltaPts
+// (percentage-point difference vs. season norm), null when season data is unavailable.
+async function getStarterArsenal(gamePk, pitcherId) {
+  if (!pitcherId) return null;
+  const arsenal = await getPitchArsenal(gamePk, pitcherId);
+  if (!arsenal) return null;
+
+  const seasonMix = await getSeasonPitchMix(pitcherId);
+  const pitches = arsenal.pitches.map(p => {
+    const season = seasonMix?.[p.code] ?? null;
+    return {
+      ...p,
+      seasonPct: season ? season.pct : null,
+      deltaPts: season ? p.gamePct - season.pct : null,
+    };
+  });
+
+  return { totalPitches: arsenal.totalPitches, pitches, hasSeasonMix: !!seasonMix };
+}
+
 // Live state of a game in progress (short 30s cache)
 async function getLiveGame(gamePk) {
   const path = `/api/v1.1/game/${gamePk}/feed/live`;
@@ -332,4 +432,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal };

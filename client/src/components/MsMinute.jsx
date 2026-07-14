@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
 const PAPER   = '#F6F1E7';
 const PAPER2  = '#EDE7D8';
@@ -39,6 +39,49 @@ function SectionHead({ label, t }) {
         {label}
       </div>
     </div>
+  );
+}
+
+// Newspaper section flag: double rule + centered "Section A · The Game" label
+function ZoneBanner({ kicker, label, t }) {
+  return (
+    <div style={{ marginTop: 36 }}>
+      <div style={{ height: 3, background: t.navy }} />
+      <div style={{ height: 1, background: t.navy, marginTop: 2 }} />
+      <div style={{ textAlign: 'center', paddingTop: 10, fontFamily: FRAUNCES, fontSize: 13, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
+        <span style={{ color: t.teal }}>{kicker}</span>
+        <span style={{ margin: '0 8px', color: MUTED }}>·</span>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// Sticky section index under the masthead; jump-scrolls to each zone
+function SectionNav({ zones, active, onJump, t }) {
+  return (
+    <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: PAPER, borderBottom: `1px solid ${t.navy}`, margin: '18px -20px 0', padding: '0 20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 4 }}>
+        {zones.map((z, i) => (
+          <Fragment key={z.id}>
+            {i > 0 && <span aria-hidden="true" style={{ alignSelf: 'center', color: t.teal, fontSize: 12 }}>·</span>}
+            <button
+              onClick={() => onJump(z.id)}
+              aria-current={active === z.id ? 'true' : undefined}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: '13px 10px', fontFamily: INTER, fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: active === z.id ? t.navy : t.teal,
+                boxShadow: active === z.id ? `inset 0 -2px 0 0 ${t.navy}` : 'none',
+              }}
+            >
+              {z.label}
+            </button>
+          </Fragment>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -141,6 +184,89 @@ function PitchingCard({ data, t }) {
       {data.bullpen && (
         <p style={paragraph} dangerouslySetInnerHTML={{ __html: data.bullpen }} />
       )}
+    </div>
+  );
+}
+
+function PitchArsenalCard({ data, t }) {
+  if (!data?.pitches?.length) return null;
+  const n = data.pitches.length;
+  return (
+    <div>
+      <SectionHead label="Pitch Arsenal" t={t} />
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{data.pitcher}</span>
+        <span style={{ fontSize: 13, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>{data.totalPitches} pitches</span>
+      </div>
+      <div style={{ fontSize: 11, color: MUTED, fontFamily: INTER, marginBottom: 12 }}>
+        Bar: share of this game's pitches{data.hasSeasonMix ? ' · tick: season share' : ''}
+      </div>
+
+      {data.pitches.map((p, i) => (
+        <div key={p.code} style={{ paddingBottom: 12, marginBottom: i < n - 1 ? 12 : 0, borderBottom: i < n - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <span style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: t.navy }}>{p.name}</span>
+            {p.avgVelo != null && (
+              <span style={{ fontSize: 12.5, color: MUTED, fontFamily: INTER, fontVariantNumeric: 'tabular-nums' }}>
+                {p.avgVelo} mph avg{p.maxVelo != null && p.maxVelo > p.avgVelo ? ` · ${p.maxVelo} max` : ''}
+              </span>
+            )}
+          </div>
+
+          <div style={{ position: 'relative', height: 10, background: PAPER2, marginBottom: 6 }}>
+            <div style={{ width: `${p.gamePct}%`, height: '100%', background: t.teal }} />
+            {p.seasonPct != null && (
+              <div style={{ position: 'absolute', top: -2, bottom: -2, left: `calc(${Math.min(p.seasonPct, 100)}% - 1px)`, width: 2, background: t.navy }} />
+            )}
+          </div>
+
+          <div style={{ fontSize: 12.5, fontFamily: INTER, color: INK2, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontWeight: 700, color: t.navy }}>{p.gamePct}%</span> of pitches
+            {p.seasonPct != null && (
+              <>
+                {' · '}season {p.seasonPct}%{' '}
+                <span style={{ color: t.teal, fontWeight: 700 }}>
+                  {p.deltaPts > 0 ? `▲${p.deltaPts}` : p.deltaPts < 0 ? `▼${Math.abs(p.deltaPts)}` : '—'}
+                </span>
+              </>
+            )}
+            {p.whiffs > 0 && ` · ${p.whiffs} whiff${p.whiffs === 1 ? '' : 's'}`}
+          </div>
+
+          {p.note && (
+            <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: '5px 0 0' }}>{p.note}</p>
+          )}
+        </div>
+      ))}
+
+      {data.insight && (
+        <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 10, marginTop: 14 }}>
+          <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.teal, fontStyle: 'italic', margin: 0 }}>{data.insight}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Archival-clipping treatment: double rules top and bottom, dateline, headline, story
+function OnThisDayCard({ data, t }) {
+  if (!data) return null;
+  const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric',
+  });
+  return (
+    <div>
+      <SectionHead label="On This Day" t={t} />
+      <div style={{ background: PAPER2, borderTop: `4px double ${t.navy}`, borderBottom: `4px double ${t.navy}`, padding: '16px 18px' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
+          {dateLabel}, {data.year}
+        </div>
+        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: t.navy, lineHeight: 1.25, marginBottom: 10, ...OPSZ9 }}>
+          {data.headline}
+        </div>
+        <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: INK, margin: 0 }}>{data.story}</p>
+      </div>
     </div>
   );
 }
@@ -341,6 +467,31 @@ export default function MsMinute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [activeZone, setActiveZone] = useState('game');
+
+  // Track which zone the reader is in so the sticky section index can highlight it
+  useEffect(() => {
+    if (!data) return;
+    const NAV_H = 48;
+    function onScroll() {
+      let current = 'game';
+      for (const id of ['game', 'learn', 'club']) {
+        const el = document.getElementById(`zone-${id}`);
+        if (el && el.getBoundingClientRect().top <= NAV_H + 24) current = id;
+      }
+      setActiveZone(current);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [data]);
+
+  function jumpToZone(id) {
+    const el = document.getElementById(`zone-${id}`);
+    if (!el) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }
 
   // Bootstrap: fetch the team registry, then derive initial team from the URL
   useEffect(() => {
@@ -463,6 +614,8 @@ export default function MsMinute() {
           ].slice(0, 3),
         })),
         pitching: report.pitching ?? null,
+        pitchArsenal: report.pitchArsenal ?? null,
+        onThisDay: report.onThisDay ?? null,
         statOfGame: report.statOfGame,
         titleOdds: report.titleOdds ?? null,
         titleOddsTrend: report.titleOddsTrend ?? [],
@@ -499,6 +652,15 @@ export default function MsMinute() {
   const t = teamConfig?.theme ?? { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' };
   const brandTitle = teamConfig?.brandTitle ?? "The M's Minute";
   const editionLabel = teamConfig?.edition ?? '';
+
+  // Page zones — newspaper sections. A zone renders only when it has content.
+  const zones = data
+    ? [
+        { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
+        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.onThisDay) },
+        { id: 'club', label: 'Club', kicker: 'Section C', title: 'Around the Club', show: !!(data.standings?.length || data.nextGame || data.titleOdds) },
+      ].filter(z => z.show)
+    : [];
 
   return (
     <>
@@ -572,17 +734,38 @@ export default function MsMinute() {
           {/* Content */}
           {data && (
             <>
-              <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
-              <NarrativeCard text={data.narrative} t={t} />
-              <OffenseCard players={data.offense} t={t} />
-              <PitchingCard data={data.pitching} t={t} />
-              <StatOfGameCard stat={data.statOfGame} t={t} />
-              <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
-              <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
-                <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
-              </div>
+              {zones.length > 1 && (
+                <SectionNav zones={zones} active={activeZone} onJump={jumpToZone} t={t} />
+              )}
+
+              <section id="zone-game" style={{ scrollMarginTop: 56 }}>
+                <ZoneBanner kicker="Section A" label="The Game" t={t} />
+                <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
+                <NarrativeCard text={data.narrative} t={t} />
+                <OffenseCard players={data.offense} t={t} />
+                <PitchingCard data={data.pitching} t={t} />
+                <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+              </section>
+
+              {(data.pitchArsenal || data.statOfGame || data.onThisDay) && (
+                <section id="zone-learn" style={{ scrollMarginTop: 56 }}>
+                  <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
+                  <PitchArsenalCard data={data.pitchArsenal} t={t} />
+                  <StatOfGameCard stat={data.statOfGame} t={t} />
+                  <OnThisDayCard data={data.onThisDay} t={t} />
+                </section>
+              )}
+
+              {(data.standings?.length > 0 || data.nextGame || data.titleOdds) && (
+                <section id="zone-club" style={{ scrollMarginTop: 56 }}>
+                  <ZoneBanner kicker="Section C" label="Around the Club" t={t} />
+                  <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
+                    <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
+                  </div>
+                </section>
+              )}
 
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -4,6 +4,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const mlb = require('./mlb');
 const oddsApi = require('./oddsApi');
 const db = require('./db');
+const history = require('./history');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
@@ -222,6 +223,10 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
+  // Starter's pitch mix for this game vs. season norms (live feed is already cached
+  // by getPlayByPlayData, so this costs one extra request for the season arsenal).
+  const arsenal = await mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id);
+
   // Resolve team key for cache/history operations (used twice below)
   const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
 
@@ -231,6 +236,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     db.saveTitleOdds(teamKey, todayPt, titleOdds.impliedProb, titleOdds.medianOdds);
   }
   const titleOddsTrend = db.getTitleOddsTrend(teamKey, 30);
+
+  // Featured franchise moment for today's calendar date (null when none is curated)
+  const onThisDay = history.getOnThisDay(teamKey, todayPt.slice(5));
 
   // Build context strings for Claude prompts
   const result = lastGame.win
@@ -327,12 +335,45 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `  "todayContext": "1–2 sentences: how today\\'s specific game data illustrates this stat. Be precise — reference the actual numbers."\n` +
     `}`;
 
+  const arsenalLines = arsenal
+    ? arsenal.pitches
+        .map(p =>
+          `${p.name} (${p.code}): ${p.count} thrown (${p.gamePct}% of pitches), ` +
+          `avg ${p.avgVelo ?? '?'} mph, max ${p.maxVelo ?? '?'} mph, ${p.whiffs} swinging strikes` +
+          (p.seasonPct != null
+            ? ` | season usage ${p.seasonPct}% (${p.deltaPts >= 0 ? '+' : ''}${p.deltaPts} pts vs. season)`
+            : ' | no season usage data')
+        )
+        .join('\n')
+    : null;
+
+  const arsenalPrompt = arsenal
+    ? `You are writing the "Pitch Arsenal" section — teaching a reader who is learning baseball ` +
+      `what each pitch type is, using the starter's actual outing.\n\n` +
+      `Starter: ${sp.name} (${teamShort}), yesterday vs. the ${lastGame.opponentName}.\n` +
+      `Line: ${spLine}\n\n` +
+      `Pitches thrown (measured data from this game):\n${arsenalLines}\n\n` +
+      `Return only valid JSON:\n` +
+      `{\n` +
+      `  "pitches": [{"code": "FF", "note": "..."}, ...],\n` +
+      `  "insight": "..." or null\n` +
+      `}\n` +
+      `Rules:\n` +
+      `- One entry per pitch listed above, using the same codes.\n` +
+      `- Each note: ONE sentence in plain English — what this pitch type does (movement, purpose) ` +
+      `woven with how it played in this game (whiffs, velocity).\n` +
+      `- "insight": one sentence about the most notable difference between this game's usage and ` +
+      `season usage, using the +/- pts provided. Set to null if season data is unavailable or no delta exceeds 5 pts.\n` +
+      `- Use ONLY the numbers provided above. Do not invent velocities, counts, percentages, or outcomes.`
+    : null;
+
   console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, playerNotesRaw, statRaw, pitchingRaw, ytVideoId] = await Promise.all([
+  const [narrative, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400, brandTitle, teamName),
     _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
     _callClaude(statPrompt, 600, brandTitle, teamName),
     _callClaude(pitchingPrompt, 400, brandTitle, teamName),
+    arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
@@ -373,6 +414,31 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     statOfGame = { statName: null, abbr: null, player: null, value: null, leagueContext: null, definition: statRaw, todayContext: null };
   }
 
+  // Merge Claude's per-pitch teaching notes into the measured arsenal data.
+  // Numbers shown in the UI always come from the API; Claude only supplies prose.
+  let pitchArsenal = null;
+  if (arsenal) {
+    let notesByCode = {};
+    let arsenalInsight = null;
+    try {
+      const cleaned = (arsenalRaw ?? '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+      const parsed = JSON.parse(cleaned);
+      for (const p of parsed.pitches ?? []) {
+        if (p?.code) notesByCode[p.code] = p.note ?? null;
+      }
+      arsenalInsight = parsed.insight ?? null;
+    } catch {
+      console.warn('[generate] Failed to parse pitch arsenal JSON');
+    }
+    pitchArsenal = {
+      pitcher: sp?.name ?? null,
+      totalPitches: arsenal.totalPitches,
+      hasSeasonMix: arsenal.hasSeasonMix,
+      insight: arsenalInsight,
+      pitches: arsenal.pitches.map(p => ({ ...p, note: notesByCode[p.code] ?? null })),
+    };
+  }
+
   const report = {
     generatedAt: new Date().toISOString(),
     teamId,
@@ -388,6 +454,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     playerNotes,
     pitching,
     statOfGame,
+    pitchArsenal,
+    onThisDay,
     titleOdds,
     titleOddsTrend,
     ytVideoId,
