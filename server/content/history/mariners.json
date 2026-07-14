@@ -64,6 +64,11 @@
     "headline": "Griffey hits career home run number 300",
     "story": "Ken Griffey Jr. takes Cleveland's Jose Mesa deep to right for a two-run shot — his second homer of the game and the 300th of his career. At 28 years and 143 days, only Jimmie Foxx got there younger."
   },
+  "04-14": {
+    "year": 2009,
+    "headline": "Griffey comes home",
+    "story": "Nine years after the trade to Cincinnati, Ken Griffey Jr. plays his first home game back in a Mariners uniform, and 45,958 at Safeco Field give him one standing ovation after another. He singles in his first at-bat, because of course he does."
+  },
   "04-20": {
     "year": 1990,
     "headline": "Brian Holman comes within one out of perfection",
@@ -109,6 +114,11 @@
     "headline": "Six pitchers combine to no-hit the Dodgers",
     "story": "Kevin Millwood starts it, and five relievers finish it: the first combined no-hitter in Mariners history, 1-0 over Los Angeles at Safeco Field. Six pitchers sharing one line in the record book remains a club original."
   },
+  "06-16": {
+    "year": 2001,
+    "headline": "John Olerud hits for the cycle",
+    "story": "Olerud goes 4-for-5 in San Diego, finishing the cycle with a ninth-inning homer in a 9-2 win. The Washington native becomes the third Mariner to do it — and joins Bob Watson as the only players in history with a cycle in both leagues."
+  },
   "06-17": {
     "year": 1987,
     "headline": "A 17-year-old Griffey homers in Everett",
@@ -153,6 +163,11 @@
     "year": 1999,
     "headline": "Safeco Field opens its roof for the first time",
     "story": "As the Seattle Symphony plays and the new retractable roof rolls open overhead, 44,607 watch Jamie Moyer throw the first pitch at Safeco Field — a called strike. The Padres spoil the night 3-2, but the Mariners have a home built to keep baseball in Seattle for good."
+  },
+  "07-18": {
+    "year": 1998,
+    "headline": "Turn Ahead the Clock night",
+    "story": "The Kingdome becomes the 'Biodome,' Scotty from Star Trek delivers the first pitch by DeLorean, and the Mariners take the field in crimson-and-black jerseys from the year 2027 — colors Ken Griffey Jr. helped pick. A-Rod's three-run homer in the seventh wins it 8-5 over Kansas City."
   },
   "07-21": {
     "year": 2019,
@@ -215,9 +230,9 @@
     "story": "Two weeks after becoming teammates, Ken Griffey Sr. and Ken Griffey Jr. hit back-to-back home runs off Kirk McCaskill in Anaheim — father first, son right behind him. It has never happened before or since."
   },
   "09-19": {
-    "year": 1998,
-    "headline": "A-Rod joins the 40-40 club",
-    "story": "Alex Rodriguez homers off Anaheim's Jack McDowell for his 40th of the season, joining Jose Canseco and Barry Bonds as the only players with 40 home runs and 40 steals in one year. He finishes at 42 and 46 — still the only shortstop ever to do it."
+    "year": 2001,
+    "headline": "A flag around the infield: the Mariners clinch the West",
+    "story": "Eight days after baseball resumed following September 11, the Mariners beat the Angels 5-0 for win number 106 and the AL West title. There is no champagne. Led by Lou Piniella, the team carries an American flag around the infield and kneels at the mound."
   },
   "09-23": {
     "year": 2010,
@@ -254,6 +269,11 @@
     "headline": "Everybody scores: the Mariners win the tiebreaker",
     "story": "In a one-game playoff for the AL West, Randy Johnson retires the first 17 Angels and strikes out 12 against Mark Langston — the man Seattle once traded to get him. Luis Sojo's bases-clearing double rolls under the bullpen bench, everybody scores on the error that follows, and the 9-1 win sends the Mariners to the first postseason in franchise history."
   },
+  "10-03": {
+    "year": 2004,
+    "headline": "Ichiro's season ends at 262 hits",
+    "story": "With a single in his final at-bat of the season, Ichiro Suzuki closes the year at 262 hits — a major league record that still stands. Second place in the American League that season finished 46 hits behind him."
+  },
   "10-06": {
     "year": 2001,
     "headline": "Win number 116 ties the record",
@@ -273,6 +293,11 @@
     "year": 2001,
     "headline": "The 116-win Mariners survive the ALDS",
     "story": "Jamie Moyer and Kazuhiro Sasaki hold Cleveland to a single run in Game 5 at Safeco Field, and the Mariners win 3-1 to take the series after twice standing one loss from elimination. The greatest regular season in modern history stays alive into the ALCS."
+  },
+  "11-05": {
+    "year": 2000,
+    "headline": "Kazuhiro Sasaki is named Rookie of the Year",
+    "story": "After a decade as Japan's most feared closer, Sasaki wins AL Rookie of the Year at 32 — the second-oldest winner ever — on the strength of a rookie-record 37 saves. His splitter, 'the Thang,' anchors the Seattle bullpen into the 116-win season."
   },
   "11-10": {
     "year": 2010,

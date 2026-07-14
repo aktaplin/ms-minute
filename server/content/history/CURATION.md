@@ -17,6 +17,11 @@
 - 10-08: The Double (1995) → 2022 Wild Card comeback vs Toronto
 - 08-12: Iwakuma no-hitter (2015) → Edgar's #11 retirement (Aug 12, 2017)
 
+## Alternates for taken dates (verified, usable if we ever do "also on this day")
+- 09-19 1998 A-Rod 40/40 (40th HR off Jack McDowell; finished 42/46) — lost the date to the 2001 flag clinch
+- 10-07 1995 Edgar's ALDS Game 4 grand slam ("rye bread and mustard") — lost to 2022 first playoff win in 21 years
+- 06-02 1987 Griffey drafted #1 — lost to RJ's 1990 no-hitter
+
 ## Candidate backlog (verify before adding)
 - 08-27 (or 26?) 2022 — J-Rod extension: sources disagree on announce date, resolve before shipping
 - 09-25 1998 Griffey 350th HR · 08-24 1999 Griffey 40-HR 4th straight season
