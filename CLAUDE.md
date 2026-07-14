@@ -11,9 +11,12 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
 - `server/lib/db.js` — SQLite cache (`reports`, `odds_history`); `server/lib/cron.js` — 5am PT daily job
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
-- `client/src/components/MsMinute.jsx` — full UI: masthead, sticky section nav, three zones
-  (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal / Stat of the Game / On This Day,
-  Section C "Around the League"), team picker, per-team theming
+- `client/src/components/MsMinute.jsx` — full UI, responsive at 900px:
+  mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
+  (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal / Hitter Spotlight /
+  Stat of the Game / On This Day, Section C "Around the League");
+  desktop = newspaper front page (main well + right rail with vertical rule, two-column recap,
+  Learn as a two-across spread), no nav. Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand; `POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache.

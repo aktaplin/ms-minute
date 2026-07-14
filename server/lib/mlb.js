@@ -401,6 +401,54 @@ async function getStarterArsenal(gamePk, pitcherId) {
   return { totalPitches: arsenal.totalPitches, pitches, hasSeasonMix: !!seasonMix };
 }
 
+// Statcast batted-ball story for the team's most interesting hitter of the game.
+// Returns { id, name, ballsInPlay: [{ event, exitVelo, launchAngle, distance }],
+//           hardHits, maxExitVelo } or null when no tracked batted balls exist.
+// Hard-hit = 95+ mph exit velocity (MLB's standard threshold).
+async function getHitterSpotlight(gamePk, teamId) {
+  const data = await _mlbFetch(`/api/v1.1/game/${gamePk}/feed/live`);
+  const allPlays = data.liveData?.plays?.allPlays ?? [];
+  const teamSide = data.gameData?.teams?.home?.id === teamId ? 'home' : 'away';
+
+  const byBatter = {};
+  for (const play of allPlays) {
+    // Top half = away team batting
+    const battingSide = play.about?.halfInning === 'top' ? 'away' : 'home';
+    if (battingSide !== teamSide) continue;
+    const batter = play.matchup?.batter;
+    if (!batter?.id) continue;
+
+    for (const ev of play.playEvents ?? []) {
+      // Only the ball that ended the play — Statcast also tracks some fouls
+      if (!ev.details?.isInPlay) continue;
+      const hd = ev.hitData;
+      if (!hd || typeof hd.launchSpeed !== 'number') continue;
+
+      if (!byBatter[batter.id]) {
+        byBatter[batter.id] = { id: batter.id, name: batter.fullName, ballsInPlay: [], hardHits: 0, maxExitVelo: 0 };
+      }
+      const b = byBatter[batter.id];
+      b.ballsInPlay.push({
+        event: play.result?.event ?? null,
+        exitVelo: Number(hd.launchSpeed.toFixed(1)),
+        launchAngle: typeof hd.launchAngle === 'number' ? Math.round(hd.launchAngle) : null,
+        distance: typeof hd.totalDistance === 'number' ? Math.round(hd.totalDistance) : null,
+      });
+      if (hd.launchSpeed >= 95) b.hardHits++;
+      if (hd.launchSpeed > b.maxExitVelo) b.maxExitVelo = Number(hd.launchSpeed.toFixed(1));
+    }
+  }
+
+  const candidates = Object.values(byBatter).filter(b => b.ballsInPlay.length > 0);
+  if (candidates.length === 0) return null;
+
+  // Most hard-hit balls; tiebreak on hardest single ball, then most balls in play
+  candidates.sort((a, b) =>
+    b.hardHits - a.hardHits || b.maxExitVelo - a.maxExitVelo || b.ballsInPlay.length - a.ballsInPlay.length
+  );
+  return candidates[0];
+}
+
 // Live state of a game in progress (short 30s cache)
 async function getLiveGame(gamePk) {
   const path = `/api/v1.1/game/${gamePk}/feed/live`;
@@ -432,4 +480,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal, getHitterSpotlight };

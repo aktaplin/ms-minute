@@ -125,13 +125,17 @@ function ScoreCard({ data, teamAbbr, t }) {
   );
 }
 
-function NarrativeCard({ text, t }) {
+function NarrativeCard({ text, t, columns = false }) {
   if (!text) return null;
+  // On desktop the recap flows in two newspaper columns with a hairline rule
+  const columnStyle = columns
+    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    : {};
   return (
     <div>
       <SectionHead label="Recap" t={t} />
       <p
-        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto' }}
+        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto', ...columnStyle }}
         dangerouslySetInnerHTML={{ __html: text }}
       />
     </div>
@@ -246,6 +250,52 @@ function PitchArsenalCard({ data, t }) {
         <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 10, marginTop: 14 }}>
           <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.teal, fontStyle: 'italic', margin: 0 }}>{data.insight}</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Statcast batted-ball lesson: measured chips + per-ball rows + Haiku story
+function HitterSpotlightCard({ data, t }) {
+  if (!data?.ballsInPlay?.length) return null;
+  const longest = Math.max(...data.ballsInPlay.map(b => b.distance ?? 0));
+  const chips = [
+    { val: `${data.maxExitVelo}`, lbl: 'Max EV' },
+    { val: `${data.hardHits}`, lbl: 'Hard-hit' },
+    ...(longest > 0 ? [{ val: `${longest}'`, lbl: 'Longest' }] : []),
+  ];
+  return (
+    <div>
+      <SectionHead label="Hitter Spotlight" t={t} />
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{data.name}</span>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          {chips.map(c => (
+            <div key={c.lbl} style={{ border: `1px solid ${t.navy}`, padding: '2px 7px', textAlign: 'center', minWidth: 36 }}>
+              <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{c.val}</div>
+              <div style={{ fontSize: 9, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{c.lbl}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: MUTED, fontFamily: INTER, marginBottom: 10 }}>
+        Every ball in play, as measured by Statcast · hard-hit = 95+ mph off the bat
+      </div>
+
+      {data.ballsInPlay.map((b, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: i < data.ballsInPlay.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <span style={{ fontFamily: INTER, fontSize: 14, fontWeight: 600, color: b.exitVelo >= 95 ? t.navy : INK2 }}>{b.event ?? 'In play'}</span>
+          <span style={{ fontSize: 12.5, color: MUTED, fontFamily: INTER, fontVariantNumeric: 'tabular-nums' }}>
+            {b.exitVelo} mph
+            {b.launchAngle != null && ` · ${b.launchAngle}°`}
+            {b.distance != null && b.distance > 20 && ` · ${b.distance} ft`}
+          </span>
+        </div>
+      ))}
+
+      {data.story && (
+        <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.75, color: INK, margin: '12px 0 0' }}>{data.story}</p>
       )}
     </div>
   );
@@ -471,10 +521,19 @@ export default function MsMinute() {
   const [error, setError] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeZone, setActiveZone] = useState('game');
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 900px)').matches);
+
+  // Front-page grid kicks in at 900px; below that, the single-column edition
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)');
+    const onChange = e => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   // Track which zone the reader is in so the sticky section index can highlight it
   useEffect(() => {
-    if (!data) return;
+    if (!data || isDesktop) return;
     const NAV_H = 48;
     function onScroll() {
       let current = 'game';
@@ -487,7 +546,7 @@ export default function MsMinute() {
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, [data]);
+  }, [data, isDesktop]);
 
   function jumpToZone(id) {
     const el = document.getElementById(`zone-${id}`);
@@ -619,6 +678,7 @@ export default function MsMinute() {
         })),
         pitching: report.pitching ?? null,
         pitchArsenal: report.pitchArsenal ?? null,
+        hitterSpotlight: report.hitterSpotlight ?? null,
         onThisDay: report.onThisDay ?? null,
         statOfGame: report.statOfGame,
         titleOdds: report.titleOdds ?? null,
@@ -661,7 +721,7 @@ export default function MsMinute() {
   const zones = data
     ? [
         { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
-        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.onThisDay) },
+        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.hitterSpotlight || data.onThisDay) },
         { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.standings?.length || data.nextGame || data.titleOdds) },
       ].filter(z => z.show)
     : [];
@@ -678,7 +738,7 @@ export default function MsMinute() {
       `}</style>
 
       <div style={{ background: PAPER, minHeight: '100vh', color: INK }}>
-        <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 20px 64px' }}>
+        <div style={{ maxWidth: isDesktop ? 1140 : 520, margin: '0 auto', padding: isDesktop ? '0 28px 64px' : '0 20px 64px' }}>
 
           {/* Masthead */}
           <div style={{ paddingTop: 28 }}>
@@ -736,7 +796,7 @@ export default function MsMinute() {
           )}
 
           {/* Content */}
-          {data && (
+          {data && !isDesktop && (
             <>
               {zones.length > 1 && (
                 <SectionNav zones={zones} active={activeZone} onJump={jumpToZone} t={t} />
@@ -756,10 +816,11 @@ export default function MsMinute() {
                 <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               </section>
 
-              {(data.pitchArsenal || data.statOfGame || data.onThisDay) && (
+              {(data.pitchArsenal || data.statOfGame || data.hitterSpotlight || data.onThisDay) && (
                 <section id="zone-learn" style={{ scrollMarginTop: 56 }}>
                   <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
                   <PitchArsenalCard data={data.pitchArsenal} t={t} />
+                  <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} />
                   <OnThisDayCard data={data.onThisDay} t={t} />
                 </section>
@@ -776,6 +837,54 @@ export default function MsMinute() {
                 </section>
               )}
 
+            </>
+          )}
+
+          {/* Desktop: newspaper front page — main well + rail, then the Learn spread */}
+          {data && isDesktop && (
+            <>
+              <ZoneBanner kicker="Section A" label="The Game" t={t} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
+                <div style={{ paddingRight: 36 }}>
+                  {data.headline && (
+                    <h2 style={{ fontFamily: FRAUNCES, fontSize: 40, fontWeight: 900, color: t.navy, lineHeight: 1.12, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                      {data.headline}
+                    </h2>
+                  )}
+                  <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
+                  <NarrativeCard text={data.narrative} t={t} columns />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32 }}>
+                    <OffenseCard players={data.offense} t={t} />
+                    <PitchingCard data={data.pitching} t={t} />
+                  </div>
+                  <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+                </div>
+                <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
+                  <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
+                  <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
+                  <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
+                  <OnThisDayCard data={data.onThisDay} t={t} />
+                </aside>
+              </div>
+
+              {(data.pitchArsenal || data.statOfGame || data.hitterSpotlight) && (
+                <>
+                  <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 56 }}>
+                    <PitchArsenalCard data={data.pitchArsenal} t={t} />
+                    <div>
+                      <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
+                      <StatOfGameCard stat={data.statOfGame} t={t} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Footer (both layouts) */}
+          {data && (
+            <>
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>

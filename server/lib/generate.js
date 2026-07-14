@@ -227,6 +227,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   // by getPlayByPlayData, so this costs one extra request for the season arsenal).
   const arsenal = await mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id);
 
+  // Statcast batted-ball story for the game's most interesting hitter (same cached feed)
+  const spotlight = await mlb.getHitterSpotlight(lastGame.gamePk, teamId);
+
   // Resolve team key for cache/history operations (used twice below)
   const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
 
@@ -377,14 +380,37 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
       `- Use ONLY the numbers provided above. Do not invent velocities, counts, percentages, or outcomes.`
     : null;
 
+  const spotlightLines = spotlight
+    ? spotlight.ballsInPlay
+        .map(b =>
+          `${b.event ?? 'Ball in play'}: ${b.exitVelo} mph exit velocity` +
+          (b.launchAngle != null ? `, ${b.launchAngle}° launch angle` : '') +
+          (b.distance != null ? `, ${b.distance} ft` : '')
+        )
+        .join('\n')
+    : null;
+
+  const spotlightPrompt = spotlight
+    ? `You are writing the "Hitter Spotlight" — teaching a reader who is learning baseball ` +
+      `what exit velocity and launch angle mean, using one hitter's actual batted balls.\n\n` +
+      `Hitter: ${spotlight.name} (${teamShort}), yesterday vs. the ${lastGame.opponentName}.\n` +
+      `Batted balls (Statcast measurements from this game):\n${spotlightLines}\n\n` +
+      `Context: 95+ mph exit velocity is a "hard-hit" ball. Line drives (roughly 10-25° launch angle) ` +
+      `become hits most often; balls hit hard but very low become groundouts, very high become flyouts.\n\n` +
+      `Write 2-3 sentences telling the story of this hitter's night through these measurements — ` +
+      `teach what the numbers mean by what they produced. ` +
+      `Use ONLY the measurements provided. Plain text, no <em> tags. Return only the sentences.`
+    : null;
+
   console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, headlineRaw, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, ytVideoId] = await Promise.all([
+  const [narrative, headlineRaw, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, spotlightRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400, brandTitle, teamName),
     _callClaude(headlinePrompt, 60, brandTitle, teamName),
     _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
     _callClaude(statPrompt, 600, brandTitle, teamName),
     _callClaude(pitchingPrompt, 400, brandTitle, teamName),
     arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
+    spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
@@ -467,6 +493,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     pitching,
     statOfGame,
     pitchArsenal,
+    hitterSpotlight: spotlight
+      ? { ...spotlight, story: (spotlightRaw ?? '').trim() || null }
+      : null,
     onThisDay,
     titleOdds,
     titleOddsTrend,
