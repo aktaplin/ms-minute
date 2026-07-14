@@ -475,7 +475,7 @@ export default function MsMinute() {
     const NAV_H = 48;
     function onScroll() {
       let current = 'game';
-      for (const id of ['game', 'learn', 'club']) {
+      for (const id of ['game', 'learn', 'league']) {
         const el = document.getElementById(`zone-${id}`);
         if (el && el.getBoundingClientRect().top <= NAV_H + 24) current = id;
       }
@@ -658,7 +658,7 @@ export default function MsMinute() {
     ? [
         { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
         { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.onThisDay) },
-        { id: 'club', label: 'Club', kicker: 'Section C', title: 'Around the Club', show: !!(data.standings?.length || data.nextGame || data.titleOdds) },
+        { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.standings?.length || data.nextGame || data.titleOdds) },
       ].filter(z => z.show)
     : [];
 
@@ -757,8 +757,8 @@ export default function MsMinute() {
               )}
 
               {(data.standings?.length > 0 || data.nextGame || data.titleOdds) && (
-                <section id="zone-club" style={{ scrollMarginTop: 56 }}>
-                  <ZoneBanner kicker="Section C" label="Around the Club" t={t} />
+                <section id="zone-league" style={{ scrollMarginTop: 56 }}>
+                  <ZoneBanner kicker="Section C" label="Around the League" t={t} />
                   <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />

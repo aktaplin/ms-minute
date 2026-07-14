@@ -13,7 +13,7 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
 - `client/src/components/MsMinute.jsx` — full UI: masthead, sticky section nav, three zones
   (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal / Stat of the Game / On This Day,
-  Section C "Around the Club"), team picker, per-team theming
+  Section C "Around the League"), team picker, per-team theming
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand; `POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache.
