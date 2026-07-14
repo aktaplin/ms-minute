@@ -1,4 +1,39 @@
 {
+  "01-06": {
+    "year": 2016,
+    "headline": "Griffey elected to the Hall of Fame with a record vote",
+    "story": "Ken Griffey Jr. is elected to Cooperstown with 437 of 440 ballots — 99.32 percent, the highest share any player had ever received. The kid drafted first overall by Seattle in 1987 becomes the first player to wear a Mariners cap on a Hall of Fame plaque."
+  },
+  "01-22": {
+    "year": 2019,
+    "headline": "Edgar Martínez is elected to the Hall of Fame",
+    "story": "In his tenth and final year on the ballot, Edgar Martínez clears the bar at last with 85.4 percent of the vote. The greatest designated hitter of his era — and a Mariner for all eighteen of his seasons — is going to Cooperstown."
+  },
+  "02-06": {
+    "year": 1976,
+    "headline": "The American League awards Seattle a franchise",
+    "story": "Six years after the Pilots left for Milwaukee, the American League settles Seattle's $32.5 million lawsuit by granting an expansion team to a group headed by Lester Smith and entertainer Danny Kaye. The club that becomes the Mariners takes the field fourteen months later."
+  },
+  "02-10": {
+    "year": 2000,
+    "headline": "Griffey is traded to Cincinnati",
+    "story": "The franchise's first superstar goes home: Ken Griffey Jr. is dealt to the Reds for Mike Cameron, Brett Tomko, Antonio Pérez, and Jake Meyer. It stings for years — but Cameron becomes a Gold Glove centerpiece of the 116-win team, and Griffey returns to retire a Mariner."
+  },
+  "03-08": {
+    "year": 1997,
+    "headline": "Ground breaks on the ballpark that becomes T-Mobile Park",
+    "story": "Around 15,000 fans turn out to watch shovels go into the ground south of the Kingdome. Two years later the site becomes Safeco Field, the retractable-roof ballpark that the 1995 season made possible."
+  },
+  "03-21": {
+    "year": 2019,
+    "headline": "Ichiro plays his final game, in Tokyo",
+    "story": "In front of a home-country crowd at the Tokyo Dome, Ichiro Suzuki takes the field for the last time and leaves it to a standing ovation that stops the game. The Mariners beat the A's 5-4 — the same score, against the same opponent, as his debut eighteen years earlier."
+  },
+  "04-02": {
+    "year": 2001,
+    "headline": "Ichiro makes his major league debut",
+    "story": "The first Japanese-born position player in major league history singles up the middle off Oakland's T.J. Mathews for his first hit, one of two on the night in front of 45,911 in Seattle. The Mariners win 5-4, the first of 116 that season."
+  },
   "04-03": {
     "year": 1989,
     "headline": "Ken Griffey Jr. makes his major league debut at 19",
@@ -9,10 +44,40 @@
     "headline": "The Mariners play their first game",
     "story": "Baseball returns to Seattle as 57,762 fill the Kingdome for the franchise's first game. Diego Segui throws the first pitch in club history, and the Mariners fall 7-0 to the California Angels — the first entry in a ledger that now spans five decades."
   },
+  "04-08": {
+    "year": 2022,
+    "headline": "Julio Rodríguez makes his debut",
+    "story": "At 21, with his parents in the stands at Target Field, Julio Rodríguez starts in center on Opening Day — only Griffey, A-Rod, and Félix made an Opening Day start younger for Seattle. He starts 1-for-21, then hits his way to Rookie of the Year and the end of the playoff drought."
+  },
+  "04-20": {
+    "year": 1990,
+    "headline": "Brian Holman comes within one out of perfection",
+    "story": "Holman retires the first 26 Athletics in Oakland before pinch-hitter Ken Phelps — a former Mariner — homers with two outs in the ninth. Holman gets the next batter for a one-hit, 6-1 win, one out short of what would have been the franchise's first perfect game."
+  },
+  "04-22": {
+    "year": 1993,
+    "headline": "Chris Bosio no-hits the Red Sox",
+    "story": "Bosio walks the first two Boston hitters of the game, then retires the next 24 in a row for the second no-hitter in franchise history, 7-0 at the Kingdome. Omar Vizquel ends it with a barehanded play on a chopper, and 13,604 fans sound like five times that many."
+  },
   "05-02": {
     "year": 2002,
     "headline": "Mike Cameron hits four home runs in one game",
-    "story": "Cameron homers in each of his first four at-bats in Chicago, joining one of baseball's rarest clubs. He nearly makes it five, sending a fifth ball to the warning track before settling for a walk. No Mariner has matched the feat since."
+    "story": "Cameron homers in each of his first four at-bats in Chicago — two in the first inning alone, each one back-to-back with Bret Boone, a first in major league history. He becomes the 13th player ever with a four-homer game, and the Mariners win 15-4. No Mariner has matched it since."
+  },
+  "05-03": {
+    "year": 1998,
+    "headline": "Dan Wilson hits an inside-the-park grand slam",
+    "story": "With two outs and the bases loaded in the first, the catcher drives a Frank Castillo fastball off the left-center wall at the Kingdome, and an awkward carom lets him circle the bases standing up. It is the first inside-the-park grand slam in franchise history, and it carries a 10-6 win over Detroit."
+  },
+  "05-19": {
+    "year": 1994,
+    "headline": "The first Buhner Buzz Night",
+    "story": "The Mariners invite fans to shave their heads like Jay Buhner in exchange for a ticket, and 512 take them up on it. A promotion born from one right fielder's haircut becomes a Seattle institution, drawing thousands of freshly bald fans in the years that follow."
+  },
+  "05-26": {
+    "year": 1995,
+    "headline": "Griffey makes the catch and breaks his wrist",
+    "story": "Ken Griffey Jr. runs down Kevin Bass's drive to right-center, slams into the Kingdome wall, and holds on — shattering his wrist on one of the great catches ever made. Surgery costs him three months, and a team fighting for Seattle's baseball future has to learn to win without him. It does."
   },
   "06-02": {
     "year": 1990,
@@ -24,12 +89,77 @@
     "headline": "Six pitchers combine to no-hit the Dodgers",
     "story": "Kevin Millwood starts it, and five relievers finish it: the first combined no-hitter in Mariners history, 1-0 over Los Angeles at Safeco Field. Six pitchers sharing one line in the record book remains a club original."
   },
+  "06-23": {
+    "year": 2008,
+    "headline": "Félix hits a grand slam off Johan Santana",
+    "story": "Batting at Shea Stadium with the bases loaded, Félix Hernández takes the first pitch he sees from two-time Cy Young winner Johan Santana out to right-center — the first grand slam by an American League pitcher in 37 years. No AL pitcher has hit one since."
+  },
+  "06-24": {
+    "year": 1997,
+    "headline": "Randy Johnson strikes out 19 Athletics",
+    "story": "The Big Unit fans 19 at the Kingdome, breaking Ron Guidry's American League record for strikeouts by a left-hander. Oakland wins the game 4-1 behind a 538-foot Mark McGwire homer — the longest ever hit in the building — but the night belongs to Johnson's left arm."
+  },
+  "06-27": {
+    "year": 1999,
+    "headline": "The Mariners say goodbye to the Kingdome",
+    "story": "Ken Griffey Jr., who homered in his first Kingdome at-bat in 1989, hits a three-run shot off Aaron Sele in the first inning of the building's final baseball game — then robs Juan González of a homer for good measure. The Mariners win 5-2 and move across the street."
+  },
+  "07-10": {
+    "year": 2001,
+    "headline": "Safeco Field hosts the All-Star Game",
+    "story": "Baseball's midsummer showcase comes to Seattle with eight Mariners on the American League roster of a team running away with 116 wins. Cal Ripken Jr., in his final All-Star Game, homers on the first pitch he sees and takes home the MVP as the AL wins 4-1."
+  },
   "07-13": {
     "year": 2007,
     "headline": "Ichiro signs a five-year, $90 million extension",
     "story": "Three days after winning the All-Star Game MVP with an inside-the-park home run, Ichiro Suzuki commits his prime to Seattle. The extension keeps the franchise cornerstone in a Mariners uniform through 2012 and off that fall's free-agent market."
   },
+  "07-14": {
+    "year": 2025,
+    "headline": "Cal Raleigh wins the Home Run Derby",
+    "story": "With his father pitching and his younger brother catching, Cal Raleigh beats Junior Caminero 18-15 in the Atlanta final to become the first catcher — and first switch-hitter — to win the Home Run Derby. He is the second Mariner to take the title, after three-time winner Ken Griffey Jr."
+  },
+  "07-15": {
+    "year": 1999,
+    "headline": "Safeco Field opens its roof for the first time",
+    "story": "As the Seattle Symphony plays and the new retractable roof rolls open overhead, 44,607 watch Jamie Moyer throw the first pitch at Safeco Field — a called strike. The Padres spoil the night 3-2, but the Mariners have a home built to keep baseball in Seattle for good."
+  },
+  "07-21": {
+    "year": 2019,
+    "headline": "Edgar Martínez is inducted at Cooperstown",
+    "story": "Eighteen seasons, one uniform, and at last a plaque. Edgar Martínez is inducted into the Hall of Fame alongside Mariano Rivera — the closer who could never quite solve him. Edgar retired with a .312 average and the award for best designated hitter already bearing his name."
+  },
+  "07-24": {
+    "year": 2016,
+    "headline": "Griffey is inducted at Cooperstown, cap on backward",
+    "story": "In front of 50,000 in Cooperstown, Ken Griffey Jr. tells the crowd, 'Only one team will treat you the best, and that's your first team. I'm damn proud to be a Seattle Mariner.' He closes his speech the only way he could — by putting on a cap, backward."
+  },
+  "07-27": {
+    "year": 2025,
+    "headline": "Ichiro enters the Hall of Fame",
+    "story": "Ichiro Suzuki is inducted at Cooperstown as the first Japanese-born player in the Hall of Fame, elected with 99.7 percent of the vote — one ballot shy of unanimous. He spent fourteen of his nineteen major league seasons in a Mariners uniform."
+  },
+  "07-28": {
+    "year": 1993,
+    "headline": "Griffey homers in his eighth straight game",
+    "story": "Leading off the seventh at the Kingdome, Ken Griffey Jr. sends a Willie Banks pitch off the upper-deck facade in right — a home run in his eighth consecutive game, tying the major league record held by Dale Long and Don Mattingly. Over the streak he hit .400 and slugged over 1.000."
+  },
+  "08-06": {
+    "year": 2016,
+    "headline": "No. 24 is retired, forever",
+    "story": "Two weeks after his Hall of Fame induction, Ken Griffey Jr. watches his No. 24 unveiled at Safeco Field — the first number retired in Mariners history, mounted beside Jackie Robinson's 42. The club announces a statue is coming next."
+  },
+  "08-08": {
+    "year": 1997,
+    "headline": "Randy Johnson strikes out 19, again",
+    "story": "Six weeks after fanning 19 Athletics, the Big Unit does it again against the White Sox — becoming just the second pitcher ever, after Nolan Ryan, with two 19-strikeout games in one season. Nineteen remains the most strikeouts ever recorded in a game by a Mariner."
+  },
   "08-12": {
+    "year": 2015,
+    "headline": "Hisashi Iwakuma no-hits the Orioles",
+    "story": "Iwakuma walks three, strikes out seven, and finishes the first complete game of his major league career without allowing a hit, beating Baltimore 3-0 at Safeco Field. He becomes just the second Japanese-born pitcher to throw a no-hitter in the majors."
+  },
+  "08-15": {
     "year": 2012,
     "headline": "Félix Hernández throws a perfect game",
     "story": "Twenty-seven Rays up, twenty-seven down. Félix strikes out twelve and finishes the first perfect game in Mariners history, dropping to his knees as Safeco Field erupts. The final line: 1-0, on a single run the King made stand for nine innings."
@@ -44,19 +174,54 @@
     "headline": "The Griffeys hit back-to-back home runs",
     "story": "Two weeks after becoming teammates, Ken Griffey Sr. and Ken Griffey Jr. hit back-to-back home runs off Kirk McCaskill in Anaheim — father first, son right behind him. It has never happened before or since."
   },
+  "09-19": {
+    "year": 1998,
+    "headline": "A-Rod joins the 40-40 club",
+    "story": "Alex Rodriguez homers off Anaheim's Jack McDowell for his 40th of the season, joining Jose Canseco and Barry Bonds as the only players with 40 home runs and 40 steals in one year. He finishes at 42 and 46 — still the only shortstop ever to do it."
+  },
+  "09-24": {
+    "year": 2025,
+    "headline": "Cal Raleigh hits home run number 60",
+    "story": "Raleigh homers twice against Colorado — an upper-deck shot in the first and number 60 in the eighth — joining Babe Ruth, Roger Maris, and Aaron Judge as the only American Leaguers to reach the mark. No catcher and no switch-hitter had ever done it, and the Mariners clinch the AL West the same night."
+  },
+  "09-30": {
+    "year": 2022,
+    "headline": "Cal Raleigh ends the drought",
+    "story": "Pinch-hitting in the bottom of the ninth of a scoreless game, Raleigh homers off Oakland's Domingo Acevedo to clinch the Mariners' first playoff berth since 2001. Twenty-one years of waiting end on one swing."
+  },
   "10-01": {
     "year": 2004,
     "headline": "Ichiro breaks the single-season hits record",
     "story": "Ichiro Suzuki singles off Ryan Drese of Texas for hit number 258, passing George Sisler's mark that had stood since 1920. The Safeco Field crowd calls him out of the dugout twice; Sisler's family, in the stands, stands with them."
+  },
+  "10-02": {
+    "year": 1995,
+    "headline": "Everybody scores: the Mariners win the tiebreaker",
+    "story": "In a one-game playoff for the AL West, Randy Johnson retires the first 17 Angels and strikes out 12 against Mark Langston — the man Seattle once traded to get him. Luis Sojo's bases-clearing double rolls under the bullpen bench, everybody scores on the error that follows, and the 9-1 win sends the Mariners to the first postseason in franchise history."
+  },
+  "10-06": {
+    "year": 2001,
+    "headline": "Win number 116 ties the record",
+    "story": "Bret Boone's 37th home run in the first inning holds up for a 1-0 win over Texas, and the Mariners match the 1906 Cubs for the most wins in a major league season. No team before or since has reached 116."
   },
   "10-08": {
     "year": 1995,
     "headline": "Edgar hits The Double",
     "story": "Bottom of the 11th, Game 5 of the ALDS, season on the line. Edgar Martínez lines a double down the left-field line, Joey Cora scores, and Ken Griffey Jr. comes all the way around from first to beat the Yankees 6-5. The play that saved baseball in Seattle needs only two words."
   },
-  "09-30": {
-    "year": 2022,
-    "headline": "Cal Raleigh ends the drought",
-    "story": "Pinch-hitting in the bottom of the ninth of a scoreless game, Raleigh homers off Oakland's Domingo Acevedo to clinch the Mariners' first playoff berth since 2001. Twenty-one years of waiting end on one swing."
+  "11-14": {
+    "year": 1995,
+    "headline": "Randy Johnson wins the Cy Young",
+    "story": "The Big Unit is named the American League's best pitcher — the first Cy Young Award in Mariners history — after going 18-2 with a 2.48 ERA and 294 strikeouts. It caps the season that saved baseball in Seattle, and it is the first of five he will win."
+  },
+  "11-20": {
+    "year": 2001,
+    "headline": "Ichiro is named AL MVP",
+    "story": "Two weeks after winning Rookie of the Year, Ichiro Suzuki is named the American League's Most Valuable Player — only the second player ever, after Fred Lynn in 1975, to win both in the same season. His rookie line: a .350 average, 242 hits, and 56 stolen bases for a 116-win team."
+  },
+  "12-12": {
+    "year": 2013,
+    "headline": "Robinson Canó signs for ten years",
+    "story": "After passing his physical, Robinson Canó makes it official: ten years and $240 million, at the time the largest contract in franchise history. The five-time All-Star second baseman gives Seattle its biggest free-agent signing since the 116-win era."
   }
 }
