@@ -4,6 +4,11 @@
     "headline": "Griffey elected to the Hall of Fame with a record vote",
     "story": "Ken Griffey Jr. is elected to Cooperstown with 437 of 440 ballots — 99.32 percent, the highest share any player had ever received. The kid drafted first overall by Seattle in 1987 becomes the first player to wear a Mariners cap on a Hall of Fame plaque."
   },
+  "01-21": {
+    "year": 2025,
+    "headline": "Ichiro is elected to the Hall of Fame",
+    "story": "Ichiro Suzuki is named on 393 of 394 ballots — 99.7 percent, one vote shy of unanimous — to become the first Japanese-born player elected to the Hall of Fame. He joins Ken Griffey Jr. and Edgar Martínez as the third Mariner headed to Cooperstown."
+  },
   "01-22": {
     "year": 2019,
     "headline": "Edgar Martínez is elected to the Hall of Fame",
@@ -49,6 +54,16 @@
     "headline": "Julio Rodríguez makes his debut",
     "story": "At 21, with his parents in the stands at Target Field, Julio Rodríguez starts in center on Opening Day — only Griffey, A-Rod, and Félix made an Opening Day start younger for Seattle. He starts 1-for-21, then hits his way to Rookie of the Year and the end of the playoff drought."
   },
+  "04-10": {
+    "year": 1977,
+    "headline": "Juan Bernhardt hits the first home run in club history",
+    "story": "Four games into the franchise's existence, designated hitter Juan Bernhardt puts the first home run in the Mariners' record book. Thousands more follow — but every list starts with Bernhardt."
+  },
+  "04-13": {
+    "year": 1998,
+    "headline": "Griffey hits career home run number 300",
+    "story": "Ken Griffey Jr. takes Cleveland's Jose Mesa deep to right for a two-run shot — his second homer of the game and the 300th of his career. At 28 years and 143 days, only Jimmie Foxx got there younger."
+  },
   "04-20": {
     "year": 1990,
     "headline": "Brian Holman comes within one out of perfection",
@@ -68,6 +83,11 @@
     "year": 1998,
     "headline": "Dan Wilson hits an inside-the-park grand slam",
     "story": "With two outs and the bases loaded in the first, the catcher drives a Frank Castillo fastball off the left-center wall at the Kingdome, and an awkward carom lets him circle the bases standing up. It is the first inside-the-park grand slam in franchise history, and it carries a 10-6 win over Detroit."
+  },
+  "05-06": {
+    "year": 1982,
+    "headline": "Gaylord Perry wins his 300th, in a Mariners uniform",
+    "story": "At 43, Perry goes the distance against the Yankees at the Kingdome, winning 7-3 in front of 27,369 to become just the 15th pitcher — and the first in nearly two decades — to reach 300 career wins. He struck out four, walked one, and needed no help finishing it."
   },
   "05-19": {
     "year": 1994,
@@ -89,6 +109,11 @@
     "headline": "Six pitchers combine to no-hit the Dodgers",
     "story": "Kevin Millwood starts it, and five relievers finish it: the first combined no-hitter in Mariners history, 1-0 over Los Angeles at Safeco Field. Six pitchers sharing one line in the record book remains a club original."
   },
+  "06-17": {
+    "year": 1987,
+    "headline": "A 17-year-old Griffey homers in Everett",
+    "story": "Fifteen days after Seattle drafted him first overall, Ken Griffey Jr. hits his first professional home run for the Bellingham Mariners in Everett. It is the opening entry in a professional ledger that ends at 630 in the major leagues."
+  },
   "06-23": {
     "year": 2008,
     "headline": "Félix hits a grand slam off Johan Santana",
@@ -108,6 +133,11 @@
     "year": 2001,
     "headline": "Safeco Field hosts the All-Star Game",
     "story": "Baseball's midsummer showcase comes to Seattle with eight Mariners on the American League roster of a team running away with 116 wins. Cal Ripken Jr., in his final All-Star Game, homers on the first pitch he sees and takes home the MVP as the AL wins 4-1."
+  },
+  "07-11": {
+    "year": 2023,
+    "headline": "The All-Star Game returns to Seattle",
+    "story": "T-Mobile Park hosts the Midsummer Classic for the first time, 22 years after Safeco Field's turn in 2001. Colorado's Elías Díaz wins MVP with an eighth-inning two-run homer as the National League edges the American League 3-2 for its first win since 2012."
   },
   "07-13": {
     "year": 2007,
@@ -144,6 +174,11 @@
     "headline": "Griffey homers in his eighth straight game",
     "story": "Leading off the seventh at the Kingdome, Ken Griffey Jr. sends a Willie Banks pitch off the upper-deck facade in right — a home run in his eighth consecutive game, tying the major league record held by Dale Long and Don Mattingly. Over the streak he hit .400 and slugged over 1.000."
   },
+  "08-04": {
+    "year": 2005,
+    "headline": "A 19-year-old Félix Hernández debuts",
+    "story": "At 19 years and 118 days, Félix Hernández takes a big-league mound for the first time, holding Detroit to one earned run over five innings with four strikeouts. The King's reign in Seattle lasts fifteen seasons, every one of them in a Mariners uniform."
+  },
   "08-06": {
     "year": 2016,
     "headline": "No. 24 is retired, forever",
@@ -169,6 +204,11 @@
     "headline": "Griffey Sr. and Jr. become the first father-son teammates",
     "story": "For the first time in major league history, a father and son take the field together. Batting back-to-back in the lineup, Ken Griffey Sr. and Ken Griffey Jr. each single in the first inning against Kansas City at the Kingdome."
   },
+  "09-01": {
+    "year": 2008,
+    "headline": "Beltré hits for the cycle on a torn thumb",
+    "story": "Playing through a torn ligament in his left thumb, Adrián Beltré goes 5-for-6 against Texas and completes the cycle with a triple into the right-center gap. He becomes the fourth Mariner to hit for the cycle in a 12-6 win."
+  },
   "09-14": {
     "year": 1990,
     "headline": "The Griffeys hit back-to-back home runs",
@@ -179,10 +219,25 @@
     "headline": "A-Rod joins the 40-40 club",
     "story": "Alex Rodriguez homers off Anaheim's Jack McDowell for his 40th of the season, joining Jose Canseco and Barry Bonds as the only players with 40 home runs and 40 steals in one year. He finishes at 42 and 46 — still the only shortstop ever to do it."
   },
+  "09-23": {
+    "year": 2010,
+    "headline": "Ichiro reaches 200 hits for a tenth straight year",
+    "story": "A first-pitch single up the middle in Toronto makes Ichiro Suzuki the first player in major league history with ten consecutive 200-hit seasons — every season he had played in America. The streak ties Pete Rose's career total of 200-hit seasons, done in exactly ten years."
+  },
   "09-24": {
     "year": 2025,
     "headline": "Cal Raleigh hits home run number 60",
     "story": "Raleigh homers twice against Colorado — an upper-deck shot in the first and number 60 in the eighth — joining Babe Ruth, Roger Maris, and Aaron Judge as the only American Leaguers to reach the mark. No catcher and no switch-hitter had ever done it, and the Mariners clinch the AL West the same night."
+  },
+  "09-25": {
+    "year": 1998,
+    "headline": "Griffey becomes the youngest to 350 home runs",
+    "story": "Ken Griffey Jr. turns on Eric Gunderson's first pitch and sends it into the Kingdome's right-field upper deck — his 56th homer of the season and the 350th of his career. At 28 years and 308 days, he passes Jimmie Foxx as the youngest player ever to reach the mark."
+  },
+  "09-26": {
+    "year": 1993,
+    "headline": "Randy Johnson reaches 300 strikeouts",
+    "story": "Johnson fans Ruben Sierra at the Kingdome for his 300th strikeout of the season, becoming just the 12th pitcher of the century to reach the mark. He finishes the year at 308 — the first of a record six 300-strikeout seasons in his career."
   },
   "09-30": {
     "year": 2022,
@@ -204,20 +259,45 @@
     "headline": "Win number 116 ties the record",
     "story": "Bret Boone's 37th home run in the first inning holds up for a 1-0 win over Texas, and the Mariners match the 1906 Cubs for the most wins in a major league season. No team before or since has reached 116."
   },
+  "10-07": {
+    "year": 2022,
+    "headline": "The first playoff win in 21 years",
+    "story": "In Seattle's first postseason game since 2001, Luis Castillo throws 7⅓ scoreless innings in Toronto — the longest scoreless postseason start in club history — and Cal Raleigh homers in a 4-0 win. The last time the Mariners won a playoff game, Ichiro and Edgar were in the lineup."
+  },
   "10-08": {
     "year": 1995,
     "headline": "Edgar hits The Double",
     "story": "Bottom of the 11th, Game 5 of the ALDS, season on the line. Edgar Martínez lines a double down the left-field line, Joey Cora scores, and Ken Griffey Jr. comes all the way around from first to beat the Yankees 6-5. The play that saved baseball in Seattle needs only two words."
+  },
+  "10-15": {
+    "year": 2001,
+    "headline": "The 116-win Mariners survive the ALDS",
+    "story": "Jamie Moyer and Kazuhiro Sasaki hold Cleveland to a single run in Game 5 at Safeco Field, and the Mariners win 3-1 to take the series after twice standing one loss from elimination. The greatest regular season in modern history stays alive into the ALCS."
+  },
+  "11-10": {
+    "year": 2010,
+    "headline": "The voice of the Mariners falls silent",
+    "story": "Dave Niehaus, the club's play-by-play voice since its very first game in 1977, dies at 75. He called 5,284 of the franchise's first 5,385 games, won the Hall of Fame's Ford C. Frick Award in 2008, and gave Seattle 'My oh my,' 'Fly away,' and the sound of every summer for 34 years."
   },
   "11-14": {
     "year": 1995,
     "headline": "Randy Johnson wins the Cy Young",
     "story": "The Big Unit is named the American League's best pitcher — the first Cy Young Award in Mariners history — after going 18-2 with a 2.48 ERA and 294 strikeouts. It caps the season that saved baseball in Seattle, and it is the first of five he will win."
   },
+  "11-18": {
+    "year": 2010,
+    "headline": "Félix wins the Cy Young with 13 wins",
+    "story": "Félix Hernández takes the American League Cy Young Award despite a 13-12 record, on the strength of a league-best 2.27 ERA for a last-place team. It is the fewest wins ever for a Cy Young starter in a full season — and a landmark in how the game measures pitching."
+  },
   "11-20": {
     "year": 2001,
     "headline": "Ichiro is named AL MVP",
     "story": "Two weeks after winning Rookie of the Year, Ichiro Suzuki is named the American League's Most Valuable Player — only the second player ever, after Fred Lynn in 1975, to win both in the same season. His rookie line: a .350 average, 242 hits, and 56 stolen bases for a 116-win team."
+  },
+  "12-11": {
+    "year": 2000,
+    "headline": "A-Rod signs with Texas for $252 million",
+    "story": "Alex Rodriguez leaves Seattle for the richest contract in sports history — ten years, $252 million from the Rangers. The Mariners' answer comes on the field: the following season, without him, they win 116 games while Texas finishes last."
   },
   "12-12": {
     "year": 2013,
