@@ -497,6 +497,11 @@ function TitleOddsCard({ data, trend, t }) {
 
 function NextGameCard({ data, teamAbbr, t }) {
   if (!data) return null;
+  const dayLabel = data.date
+    ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString('en-US', {
+        timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric',
+      })
+    : null;
   return (
     <div>
       <SectionHead label="Next Game" t={t} />
@@ -505,6 +510,7 @@ function NextGameCard({ data, teamAbbr, t }) {
         <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
           <div style={{ fontStyle: 'italic' }}>{data.oppName}</div>
           <div>{data.venue}</div>
+          {dayLabel && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Date: </span>{dayLabel}</div>}
           <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
           {data.pitcher && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable: </span>{data.pitcher}</div>}
         </div>
@@ -697,6 +703,7 @@ export default function MsMinute() {
               oppAbbr: report.nextGame.opponentAbbr,
               oppName: report.nextGame.opponentName,
               venue: report.nextGame.venue,
+              date: report.nextGame.date,
               time: report.nextGame.gameTime,
               pitcher: report.nextGame.probablePitcher,
             }
@@ -872,11 +879,9 @@ export default function MsMinute() {
                   <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 56 }}>
                     <PitchArsenalCard data={data.pitchArsenal} t={t} />
-                    <div>
-                      <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
-                      <StatOfGameCard stat={data.statOfGame} t={t} />
-                    </div>
+                    <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
                   </div>
+                  <StatOfGameCard stat={data.statOfGame} t={t} />
                 </>
               )}
             </>
