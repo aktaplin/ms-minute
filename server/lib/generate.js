@@ -281,6 +281,16 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `Name players only when they drove a scoring moment.\n\n` +
     `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
 
+  const headlinePrompt =
+    `Write a newspaper headline for yesterday's ${teamShort} game.\n\n` +
+    `Result: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue}.\n` +
+    (timelineText ? `Scoring timeline:\n${timelineText}\n\n` : '\n') +
+    `Rules:\n` +
+    `- 5 to 9 words. No period, no exclamation mark.\n` +
+    `- Factual and specific: name the decisive thing (a player, an inning, the margin).\n` +
+    `- Sentence case, plain text only — no <em> tags, no quotes.\n` +
+    `Return only the headline text.`;
+
   const playerNotesPrompt =
     `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
     `${batterLines}\n` +
@@ -368,8 +378,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     : null;
 
   console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, ytVideoId] = await Promise.all([
+  const [narrative, headlineRaw, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, ytVideoId] = await Promise.all([
     _callClaude(narrativePrompt, 400, brandTitle, teamName),
+    _callClaude(headlinePrompt, 60, brandTitle, teamName),
     _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
     _callClaude(statPrompt, 600, brandTitle, teamName),
     _callClaude(pitchingPrompt, 400, brandTitle, teamName),
@@ -450,6 +461,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     boxScore,
     standings,
     nextGame,
+    headline: (headlineRaw ?? '').replace(/^["'\s]+|["'\s.]+$/g, '') || null,
     narrative,
     playerNotes,
     pitching,

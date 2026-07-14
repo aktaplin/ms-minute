@@ -31,11 +31,13 @@ function pathToTeamKey(pathname, validKeys) {
   return validKeys.includes(seg) ? seg : null;
 }
 
+// Card head: a short "dinkus" tick + small caps label. Full-width rules are
+// reserved for zone banners so rule weight reads as hierarchy, not stripes.
 function SectionHead({ label, t }) {
   return (
-    <div style={{ marginTop: 28, marginBottom: 14 }}>
-      <div style={{ height: 2, background: t.navy, marginBottom: 6 }} />
-      <div style={{ fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, fontVariationSettings: "'opsz' 40" }}>
+    <div style={{ marginTop: 34, marginBottom: 12 }}>
+      <div style={{ width: 28, height: 2, background: t.navy, marginBottom: 7 }} />
+      <div style={{ fontFamily: FRAUNCES, fontSize: 13, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
@@ -48,7 +50,7 @@ function ZoneBanner({ kicker, label, t }) {
     <div style={{ marginTop: 36 }}>
       <div style={{ height: 3, background: t.navy }} />
       <div style={{ height: 1, background: t.navy, marginTop: 2 }} />
-      <div style={{ textAlign: 'center', paddingTop: 10, fontFamily: FRAUNCES, fontSize: 13, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
+      <div style={{ textAlign: 'center', paddingTop: 10, fontFamily: FRAUNCES, fontSize: 16, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         <span style={{ color: t.teal }}>{kicker}</span>
         <span style={{ margin: '0 8px', color: MUTED }}>·</span>
         {label}
@@ -129,7 +131,7 @@ function NarrativeCard({ text, t }) {
     <div>
       <SectionHead label="Recap" t={t} />
       <p
-        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, fontStyle: 'italic', textAlign: 'justify', hyphens: 'auto' }}
+        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto' }}
         dangerouslySetInnerHTML={{ __html: text }}
       />
     </div>
@@ -170,7 +172,7 @@ function PitchingCard({ data, t }) {
   if (!data || (!data.starter && !data.bullpen)) return null;
   const paragraph = {
     fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK,
-    fontStyle: 'italic', textAlign: 'justify', hyphens: 'auto', margin: 0,
+    textAlign: 'justify', hyphens: 'auto', margin: 0,
   };
   return (
     <div>
@@ -249,7 +251,8 @@ function PitchArsenalCard({ data, t }) {
   );
 }
 
-// Archival-clipping treatment: double rules top and bottom, dateline, headline, story
+// Archival-clipping treatment: hairline box on aged paper — double rules stay
+// exclusive to zone banners.
 function OnThisDayCard({ data, t }) {
   if (!data) return null;
   const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
@@ -258,7 +261,7 @@ function OnThisDayCard({ data, t }) {
   return (
     <div>
       <SectionHead label="On This Day" t={t} />
-      <div style={{ background: PAPER2, borderTop: `4px double ${t.navy}`, borderBottom: `4px double ${t.navy}`, padding: '16px 18px' }}>
+      <div style={{ background: PAPER2, border: `1px solid ${t.navy}`, padding: '16px 18px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
           {dateLabel}, {data.year}
         </div>
@@ -602,6 +605,7 @@ export default function MsMinute() {
             ? { name: sp.name, ip: sp.inningsPitched, k: sp.strikeOuts, er: sp.earnedRuns }
             : null,
         },
+        headline: report.headline ?? null,
         narrative: report.narrative,
         offense: report.boxScore.offense.map(b => ({
           name: b.name,
@@ -740,6 +744,11 @@ export default function MsMinute() {
 
               <section id="zone-game" style={{ scrollMarginTop: 56 }}>
                 <ZoneBanner kicker="Section A" label="The Game" t={t} />
+                {data.headline && (
+                  <h2 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(26px, 7.5vw, 34px)', fontWeight: 900, color: t.navy, lineHeight: 1.15, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                    {data.headline}
+                  </h2>
+                )}
                 <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
                 <NarrativeCard text={data.narrative} t={t} />
                 <OffenseCard players={data.offense} t={t} />
