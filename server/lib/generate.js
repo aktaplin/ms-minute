@@ -163,6 +163,22 @@ function _violationNote(violations) {
   );
 }
 
+function _slimFlag(v) {
+  return { quote: v.quote ?? null, type: v.type ?? null, issue: v.issue ?? null };
+}
+
+// Per-section audit record embedded in the report JSON. outcome is one of:
+//   'fixed_on_regen' — flagged, then a clean regeneration replaced it
+//   'stripped'       — still flagged after regen, offending sentence(s) removed
+function _record(section, outcome, initialFlags, residualFlags) {
+  return {
+    section,
+    outcome,
+    initialFlags: initialFlags.map(_slimFlag),
+    residualFlags: residualFlags.map(_slimFlag),
+  };
+}
+
 // Drop any sentence containing a flagged quote (tags ignored in the compare).
 function _stripSentences(text, violations) {
   const quotes = violations
@@ -179,22 +195,27 @@ function _stripSentences(text, violations) {
 }
 
 // Generate a prose string, verify it, regenerate once if flagged, then strip.
+// Returns { value, record } — record is null when the section checked out clean.
 async function _generateVerifiedText({ prompt, maxTokens, label, facts, fallback, brandTitle, teamName }) {
   let text = await _callClaude(prompt, maxTokens, brandTitle, teamName);
   let violations = await verify.findViolations({ label, facts, passage: text });
-  if (violations.length === 0) return text;
+  if (violations.length === 0) return { value: text, record: null };
 
+  const initialFlags = violations;
   console.warn(`[generate] ${label}: ${violations.length} issue(s) flagged; regenerating once.`);
   text = await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, maxTokens, brandTitle, teamName);
   violations = await verify.findViolations({ label, facts, passage: text });
-  if (violations.length === 0) return text;
+  if (violations.length === 0) {
+    return { value: text, record: _record(label, 'fixed_on_regen', initialFlags, []) };
+  }
 
   console.warn(`[generate] ${label}: still flagged after retry; stripping ${violations.length} sentence(s).`);
   const stripped = _stripSentences(text, violations);
-  return stripped || fallback || text;
+  return { value: stripped || fallback || text, record: _record(label, 'stripped', initialFlags, violations) };
 }
 
 // Generate the pitching JSON, verify starter+bullpen prose, repair as needed.
+// Returns { value, record }.
 async function _generateVerifiedPitching({ prompt, facts, brandTitle, teamName }) {
   const parse = (raw) => {
     try {
@@ -210,21 +231,24 @@ async function _generateVerifiedPitching({ prompt, facts, brandTitle, teamName }
 
   let pitching = parse(await _callClaude(prompt, 400, brandTitle, teamName));
   let violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
-  if (violations.length === 0) return pitching;
+  if (violations.length === 0) return { value: pitching, record: null };
 
+  const initialFlags = violations;
   console.warn(`[generate] pitching: ${violations.length} issue(s) flagged; regenerating once.`);
   pitching = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 400, brandTitle, teamName));
   violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
-  if (violations.length === 0) return pitching;
+  if (violations.length === 0) return { value: pitching, record: _record('pitching', 'fixed_on_regen', initialFlags, []) };
 
   console.warn('[generate] pitching: still flagged after retry; stripping flagged sentences.');
-  return {
+  const stripped = {
     starter: pitching.starter ? (_stripSentences(pitching.starter, violations) || null) : null,
     bullpen: pitching.bullpen ? (_stripSentences(pitching.bullpen, violations) || null) : null,
   };
+  return { value: stripped, record: _record('pitching', 'stripped', initialFlags, violations) };
 }
 
 // Generate the per-player notes, verify them, repair as needed.
+// Returns { value, record }.
 async function _generateVerifiedNotes({ prompt, facts, fallbackNotes, brandTitle, teamName }) {
   const parse = (raw) => {
     try {
@@ -240,21 +264,23 @@ async function _generateVerifiedNotes({ prompt, facts, fallbackNotes, brandTitle
 
   let notes = parse(await _callClaude(prompt, 600, brandTitle, teamName));
   let violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
-  if (violations.length === 0) return notes;
+  if (violations.length === 0) return { value: notes, record: null };
 
+  const initialFlags = violations;
   console.warn(`[generate] player notes: ${violations.length} issue(s) flagged; regenerating once.`);
   notes = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 600, brandTitle, teamName));
   violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
-  if (violations.length === 0) return notes;
+  if (violations.length === 0) return { value: notes, record: _record('player notes', 'fixed_on_regen', initialFlags, []) };
 
   console.warn('[generate] player notes: still flagged after retry; blanking flagged notes.');
   const quotes = violations
     .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
     .filter(Boolean);
-  return notes.map(n => {
+  const blanked = notes.map(n => {
     const plain = (n.note ?? '').replace(/<[^>]+>/g, '').toLowerCase();
     return quotes.some(q => plain.includes(q)) ? { ...n, note: '' } : n;
   });
+  return { value: blanked, record: _record('player notes', 'stripped', initialFlags, violations) };
 }
 
 function _formatDate(dateStr) {
@@ -537,7 +563,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const headlineFallback = `${teamShort} ${lastGame.win ? 'top' : 'fall to'} ${opponentShort} ${lastGame.teamScore}–${lastGame.opponentScore}`;
 
   console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
-  const [narrative, headlineRaw, playerNotes, statRaw, pitching, arsenalRaw, spotlightRaw, ytVideoId] = await Promise.all([
+  const [narrativeV, headlineV, notesV, statRaw, pitchingV, arsenalRaw, spotlightRaw, ytVideoId] = await Promise.all([
     _generateVerifiedText({ prompt: narrativePrompt, maxTokens: 400, label: 'recap', facts: factsBlock, fallback: narrativeFallback, brandTitle, teamName }),
     _generateVerifiedText({ prompt: headlinePrompt, maxTokens: 60, label: 'headline', facts: factsBlock, fallback: headlineFallback, brandTitle, teamName }),
     _generateVerifiedNotes({ prompt: playerNotesPrompt, facts: factsBlock, fallbackNotes: boxScore.offense.map(b => ({ name: b.name, note: '' })), brandTitle, teamName }),
@@ -547,6 +573,13 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
+
+  const narrative = narrativeV.value;
+  const headlineRaw = headlineV.value;
+  const playerNotes = notesV.value;
+  const pitching = pitchingV.value;
+  // Per-section fact-check audit trail; empty when everything checked out clean.
+  const verification = [narrativeV.record, headlineV.record, notesV.record, pitchingV.record].filter(Boolean);
 
   let statOfGame = null;
   try {
@@ -616,6 +649,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     titleOdds,
     titleOddsTrend,
     ytVideoId,
+    verification,
   };
 
   console.log('[generate] Report generated.');
