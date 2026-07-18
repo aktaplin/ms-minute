@@ -232,6 +232,9 @@ async function getStandings(divisionId, leagueId) {
 // Returns play-by-play derived data for a completed game:
 //   hrMap: playerName (lowercase) → [rbi per HR play], for annotating batter lines
 //   scoringTimeline: ordered list of half-innings where runs scored, each with key events
+//   pitcherOrder: pitcherId → 0-based index of first appearance (both teams), the
+//     authoritative order pitchers entered the game — more reliable than the
+//     boxscore pitchers array for narrating who came in before whom
 async function getPlayByPlayData(gamePk, teamId) {
   const data = await _mlbFetch(`/api/v1.1/game/${gamePk}/feed/live`);
   const allPlays = data.liveData?.plays?.allPlays ?? [];
@@ -239,10 +242,18 @@ async function getPlayByPlayData(gamePk, teamId) {
 
   const hrMap = {};
   const halfInnings = {};  // key: "${inning}-${half}"
+  const pitcherOrder = {};
+  let pitcherSeq = 0;
   let prevHome = 0;
   let prevAway = 0;
 
   for (const play of allPlays) {
+    // First-appearance order (allPlays is chronological)
+    const pitcherId = play.matchup?.pitcher?.id;
+    if (pitcherId != null && !(pitcherId in pitcherOrder)) {
+      pitcherOrder[pitcherId] = pitcherSeq++;
+    }
+
     const homeScore = play.result?.homeScore ?? prevHome;
     const awayScore = play.result?.awayScore ?? prevAway;
     const inning = play.about?.inning;
@@ -299,7 +310,7 @@ async function getPlayByPlayData(gamePk, teamId) {
     return { inning: entry.inning, half: entry.half, isTeam, isLeadChange, events: entry.events };
   });
 
-  return { hrMap, scoringTimeline };
+  return { hrMap, scoringTimeline, pitcherOrder };
 }
 
 // Per-pitch aggregation for one pitcher in a completed game.

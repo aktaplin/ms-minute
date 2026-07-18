@@ -5,6 +5,7 @@ const mlb = require('./mlb');
 const oddsApi = require('./oddsApi');
 const db = require('./db');
 const history = require('./history');
+const verify = require('./verify');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
@@ -20,6 +21,7 @@ Rules:
 - No sentimental or glib language. Avoid phrases like "that's why we believe", "the boys", "this team has heart", or any collective fan-identity framing.
 - No filler phrases like "It was a great game" or "The team played well."
 - Let the facts carry the emotion — a walk-off HR speaks for itself.
+- Never state a comparison or superlative about a player relative to teammates, the league, or their own history (e.g. "only", "best", "leads the team", "most consistent", "career-high") unless the exact numbers that prove it appear in this prompt. If you cannot prove it from the data you were given, do not claim it.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
 }
 
@@ -145,6 +147,116 @@ async function _callClaude(userPrompt, maxTokens, brandTitle, teamName) {
   return response.content[0].text.trim();
 }
 
+// --- Fact-check + repair -------------------------------------------------
+// Each verified section is generated, then checked against a ground-truth
+// facts block. On any flagged claim we regenerate the section once (telling
+// the writer exactly what to fix); if it still fails, we strip the offending
+// sentence(s). Numbers and event order in the facts block are the only truth.
+
+function _violationNote(violations) {
+  const lines = violations
+    .map(v => `- Remove or fix: "${v.quote}" (${v.issue ?? v.type ?? 'unsupported'})`)
+    .join('\n');
+  return (
+    `IMPORTANT — a fact-check flagged problems in your previous attempt. ` +
+    `Rewrite so NONE of these appear, and make no claim that isn't directly supported by the data you were given:\n${lines}`
+  );
+}
+
+// Drop any sentence containing a flagged quote (tags ignored in the compare).
+function _stripSentences(text, violations) {
+  const quotes = violations
+    .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
+    .filter(Boolean);
+  if (quotes.length === 0) return text;
+  const kept = text
+    .split(/(?<=[.!?])\s+/)
+    .filter(s => {
+      const plain = s.replace(/<[^>]+>/g, '').toLowerCase();
+      return !quotes.some(q => plain.includes(q));
+    });
+  return kept.join(' ').trim();
+}
+
+// Generate a prose string, verify it, regenerate once if flagged, then strip.
+async function _generateVerifiedText({ prompt, maxTokens, label, facts, fallback, brandTitle, teamName }) {
+  let text = await _callClaude(prompt, maxTokens, brandTitle, teamName);
+  let violations = await verify.findViolations({ label, facts, passage: text });
+  if (violations.length === 0) return text;
+
+  console.warn(`[generate] ${label}: ${violations.length} issue(s) flagged; regenerating once.`);
+  text = await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, maxTokens, brandTitle, teamName);
+  violations = await verify.findViolations({ label, facts, passage: text });
+  if (violations.length === 0) return text;
+
+  console.warn(`[generate] ${label}: still flagged after retry; stripping ${violations.length} sentence(s).`);
+  const stripped = _stripSentences(text, violations);
+  return stripped || fallback || text;
+}
+
+// Generate the pitching JSON, verify starter+bullpen prose, repair as needed.
+async function _generateVerifiedPitching({ prompt, facts, brandTitle, teamName }) {
+  const parse = (raw) => {
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+      const p = JSON.parse(cleaned);
+      return { starter: p.starter ?? null, bullpen: p.bullpen ?? null };
+    } catch {
+      console.warn('[generate] Failed to parse pitching JSON');
+      return { starter: null, bullpen: null };
+    }
+  };
+  const passageOf = (p) => [p.starter, p.bullpen].filter(Boolean).join('\n');
+
+  let pitching = parse(await _callClaude(prompt, 400, brandTitle, teamName));
+  let violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
+  if (violations.length === 0) return pitching;
+
+  console.warn(`[generate] pitching: ${violations.length} issue(s) flagged; regenerating once.`);
+  pitching = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 400, brandTitle, teamName));
+  violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
+  if (violations.length === 0) return pitching;
+
+  console.warn('[generate] pitching: still flagged after retry; stripping flagged sentences.');
+  return {
+    starter: pitching.starter ? (_stripSentences(pitching.starter, violations) || null) : null,
+    bullpen: pitching.bullpen ? (_stripSentences(pitching.bullpen, violations) || null) : null,
+  };
+}
+
+// Generate the per-player notes, verify them, repair as needed.
+async function _generateVerifiedNotes({ prompt, facts, fallbackNotes, brandTitle, teamName }) {
+  const parse = (raw) => {
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+      const p = JSON.parse(cleaned);
+      return Array.isArray(p) ? p : fallbackNotes;
+    } catch {
+      console.warn('[generate] Failed to parse player notes JSON');
+      return fallbackNotes;
+    }
+  };
+  const passageOf = (notes) => notes.map(n => n.note).filter(Boolean).join('\n');
+
+  let notes = parse(await _callClaude(prompt, 600, brandTitle, teamName));
+  let violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
+  if (violations.length === 0) return notes;
+
+  console.warn(`[generate] player notes: ${violations.length} issue(s) flagged; regenerating once.`);
+  notes = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 600, brandTitle, teamName));
+  violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
+  if (violations.length === 0) return notes;
+
+  console.warn('[generate] player notes: still flagged after retry; blanking flagged notes.');
+  const quotes = violations
+    .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
+    .filter(Boolean);
+  return notes.map(n => {
+    const plain = (n.note ?? '').replace(/<[^>]+>/g, '').toLowerCase();
+    return quotes.some(q => plain.includes(q)) ? { ...n, note: '' } : n;
+  });
+}
+
 function _formatDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -214,7 +326,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, allTitleOdds, { hrMap, scoringTimeline }] = await Promise.all([
+  const [boxScore, nextGame, standings, allTitleOdds, { hrMap, scoringTimeline, pitcherOrder }] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
@@ -229,6 +341,12 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
 
   // Statcast batted-ball story for the game's most interesting hitter (same cached feed)
   const spotlight = await mlb.getHitterSpotlight(lastGame.gamePk, teamId);
+
+  // Order relievers by actual first appearance (play-by-play), not the boxscore
+  // array — this is what "who came in before whom" claims are checked against.
+  boxScore.relievers = [...(boxScore.relievers ?? [])].sort(
+    (a, b) => (pitcherOrder[a.id] ?? Number.MAX_SAFE_INTEGER) - (pitcherOrder[b.id] ?? Number.MAX_SAFE_INTEGER)
+  );
 
   // Resolve team key for cache/history operations (used twice below)
   const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
@@ -263,8 +381,8 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     : 'Starter info unavailable';
 
   const reliefLines = (boxScore.relievers ?? [])
-    .map(r =>
-      `${r.name}: ${r.inningsPitched} IP, ${r.strikeOuts} K, ${r.earnedRuns} ER, ${r.hits} H, ${r.walks} BB` +
+    .map((r, i) =>
+      `${i + 1}. ${r.name}: ${r.inningsPitched} IP, ${r.strikeOuts} K, ${r.earnedRuns} ER, ${r.hits} H, ${r.walks} BB` +
       ` | season: ERA ${r.seasonEra}, WHIP ${r.seasonWhip}`
     )
     .join('\n');
@@ -308,12 +426,12 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `Game: ${teamName} ${result} against the ${lastGame.opponentName}.\n\n` +
     `Starting pitcher:\n${spLine}\n\n` +
     (reliefLines
-      ? `Relief pitchers (in order of appearance):\n${reliefLines}\n\n`
+      ? `Relief pitchers, numbered in their exact order of appearance (1 entered first):\n${reliefLines}\n\n`
       : `No relief pitchers — the starter went the distance.\n\n`) +
     `Return JSON with two fields:\n` +
     `- "starter": Up to 3 sentences on the starting pitcher's outing. Reference the actual line — innings, strikeouts, runs, baserunners. Note the season context (ERA, WHIP) only if it sharpens the story.\n` +
     `- "bullpen": ${reliefLines
-      ? `Exactly 2 sentences summarizing the relief pitchers as a group. Mention specific names where it matters (the high-leverage outing, the rough one), but treat them collectively.`
+      ? `Exactly 2 sentences summarizing the relief pitchers as a group. Mention specific names where it matters (the high-leverage outing, the rough one), but treat them collectively. If you say who pitched earlier or later, it MUST match the numbered order above — never reverse it.`
       : `Set this to null.`}\n` +
     `Wrap every player name in <em> tags. Return only valid JSON, no markdown fences.`;
 
@@ -402,35 +520,33 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
       `Use ONLY the measurements provided. Plain text, no <em> tags. Return only the sentences.`
     : null;
 
-  console.log('[generate] Running Claude + YouTube in parallel...');
-  const [narrative, headlineRaw, playerNotesRaw, statRaw, pitchingRaw, arsenalRaw, spotlightRaw, ytVideoId] = await Promise.all([
-    _callClaude(narrativePrompt, 400, brandTitle, teamName),
-    _callClaude(headlinePrompt, 60, brandTitle, teamName),
-    _callClaude(playerNotesPrompt, 600, brandTitle, teamName),
+  // Single ground-truth block every fact-check runs against. Everything here
+  // came straight from the MLB API — the checker treats it as the only truth.
+  const factsBlock = [
+    `Final: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.`,
+    timelineText ? `Scoring timeline (chronological):\n${timelineText}` : null,
+    `Hitters who batted (game line | season stats):\n${batterLines}`,
+    `Starting pitcher: ${spLine}`,
+    reliefLines
+      ? `Relievers, numbered in order of appearance (1 entered first):\n${reliefLines}`
+      : `No relievers — the starter went the distance.`,
+  ].filter(Boolean).join('\n\n');
+
+  const opponentShort = lastGame.opponentName.split(' ').pop();
+  const narrativeFallback = `<em>${teamName}</em> ${result} against the ${lastGame.opponentName} at ${lastGame.venue}.`;
+  const headlineFallback = `${teamShort} ${lastGame.win ? 'top' : 'fall to'} ${opponentShort} ${lastGame.teamScore}–${lastGame.opponentScore}`;
+
+  console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
+  const [narrative, headlineRaw, playerNotes, statRaw, pitching, arsenalRaw, spotlightRaw, ytVideoId] = await Promise.all([
+    _generateVerifiedText({ prompt: narrativePrompt, maxTokens: 400, label: 'recap', facts: factsBlock, fallback: narrativeFallback, brandTitle, teamName }),
+    _generateVerifiedText({ prompt: headlinePrompt, maxTokens: 60, label: 'headline', facts: factsBlock, fallback: headlineFallback, brandTitle, teamName }),
+    _generateVerifiedNotes({ prompt: playerNotesPrompt, facts: factsBlock, fallbackNotes: boxScore.offense.map(b => ({ name: b.name, note: '' })), brandTitle, teamName }),
     _callClaude(statPrompt, 600, brandTitle, teamName),
-    _callClaude(pitchingPrompt, 400, brandTitle, teamName),
+    _generateVerifiedPitching({ prompt: pitchingPrompt, facts: factsBlock, brandTitle, teamName }),
     arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
     spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
-
-  let playerNotes = [];
-  try {
-    const cleaned = playerNotesRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-    playerNotes = JSON.parse(cleaned);
-  } catch {
-    console.warn('[generate] Failed to parse player notes JSON');
-    playerNotes = boxScore.offense.map(b => ({ name: b.name, note: '' }));
-  }
-
-  let pitching = { starter: null, bullpen: null };
-  try {
-    const cleaned = pitchingRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-    const parsed = JSON.parse(cleaned);
-    pitching = { starter: parsed.starter ?? null, bullpen: parsed.bullpen ?? null };
-  } catch {
-    console.warn('[generate] Failed to parse pitching JSON');
-  }
 
   let statOfGame = null;
   try {
