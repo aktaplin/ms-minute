@@ -7,6 +7,7 @@ const db = require('./db');
 const history = require('./history');
 const storylines = require('./storylines');
 const verify = require('./verify');
+const { ptDateToday, stripJsonFences } = require('./util');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-haiku-4-5';
@@ -133,17 +134,13 @@ function _resolveStatValue(statOfGame, boxScore) {
   return { ...statOfGame, value: String(realValue) };
 }
 
+// Note: no cache_control here — these system prompts are far below Haiku 4.5's
+// 4096-token minimum cacheable prefix, so a cache breakpoint would be a silent no-op.
 async function _callClaude(userPrompt, maxTokens, brandTitle, teamName) {
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: maxTokens,
-    system: [
-      {
-        type: 'text',
-        text: _sysVoice(brandTitle, teamName),
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
+    system: _sysVoice(brandTitle, teamName),
     messages: [{ role: 'user', content: userPrompt }],
   });
   return response.content[0].text.trim();
@@ -195,8 +192,8 @@ function _slimFlag(v) {
 // Per-section audit record embedded in the report JSON. outcome is one of:
 //   'fixed_on_regen'   — flagged, then a clean regeneration replaced it
 //   'stripped'         — still flagged after regen, offending sentence(s) removed
-//   'refusal_fallback' — the writer returned meta-commentary/refusal, so the
-//                        deterministic fallback shipped instead
+//   'refusal_fallback' — the writer returned meta-commentary/refusal (or
+//                        unparseable output), so the deterministic fallback shipped
 function _record(section, outcome, initialFlags, residualFlags) {
   return {
     section,
@@ -206,116 +203,104 @@ function _record(section, outcome, initialFlags, residualFlags) {
   };
 }
 
-// Drop any sentence containing a flagged quote (tags ignored in the compare).
-function _stripSentences(text, violations) {
-  const quotes = violations
+// Lowercased, tag-stripped quotes from a violation list, for containment checks
+function _flaggedQuotes(violations) {
+  return violations
     .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
     .filter(Boolean);
-  if (quotes.length === 0) return text;
+}
+
+function _containsFlagged(text, quotes) {
+  const plain = (text ?? '').replace(/<[^>]+>/g, '').toLowerCase();
+  return quotes.some(q => plain.includes(q));
+}
+
+// Drop any sentence containing a flagged quote (tags ignored in the compare).
+function _stripSentences(text, quotes) {
+  if (!text || quotes.length === 0) return text;
   const kept = text
     .split(/(?<=[.!?])\s+/)
-    .filter(s => {
-      const plain = s.replace(/<[^>]+>/g, '').toLowerCase();
-      return !quotes.some(q => plain.includes(q));
-    });
+    .filter(s => !_containsFlagged(s, quotes));
   return kept.join(' ').trim();
 }
 
-// Generate a prose string, verify it, regenerate once if flagged, then strip.
-// Returns { value, record } — record is null when the section checked out clean.
-async function _generateVerifiedText({ prompt, maxTokens, label, facts, fallback, brandTitle, teamName }) {
-  let text = await _callClaude(prompt, maxTokens, brandTitle, teamName);
-  if (_looksLikeRefusal(text)) {
-    console.warn(`[generate] ${label}: writer returned meta/refusal; using fallback.`);
-    return { value: fallback ?? text, record: _record(label, 'refusal_fallback', [], []) };
-  }
-  let violations = await verify.findViolations({ label, facts, passage: text });
-  if (violations.length === 0) return { value: text, record: null };
-
-  const initialFlags = violations;
-  console.warn(`[generate] ${label}: ${violations.length} issue(s) flagged; regenerating once.`);
-  text = await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, maxTokens, brandTitle, teamName);
-  if (_looksLikeRefusal(text)) {
-    console.warn(`[generate] ${label}: writer refused on regen; using fallback.`);
-    return { value: fallback ?? text, record: _record(label, 'refusal_fallback', initialFlags, []) };
-  }
-  violations = await verify.findViolations({ label, facts, passage: text });
-  if (violations.length === 0) {
-    return { value: text, record: _record(label, 'fixed_on_regen', initialFlags, []) };
-  }
-
-  console.warn(`[generate] ${label}: still flagged after retry; stripping ${violations.length} sentence(s).`);
-  const stripped = _stripSentences(text, violations);
-  return { value: stripped || fallback || text, record: _record(label, 'stripped', initialFlags, violations) };
-}
-
-// Generate the pitching JSON, verify starter+bullpen prose, repair as needed.
-// Returns { value, record }.
-async function _generateVerifiedPitching({ prompt, facts, brandTitle, teamName }) {
+// Generate all four game sections (headline, recap, player notes, pitching) in
+// ONE Claude call, then fact-check the combined prose in one verify call. The
+// shared game context (batter lines, pitcher lines, timeline) is sent once
+// instead of once per section. On flags: one regen, then per-section stripping.
+// Returns { value: { headline, recap, playerNotes, pitching }, record }.
+async function _generateVerifiedGameSections({ prompt, facts, fallbacks, brandTitle, teamName }) {
   const parse = (raw) => {
     try {
-      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      const p = JSON.parse(cleaned);
-      return { starter: p.starter ?? null, bullpen: p.bullpen ?? null };
+      const p = JSON.parse(stripJsonFences(raw));
+      return {
+        headline: typeof p.headline === 'string' ? p.headline : null,
+        recap: typeof p.recap === 'string' ? p.recap : null,
+        playerNotes: Array.isArray(p.playerNotes) ? p.playerNotes : null,
+        pitching: {
+          starter: p.pitching?.starter ?? null,
+          bullpen: p.pitching?.bullpen ?? null,
+        },
+      };
     } catch {
-      console.warn('[generate] Failed to parse pitching JSON');
-      return { starter: null, bullpen: null };
+      console.warn('[generate] Failed to parse game sections JSON');
+      return null;
     }
   };
-  const passageOf = (p) => [p.starter, p.bullpen].filter(Boolean).join('\n');
+  const fallbackSections = {
+    headline: fallbacks.headline,
+    recap: fallbacks.narrative,
+    playerNotes: fallbacks.notes,
+    pitching: { starter: null, bullpen: null },
+  };
+  const usable = (s) => s !== null && !_looksLikeRefusal(s.recap ?? '');
+  const passageOf = (s) => [
+    s.headline,
+    s.recap,
+    s.pitching.starter,
+    s.pitching.bullpen,
+    ...(s.playerNotes ?? []).map(n => n?.note),
+  ].filter(Boolean).join('\n');
 
-  let pitching = parse(await _callClaude(prompt, 400, brandTitle, teamName));
-  let violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
-  if (violations.length === 0) return { value: pitching, record: null };
+  let sections = parse(await _callClaude(prompt, 1500, brandTitle, teamName));
+  if (!usable(sections)) {
+    console.warn('[generate] game sections: unusable output; retrying once.');
+    sections = parse(await _callClaude(prompt, 1500, brandTitle, teamName));
+  }
+  if (!usable(sections)) {
+    console.warn('[generate] game sections: unusable after retry; using fallbacks.');
+    return { value: fallbackSections, record: _record('game', 'refusal_fallback', [], []) };
+  }
+
+  let violations = await verify.findViolations({ label: 'game', facts, passage: passageOf(sections) });
+  if (violations.length === 0) return { value: sections, record: null };
 
   const initialFlags = violations;
-  console.warn(`[generate] pitching: ${violations.length} issue(s) flagged; regenerating once.`);
-  pitching = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 400, brandTitle, teamName));
-  violations = await verify.findViolations({ label: 'pitching', facts, passage: passageOf(pitching) });
-  if (violations.length === 0) return { value: pitching, record: _record('pitching', 'fixed_on_regen', initialFlags, []) };
-
-  console.warn('[generate] pitching: still flagged after retry; stripping flagged sentences.');
-  const stripped = {
-    starter: pitching.starter ? (_stripSentences(pitching.starter, violations) || null) : null,
-    bullpen: pitching.bullpen ? (_stripSentences(pitching.bullpen, violations) || null) : null,
-  };
-  return { value: stripped, record: _record('pitching', 'stripped', initialFlags, violations) };
-}
-
-// Generate the per-player notes, verify them, repair as needed.
-// Returns { value, record }.
-async function _generateVerifiedNotes({ prompt, facts, fallbackNotes, brandTitle, teamName }) {
-  const parse = (raw) => {
-    try {
-      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      const p = JSON.parse(cleaned);
-      return Array.isArray(p) ? p : fallbackNotes;
-    } catch {
-      console.warn('[generate] Failed to parse player notes JSON');
-      return fallbackNotes;
+  console.warn(`[generate] game sections: ${violations.length} issue(s) flagged; regenerating once.`);
+  const regen = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 1500, brandTitle, teamName));
+  if (usable(regen)) {
+    violations = await verify.findViolations({ label: 'game', facts, passage: passageOf(regen) });
+    if (violations.length === 0) {
+      return { value: regen, record: _record('game', 'fixed_on_regen', initialFlags, []) };
     }
+    sections = regen;
+  }
+
+  // Still flagged (or regen unusable): repair each section independently.
+  console.warn(`[generate] game sections: still flagged after retry; stripping ${violations.length} claim(s).`);
+  const quotes = _flaggedQuotes(violations);
+  const repaired = {
+    headline: _containsFlagged(sections.headline, quotes) ? fallbacks.headline : sections.headline,
+    recap: _stripSentences(sections.recap, quotes) || fallbacks.narrative,
+    playerNotes: (sections.playerNotes ?? []).map(n =>
+      _containsFlagged(n?.note, quotes) ? { ...n, note: '' } : n
+    ),
+    pitching: {
+      starter: sections.pitching.starter ? (_stripSentences(sections.pitching.starter, quotes) || null) : null,
+      bullpen: sections.pitching.bullpen ? (_stripSentences(sections.pitching.bullpen, quotes) || null) : null,
+    },
   };
-  const passageOf = (notes) => notes.map(n => n.note).filter(Boolean).join('\n');
-
-  let notes = parse(await _callClaude(prompt, 600, brandTitle, teamName));
-  let violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
-  if (violations.length === 0) return { value: notes, record: null };
-
-  const initialFlags = violations;
-  console.warn(`[generate] player notes: ${violations.length} issue(s) flagged; regenerating once.`);
-  notes = parse(await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 600, brandTitle, teamName));
-  violations = await verify.findViolations({ label: 'player notes', facts, passage: passageOf(notes) });
-  if (violations.length === 0) return { value: notes, record: _record('player notes', 'fixed_on_regen', initialFlags, []) };
-
-  console.warn('[generate] player notes: still flagged after retry; blanking flagged notes.');
-  const quotes = violations
-    .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
-    .filter(Boolean);
-  const blanked = notes.map(n => {
-    const plain = (n.note ?? '').replace(/<[^>]+>/g, '').toLowerCase();
-    return quotes.some(q => plain.includes(q)) ? { ...n, note: '' } : n;
-  });
-  return { value: blanked, record: _record('player notes', 'stripped', initialFlags, violations) };
+  return { value: repaired, record: _record('game', 'stripped', initialFlags, violations) };
 }
 
 // Generate the season storyline sentences, verify them, repair as needed.
@@ -336,8 +321,7 @@ async function _generateVerifiedStorylines({ candidates, prompt, facts, brandTit
   const parseTextByKind = (raw) => {
     const map = {};
     try {
-      const cleaned = (raw ?? '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      const arr = JSON.parse(cleaned);
+      const arr = JSON.parse(stripJsonFences(raw));
       if (!Array.isArray(arr)) return map;
       arr.forEach((entry, i) => {
         if (!entry || typeof entry.text !== 'string') return;
@@ -374,13 +358,10 @@ async function _generateVerifiedStorylines({ candidates, prompt, facts, brandTit
   // Still flagged (or refused on regen): swap only the flagged threads back to
   // their deterministic fallback sentence; keep the clean ones as written.
   console.warn('[generate] storylines: still flagged after retry; reverting flagged threads to fallback.');
-  const quotes = violations
-    .map(v => (v.quote ?? '').replace(/<[^>]+>/g, '').toLowerCase().trim())
-    .filter(Boolean);
-  const repaired = threads.map((t, i) => {
-    const plain = (t.text ?? '').replace(/<[^>]+>/g, '').toLowerCase();
-    return quotes.some(q => plain.includes(q)) ? { ...t, text: candidates[i].fallbackText } : t;
-  });
+  const quotes = _flaggedQuotes(violations);
+  const repaired = threads.map((t, i) =>
+    _containsFlagged(t.text, quotes) ? { ...t, text: candidates[i].fallbackText } : t
+  );
   return { value: repaired, record: _record('storylines', 'stripped', initialFlags, violations) };
 }
 
@@ -466,12 +447,13 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
-  // Starter's pitch mix for this game vs. season norms (live feed is already cached
-  // by getPlayByPlayData, so this costs one extra request for the season arsenal).
-  const arsenal = await mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id);
-
-  // Statcast batted-ball story for the game's most interesting hitter (same cached feed)
-  const spotlight = await mlb.getHitterSpotlight(lastGame.gamePk, teamId);
+  // Starter's pitch mix vs. season norms + Statcast batted-ball story, in
+  // parallel (the live feed is already cached by getPlayByPlayData; this costs
+  // one extra request for the season arsenal).
+  const [arsenal, spotlight] = await Promise.all([
+    mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id),
+    mlb.getHitterSpotlight(lastGame.gamePk, teamId),
+  ]);
 
   // Order relievers by actual first appearance (play-by-play), not the boxscore
   // array — this is what "who came in before whom" claims are checked against.
@@ -483,7 +465,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const teamKey = Object.entries(mlb.TEAM_CONFIGS).find(([, cfg]) => cfg.id === teamId)?.[0] ?? mlb.DEFAULT_TEAM_KEY;
 
   // Persist today's WS-winner number, then read the trailing window for the sparkline
-  const todayPt = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const todayPt = ptDateToday();
   if (titleOdds) {
     db.saveTitleOdds(teamKey, todayPt, titleOdds.impliedProb, titleOdds.medianOdds);
   }
@@ -539,52 +521,50 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     .join('\n');
 
   const timelineText = _formatScoringTimeline(scoringTimeline, teamShort, lastGame.opponentName);
-  const narrativePrompt =
-    `Write a 4-sentence chronological recap of yesterday's ${teamShort} game.\n\n` +
-    `Result: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n\n` +
-    (timelineText
-      ? `Scoring timeline (use this as your chronological backbone):\n${timelineText}\n\n`
-      : `Hitters:\n${batterLines}\n\n`) +
-    `Structure your 4 sentences as: (1) how the game started or who scored first, ` +
-    `(2) the key sequence or turning point, ` +
-    `(3) how the lead was held or extended after that, ` +
-    `(4) the final result with one grounding detail.\n\n` +
-    `Do not cover individual player stats in depth — those are handled in a separate section. ` +
-    `Name players only when they drove a scoring moment.\n\n` +
-    `Wrap every player name in <em> tags. Return only the 4 sentences. No intro, no outro.`;
 
-  const headlinePrompt =
-    `Write a newspaper headline for yesterday's ${teamShort} game.\n\n` +
-    `Result: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue}.\n` +
-    (timelineText ? `Scoring timeline:\n${timelineText}\n\n` : '\n') +
-    `Rules:\n` +
+  // One prompt generates all four game sections; the shared context (result,
+  // timeline, batter/pitcher lines) is sent once instead of once per section.
+  const gamePrompt =
+    `Write four sections of yesterday's ${teamShort} game report.\n\n` +
+    `GAME\n` +
+    `Result: ${teamName} ${result} against the ${lastGame.opponentName} at ${lastGame.venue} on ${_formatDate(lastGame.date)}.\n` +
+    (timelineText ? `Scoring timeline (chronological):\n${timelineText}\n` : '') +
+    `Hitters (game line | season stats):\n${batterLines}\n` +
+    `Starting pitcher: ${spLine}\n` +
+    (reliefLines
+      ? `Relief pitchers, numbered in their exact order of appearance (1 entered first):\n${reliefLines}\n`
+      : `No relief pitchers — the starter went the distance.\n`) +
+    `\nReturn only valid JSON with these exact fields:\n` +
+    `{\n` +
+    `  "headline": "...",\n` +
+    `  "recap": "...",\n` +
+    `  "playerNotes": [{"name": "...", "note": "..."}, ...],\n` +
+    `  "pitching": {"starter": "...", "bullpen": ${reliefLines ? '"..."' : 'null'}}\n` +
+    `}\n\n` +
+    `HEADLINE rules:\n` +
     `- 5 to 9 words. No period, no exclamation mark.\n` +
     `- Factual and specific: name the decisive thing (a player, an inning, the margin).\n` +
-    `- Sentence case, plain text only — no <em> tags, no quotes.\n` +
-    `Return only the headline text.`;
-
-  const playerNotesPrompt =
-    `Write a one-line journalist note for each of these ${teamShort} players from yesterday's game.\n\n` +
-    `${batterLines}\n` +
-    (sp ? `\nStarting pitcher — ${spLine}` : '') +
-    `\n\nEach note: one punchy sentence, starts with the player's name.\n` +
-    `HR type labels (solo, 2-run, etc.) tell you exactly how many runs that home run scored — ` +
-    `a player's total RBI may include other at-bats, so do not attribute all their RBI to the home run.\n` +
-    `Return only valid JSON: [{"name": "...", "note": "..."}, ...]`;
-
-  const pitchingPrompt =
-    `Write the "Pitching" section of yesterday's ${teamShort} game recap.\n\n` +
-    `Game: ${teamName} ${result} against the ${lastGame.opponentName}.\n\n` +
-    `Starting pitcher:\n${spLine}\n\n` +
+    `- Sentence case, plain text only — no <em> tags, no quotes.\n\n` +
+    `RECAP rules:\n` +
+    `- Exactly 4 chronological sentences${timelineText ? ', using the scoring timeline as your backbone' : ''}: ` +
+    `(1) how the game started or who scored first, (2) the key sequence or turning point, ` +
+    `(3) how the lead was held or extended after that, (4) the final result with one grounding detail.\n` +
+    `- Do not cover individual player stats in depth — those are handled elsewhere. ` +
+    `Name players only when they drove a scoring moment.\n` +
+    `- Wrap every player name in <em> tags.\n\n` +
+    `PLAYERNOTES rules:\n` +
+    `- One entry per hitter listed above: one punchy journalist sentence starting with the player's name.\n` +
+    `- HR type labels (solo, 2-run, etc.) tell you exactly how many runs that home run scored — ` +
+    `a player's total RBI may include other at-bats, so do not attribute all their RBI to the home run.\n\n` +
+    `PITCHING rules:\n` +
+    `- "starter": up to 3 sentences on the starting pitcher's outing. Reference the actual line — ` +
+    `innings, strikeouts, runs, baserunners. Note the season context (ERA, WHIP) only if it sharpens the story.\n` +
     (reliefLines
-      ? `Relief pitchers, numbered in their exact order of appearance (1 entered first):\n${reliefLines}\n\n`
-      : `No relief pitchers — the starter went the distance.\n\n`) +
-    `Return JSON with two fields:\n` +
-    `- "starter": Up to 3 sentences on the starting pitcher's outing. Reference the actual line — innings, strikeouts, runs, baserunners. Note the season context (ERA, WHIP) only if it sharpens the story.\n` +
-    `- "bullpen": ${reliefLines
-      ? `Exactly 2 sentences summarizing the relief pitchers as a group. Mention specific names where it matters (the high-leverage outing, the rough one), but treat them collectively. If you say who pitched earlier or later, it MUST match the numbered order above — never reverse it.`
-      : `Set this to null.`}\n` +
-    `Wrap every player name in <em> tags. Return only valid JSON, no markdown fences.`;
+      ? `- "bullpen": exactly 2 sentences summarizing the relief pitchers as a group. Mention specific names ` +
+        `where it matters (the high-leverage outing, the rough one), but treat them collectively. If you say ` +
+        `who pitched earlier or later, it MUST match the numbered order above — never reverse it.\n`
+      : `- "bullpen": set to null.\n`) +
+    `- Wrap every player name in <em> tags in the pitching prose.`;
 
   const recentAbbrs = db.getRecentStatAbbrs(teamKey);
   const recentExclusion = recentAbbrs.length > 0
@@ -702,34 +682,30 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   ].filter(Boolean).join('\n\n');
 
   const opponentShort = lastGame.opponentName.split(' ').pop();
-  const narrativeFallback = `<em>${teamName}</em> ${result} against the ${lastGame.opponentName} at ${lastGame.venue}.`;
-  const headlineFallback = `${teamShort} ${lastGame.win ? 'top' : 'fall to'} ${opponentShort} ${lastGame.teamScore}–${lastGame.opponentScore}`;
+  const gameFallbacks = {
+    narrative: `<em>${teamName}</em> ${result} against the ${lastGame.opponentName} at ${lastGame.venue}.`,
+    headline: `${teamShort} ${lastGame.win ? 'top' : 'fall to'} ${opponentShort} ${lastGame.teamScore}–${lastGame.opponentScore}`,
+    notes: boxScore.offense.map(b => ({ name: b.name, note: '' })),
+  };
 
   console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
-  const [narrativeV, headlineV, notesV, statRaw, pitchingV, arsenalRaw, spotlightRaw, storylinesV, ytVideoId] = await Promise.all([
-    _generateVerifiedText({ prompt: narrativePrompt, maxTokens: 400, label: 'recap', facts: factsBlock, fallback: narrativeFallback, brandTitle, teamName }),
-    _generateVerifiedText({ prompt: headlinePrompt, maxTokens: 60, label: 'headline', facts: factsBlock, fallback: headlineFallback, brandTitle, teamName }),
-    _generateVerifiedNotes({ prompt: playerNotesPrompt, facts: factsBlock, fallbackNotes: boxScore.offense.map(b => ({ name: b.name, note: '' })), brandTitle, teamName }),
+  const [gameV, statRaw, arsenalRaw, spotlightRaw, storylinesV, ytVideoId] = await Promise.all([
+    _generateVerifiedGameSections({ prompt: gamePrompt, facts: factsBlock, fallbacks: gameFallbacks, brandTitle, teamName }),
     _callClaude(statPrompt, 600, brandTitle, teamName),
-    _generateVerifiedPitching({ prompt: pitchingPrompt, facts: factsBlock, brandTitle, teamName }),
     arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
     spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
     _generateVerifiedStorylines({ candidates: storylineCandidates, prompt: storylinePrompt, facts: factsBlock, brandTitle, teamName }),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
-  const narrative = narrativeV.value;
-  const headlineRaw = headlineV.value;
-  const playerNotes = notesV.value;
-  const pitching = pitchingV.value;
+  const { headline: headlineRaw, recap: narrative, playerNotes, pitching } = gameV.value;
   const seasonStorylines = storylinesV.value;
   // Per-section fact-check audit trail; empty when everything checked out clean.
-  const verification = [narrativeV.record, headlineV.record, notesV.record, pitchingV.record, storylinesV.record].filter(Boolean);
+  const verification = [gameV.record, storylinesV.record].filter(Boolean);
 
   let statOfGame = null;
   try {
-    const cleaned = statRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-    const parsed = JSON.parse(cleaned);
+    const parsed = JSON.parse(stripJsonFences(statRaw));
     statOfGame = {
       statName: parsed.statName,
       abbr: parsed.abbr,
@@ -752,8 +728,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     let notesByCode = {};
     let arsenalInsight = null;
     try {
-      const cleaned = (arsenalRaw ?? '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      const parsed = JSON.parse(cleaned);
+      const parsed = JSON.parse(stripJsonFences(arsenalRaw));
       for (const p of parsed.pitches ?? []) {
         if (p?.code) notesByCode[p.code] = p.note ?? null;
       }

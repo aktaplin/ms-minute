@@ -20,7 +20,8 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   Learn as a two-across spread), no nav. Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
-`GET /api/dev/report?team=` regenerates on demand; `POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache.
+`GET /api/dev/report?team=` regenerates on demand (open locally; Bearer REGEN_TOKEN in production);
+`POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache. All `/api` routes are rate-limited per IP.
 
 **Season-intelligence track (separate from the SMS phases):** Season Storylines is
 shipped (see below). **Beat Report** is designed but NOT built — full spec in
@@ -72,13 +73,16 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 - `OPTIMIZATIONS.md` — 7 perf optimizations already in the prototype
 - `BEAT_REPORT.md` — spec for the Beat Report (RSS "outside voices" digest), designed but not yet built
 - `CLAUDE_CODE_PROMPTS.md` — ready-to-use prompts for each phase
-- `ms-minute-prototype.jsx` — canonical UX reference; keep all styling from this
+  (the original `ms-minute-prototype.jsx` UX reference was ported in Phase 5 and deleted; see git history)
 
 ## Key decisions
 
 - Backend: Node/Express in `server/`, never expose API keys to client
 - DB: SQLite, one `reports` table (date PK, json, created_at)
-- Claude: Haiku for all writing (narrative, player notes, stat explanation); prompt cache the voice system prompt
+- Claude: Haiku for all writing. The four game sections (headline, recap, player notes, pitching)
+  are generated in ONE call and fact-checked in ONE call (`_generateVerifiedGameSections`). No
+  `cache_control` anywhere — these prompts are far below Haiku 4.5's 4096-token minimum cacheable
+  prefix, so a cache breakpoint would be a silent no-op.
 - MLB API: free, no key, base URL `https://statsapi.mlb.com`
 - SMS: Twilio; wrap in `server/lib/sms.js` with a dev-mode log flag
 - YouTube: Data API v3, MLB channel ID `UCoLrcjPV5PbUrUyXq5mjc_A`

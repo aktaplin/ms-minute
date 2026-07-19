@@ -4,10 +4,7 @@ const cron = require('node-cron');
 const { generateDailyReport } = require('./generate');
 const { TEAM_CONFIGS } = require('./mlb');
 const db = require('./db');
-
-function ptDateToday() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-}
+const { ptDateToday } = require('./util');
 
 async function runOneTeam(teamKey, maxAttempts = 3) {
   const teamConfig = TEAM_CONFIGS[teamKey];

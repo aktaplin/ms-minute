@@ -31,6 +31,16 @@ function pathToTeamKey(pathname, validKeys) {
   return validKeys.includes(seg) ? seg : null;
 }
 
+// Render backend prose that may contain <em> tags — the only markup the
+// generator is allowed to emit. Text between the tags becomes real <em>
+// elements; everything else renders as literal text, so model output can
+// never inject HTML (no dangerouslySetInnerHTML).
+function EmText({ text }) {
+  if (!text) return null;
+  const parts = text.split(/<em>(.*?)<\/em>/gs);
+  return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
+}
+
 // Card head: a short "dinkus" tick + small caps label. Full-width rules are
 // reserved for zone banners so rule weight reads as hierarchy, not stripes.
 function SectionHead({ label, t }) {
@@ -134,10 +144,9 @@ function NarrativeCard({ text, t, columns = false }) {
   return (
     <div>
       <SectionHead label="Recap" t={t} />
-      <p
-        style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto', ...columnStyle }}
-        dangerouslySetInnerHTML={{ __html: text }}
-      />
+      <p style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto', ...columnStyle }}>
+        <EmText text={text} />
+      </p>
     </div>
   );
 }
@@ -182,13 +191,12 @@ function PitchingCard({ data, t }) {
     <div>
       <SectionHead label="Pitching" t={t} />
       {data.starter && (
-        <p
-          style={{ ...paragraph, marginBottom: data.bullpen ? 14 : 0 }}
-          dangerouslySetInnerHTML={{ __html: data.starter }}
-        />
+        <p style={{ ...paragraph, marginBottom: data.bullpen ? 14 : 0 }}>
+          <EmText text={data.starter} />
+        </p>
       )}
       {data.bullpen && (
-        <p style={paragraph} dangerouslySetInnerHTML={{ __html: data.bullpen }} />
+        <p style={paragraph}><EmText text={data.bullpen} /></p>
       )}
     </div>
   );
@@ -460,10 +468,9 @@ function StorylinesCard({ threads, t }) {
               <div style={{ fontFamily: INTER, fontSize: 16, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{th.metric}</div>
               <div style={{ fontSize: 9, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{th.label}</div>
             </div>
-            <p
-              style={{ fontFamily: INTER, fontSize: 14.5, lineHeight: 1.6, color: INK2, margin: 0 }}
-              dangerouslySetInnerHTML={{ __html: th.text }}
-            />
+            <p style={{ fontFamily: INTER, fontSize: 14.5, lineHeight: 1.6, color: INK2, margin: 0 }}>
+              <EmText text={th.text} />
+            </p>
           </div>
         ))}
       </div>
@@ -642,8 +649,12 @@ export default function MsMinute() {
     if (!team) return;
     loadReport(team);
     localStorage.setItem('teamKey', team);
-    document.title = teamConfig?.brandTitle ?? "The M's Minute";
   }, [team]);
+
+  // Keep the tab title in sync with the active edition
+  useEffect(() => {
+    document.title = teamConfig?.brandTitle ?? "The M's Minute";
+  }, [teamConfig]);
 
   function selectTeam(nextKey) {
     if (nextKey === team) return;
@@ -776,7 +787,6 @@ export default function MsMinute() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,400&family=Inter:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         @keyframes spin  { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
         * { box-sizing: border-box; margin: 0; padding: 0; }

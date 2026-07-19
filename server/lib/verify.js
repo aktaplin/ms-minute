@@ -7,6 +7,7 @@
 // returns "no violations" so a broken checker never blocks the daily report.
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { stripJsonFences } = require('./util');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -47,12 +48,12 @@ async function findViolations({ label, facts, passage }) {
 
   let raw;
   try {
+    // No cache_control: this system prompt is far below Haiku 4.5's 4096-token
+    // minimum cacheable prefix, so a cache breakpoint would be a silent no-op.
     const response = await client.messages.create({
       model: VERIFY_MODEL,
       max_tokens: 600,
-      system: [
-        { type: 'text', text: FACT_CHECKER_SYS, cache_control: { type: 'ephemeral' } },
-      ],
+      system: FACT_CHECKER_SYS,
       messages: [{ role: 'user', content: userPrompt }],
     });
     raw = response.content[0].text.trim();
@@ -62,8 +63,7 @@ async function findViolations({ label, facts, passage }) {
   }
 
   try {
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-    const parsed = JSON.parse(cleaned);
+    const parsed = JSON.parse(stripJsonFences(raw));
     return Array.isArray(parsed) ? parsed.filter(v => v && v.quote) : [];
   } catch {
     console.warn(`[verify] ${label}: could not parse checker output`);

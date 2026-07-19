@@ -32,9 +32,10 @@ function parseGb(gb) {
   return Number.isFinite(n) ? n : null;
 }
 
-// Trim a trailing ".0" so "3.0" reads as "3" but "3.5" stays "3.5"
+// Games-back number as prose: JS stringifies 3.0 as "3" and 3.5 as "3.5",
+// which is exactly the display we want.
 function fmtGames(n) {
-  return Number.isInteger(n) ? String(n) : String(n);
+  return String(n);
 }
 
 function fmtMonthDay(isoDate) {
@@ -210,4 +211,4 @@ function build({ teamConfig, standings, recentResults, standingsHistory, todayIs
   return chosen;
 }
 
-module.exports = { build, parseGb, ordinal };
+module.exports = { build, parseGb };
