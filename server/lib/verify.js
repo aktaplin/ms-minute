@@ -27,6 +27,8 @@ Do NOT flag:
 - General teaching explanations of what a stat or pitch type means.
 - Reasonable paraphrase of facts that ARE in the ground truth.
 - Grounded within-game superlatives the data DOES prove (e.g. "his hardest-hit ball of the night" when that exit velocity is his highest in the ground truth).
+- Any player named ANYWHERE in the ground truth, including opponents who appear only inside the scoring timeline (often in parentheses after an event). A name that is present in the ground truth is a supported fact — never flag it as the "wrong player" or "unsupported" just because it is not in the hitters list. The hitters list covers one team; the timeline covers both.
+- Warm, vivid description of what actually happened (how a rally built, the tension of a close inning). Flag unsupported *facts*, not color or narrative energy.
 
 Ignore any <em> or other HTML tags — judge only the words.
 

@@ -13,15 +13,16 @@ const MODEL = 'claude-haiku-4-5';
 function _sysVoice(brandTitle, teamName) {
   return `You write for ${brandTitle}, a daily ${teamName} briefing for fans.
 
-Voice: Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. Grounded in what actually occurred — not in sentiment about it.
+Voice: Factual, warm, and precise. Like a knowledgeable friend who watched the game and can tell you exactly what happened and why it matters. The facts are the anchor; the warmth is in how you tell them.
 
 Rules:
 - Plain English only. No jargon without a brief explanation.
 - Short, punchy sentences.
 - No sentimental or glib language. Avoid phrases like "that's why we believe", "the boys", "this team has heart", or any collective fan-identity framing.
 - No filler phrases like "It was a great game" or "The team played well."
-- Let the facts carry the emotion — a walk-off HR speaks for itself.
-- Never state a comparison or superlative about a player relative to teammates, the league, or their own history (e.g. "only", "best", "leads the team", "most consistent", "career-high") unless the exact numbers that prove it appear in this prompt. If you cannot prove it from the data you were given, do not claim it.
+- Let the facts carry the emotion — a walk-off HR speaks for itself. Describing what happened vividly is good; you don't have to write flat to write accurately.
+- Ground every factual claim in the data you were given. Don't invent comparisons or superlatives across players, the league, or a player's own season/career (e.g. "only", "best", "leads the team", "most consistent", "career-high") unless the numbers that prove it are in this prompt. This bans unprovable claims, not warmth or color — vivid description of what actually happened in the game is always welcome.
+- Always write the requested content. If a specific detail can't be supported by the data you were given, leave it out and write with what you have — never refuse, never ask the reader for information, never explain what you're missing or apologize.
 - When asked for JSON, return only valid JSON with no markdown fences or extra text.`;
 }
 
@@ -158,9 +159,32 @@ function _violationNote(violations) {
     .map(v => `- Remove or fix: "${v.quote}" (${v.issue ?? v.type ?? 'unsupported'})`)
     .join('\n');
   return (
-    `IMPORTANT — a fact-check flagged problems in your previous attempt. ` +
-    `Rewrite so NONE of these appear, and make no claim that isn't directly supported by the data you were given:\n${lines}`
+    `IMPORTANT — a fact-check flagged the following in your previous attempt. ` +
+    `Rewrite it in the SAME format and length so none of these appear. ` +
+    `If a detail can't be supported by the data you were given, drop it and write around it. ` +
+    `Do not mention this fact-check, do not apologize, do not ask for anything, do not address the reader — ` +
+    `output only the rewritten content:\n${lines}`
   );
+}
+
+// A writer that runs out of grounded material sometimes returns meta-commentary
+// or a refusal ("I cannot write this without...", "Could you provide...") instead
+// of the requested content. That text asserts no false baseball facts, so the
+// fact-checker passes it and it would otherwise ship as the section. Detect it
+// so we can fall back instead. Real recaps are third-person prose and never trip
+// these first-person / reader-directed patterns.
+function _looksLikeRefusal(text) {
+  const plain = (text ?? '').replace(/<[^>]+>/g, ' ').toLowerCase();
+  if (!plain.trim()) return true;
+  return [
+    /\bi (cannot|can't|can not|am unable|'m unable|won't|will not|don't have|do not have|need more|need the)\b/,
+    /\b(could|can|would) you (please )?(provide|confirm|share|give)\b/,
+    /\bplease provide\b/,
+    /\bonce i (have|receive|get)\b/,
+    /\bi'?ll (deliver|provide|write|rewrite)\b/,
+    /\bwithout (accurate|the correct|the actual|reliable)\b/,
+    /\bas specified\b/,
+  ].some(re => re.test(plain));
 }
 
 function _slimFlag(v) {
@@ -168,8 +192,10 @@ function _slimFlag(v) {
 }
 
 // Per-section audit record embedded in the report JSON. outcome is one of:
-//   'fixed_on_regen' — flagged, then a clean regeneration replaced it
-//   'stripped'       — still flagged after regen, offending sentence(s) removed
+//   'fixed_on_regen'   — flagged, then a clean regeneration replaced it
+//   'stripped'         — still flagged after regen, offending sentence(s) removed
+//   'refusal_fallback' — the writer returned meta-commentary/refusal, so the
+//                        deterministic fallback shipped instead
 function _record(section, outcome, initialFlags, residualFlags) {
   return {
     section,
@@ -198,12 +224,20 @@ function _stripSentences(text, violations) {
 // Returns { value, record } — record is null when the section checked out clean.
 async function _generateVerifiedText({ prompt, maxTokens, label, facts, fallback, brandTitle, teamName }) {
   let text = await _callClaude(prompt, maxTokens, brandTitle, teamName);
+  if (_looksLikeRefusal(text)) {
+    console.warn(`[generate] ${label}: writer returned meta/refusal; using fallback.`);
+    return { value: fallback ?? text, record: _record(label, 'refusal_fallback', [], []) };
+  }
   let violations = await verify.findViolations({ label, facts, passage: text });
   if (violations.length === 0) return { value: text, record: null };
 
   const initialFlags = violations;
   console.warn(`[generate] ${label}: ${violations.length} issue(s) flagged; regenerating once.`);
   text = await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, maxTokens, brandTitle, teamName);
+  if (_looksLikeRefusal(text)) {
+    console.warn(`[generate] ${label}: writer refused on regen; using fallback.`);
+    return { value: fallback ?? text, record: _record(label, 'refusal_fallback', initialFlags, []) };
+  }
   violations = await verify.findViolations({ label, facts, passage: text });
   if (violations.length === 0) {
     return { value: text, record: _record(label, 'fixed_on_regen', initialFlags, []) };
