@@ -655,11 +655,6 @@ export default function MsMinute() {
     localStorage.setItem('teamKey', team);
   }, [team]);
 
-  // Keep the tab title in sync with the active edition
-  useEffect(() => {
-    document.title = teamConfig?.brandTitle ?? "The M's Minute";
-  }, [teamConfig]);
-
   function selectTeam(nextKey) {
     if (nextKey === team) return;
     window.history.pushState({}, '', `/${nextKey}`);
@@ -792,6 +787,13 @@ export default function MsMinute() {
   const t = teamConfig?.theme ?? { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' };
   const brandTitle = teamConfig?.brandTitle ?? "The M's Minute";
   const editionLabel = teamConfig?.edition ?? '';
+
+  // Keep the tab title in sync with the active edition. Declared here, after
+  // teamConfig exists — a dependency array referencing it above would read it
+  // in the temporal dead zone and crash the first render.
+  useEffect(() => {
+    document.title = brandTitle;
+  }, [brandTitle]);
 
   // Page zones — newspaper sections. A zone renders only when it has content.
   const zones = data
