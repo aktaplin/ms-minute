@@ -27,6 +27,8 @@ shipped (see below). **Beat Report** is designed but NOT built — full spec in
 `BEAT_REPORT.md`: an RSS-driven "outside voices" digest in Section C that curates
 (does not summarize) ~3–4 beat articles, ranked by relevance to today's game via
 Haiku, with feeds configurable in `server/content/feeds.json`. Start there to build it.
+v1 includes Tier-1 storyline linkage (ranker tags each article with its active
+thread); a Tier-2 persistent thread↔article "dossier" is the planned next step.
 
 ## Build order
 
