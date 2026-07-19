@@ -62,7 +62,20 @@ function _getCached(key) {
 }
 
 function _setCached(key, val, ttlMs = 5 * 60 * 1000) {
+  // Keys include dates and gamePks, so prune expired entries before the map
+  // can grow without bound on a long-running server.
+  if (_cache.size > 300) {
+    const now = Date.now();
+    for (const [k, e] of _cache) {
+      if (now - e.ts >= e.ttlMs) _cache.delete(k);
+    }
+  }
   _cache.set(key, { val, ts: Date.now(), ttlMs });
+}
+
+// Team abbreviation with a fallback derived from the name (e.g. "Athletics" → "ATH")
+function _teamAbbr(team) {
+  return team.abbreviation ?? team.name.split(' ').pop().slice(0, 3).toUpperCase();
 }
 
 async function _mlbFetch(path) {
@@ -82,43 +95,46 @@ function _ptDate(offsetDays = 0) {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 }
 
-async function _getGamesOnDate(dateStr, teamId) {
+// One schedule call for a window of days, flattened to [{ date, game }] in
+// schedule order — replaces the old day-by-day fetch loop (up to 10 round trips).
+async function _getGamesInRange(teamId, startOffset, endOffset) {
   const data = await _mlbFetch(
-    `/api/v1/schedule?sportId=1&teamId=${teamId}&date=${dateStr}` +
+    `/api/v1/schedule?sportId=1&teamId=${teamId}` +
+    `&startDate=${_ptDate(startOffset)}&endDate=${_ptDate(endOffset)}` +
     `&hydrate=linescore,decisions,probablePitcher,team`
   );
-  if (!data.dates || data.dates.length === 0) return [];
-  return data.dates[0].games || [];
+  const games = [];
+  for (const day of data.dates ?? []) {
+    for (const g of day.games ?? []) games.push({ date: day.date, game: g });
+  }
+  return games;
 }
 
-// Most recent completed regular-season game for the given team
+// Most recent completed regular-season game for the given team (excludes today)
 async function getLastGame(teamId) {
-  for (let i = 1; i <= 10; i++) {
-    const dateStr = _ptDate(-i);
-    const games = await _getGamesOnDate(dateStr, teamId);
-    const game = games.find(
-      g => g.status.abstractGameState === 'Final' && g.gameType === 'R'
-    );
-    if (!game) continue;
+  const games = await _getGamesInRange(teamId, -10, -1);
+  const finals = games.filter(
+    ({ game: g }) => g.status.abstractGameState === 'Final' && g.gameType === 'R'
+  );
+  const last = finals[finals.length - 1];
+  if (!last) throw new Error(`No completed game found in the last 10 days for team ${teamId}`);
 
-    const { teams, venue, gamePk } = game;
-    const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
-    const team = teams[teamSide];
-    const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
+  const { teams, venue, gamePk } = last.game;
+  const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
+  const team = teams[teamSide];
+  const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
 
-    return {
-      gamePk,
-      date: dateStr,
-      teamSide,
-      teamScore: team.score,
-      opponentScore: opponent.score,
-      opponentName: opponent.team.name,
-      opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
-      venue: venue.name,
-      win: !!team.isWinner,
-    };
-  }
-  throw new Error(`No completed game found in the last 10 days for team ${teamId}`);
+  return {
+    gamePk,
+    date: last.date,
+    teamSide,
+    teamScore: team.score,
+    opponentScore: opponent.score,
+    opponentName: opponent.team.name,
+    opponentAbbr: _teamAbbr(opponent.team),
+    venue: venue.name,
+    win: !!team.isWinner,
+  };
 }
 
 // Top offensive performers + starting pitcher for a given game
@@ -177,36 +193,32 @@ async function getBoxScore(gamePk, teamId) {
 
 // Next scheduled regular-season game for the given team (not yet started)
 async function getNextGame(teamId) {
-  for (let i = 0; i <= 10; i++) {
-    const dateStr = _ptDate(i);
-    const games = await _getGamesOnDate(dateStr, teamId);
-    const game = games.find(
-      g => g.status.abstractGameState === 'Preview' && g.gameType === 'R'
-    );
-    if (!game) continue;
+  const games = await _getGamesInRange(teamId, 0, 10);
+  const next = games.find(
+    ({ game: g }) => g.status.abstractGameState === 'Preview' && g.gameType === 'R'
+  );
+  if (!next) return null;
 
-    const { teams, venue, gameDate } = game;
-    const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
-    const team = teams[teamSide];
-    const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
+  const { teams, venue, gameDate } = next.game;
+  const teamSide = teams.home.team.id === teamId ? 'home' : 'away';
+  const team = teams[teamSide];
+  const opponent = teams[teamSide === 'home' ? 'away' : 'home'];
 
-    const gameTime = new Date(gameDate).toLocaleTimeString('en-US', {
-      timeZone: 'America/Los_Angeles',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+  const gameTime = new Date(gameDate).toLocaleTimeString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 
-    return {
-      date: dateStr,
-      opponentName: opponent.team.name,
-      opponentAbbr: opponent.team.abbreviation ?? opponent.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
-      venue: venue.name,
-      gameTime: `${gameTime} PT`,
-      probablePitcher: team.probablePitcher?.fullName ?? 'TBD',
-    };
-  }
-  return null;
+  return {
+    date: next.date,
+    opponentName: opponent.team.name,
+    opponentAbbr: _teamAbbr(opponent.team),
+    venue: venue.name,
+    gameTime: `${gameTime} PT`,
+    probablePitcher: team.probablePitcher?.fullName ?? 'TBD',
+  };
 }
 
 // Completed regular-season games in the trailing window, oldest → newest.
@@ -232,7 +244,7 @@ async function getRecentResults(teamId, lookbackDays = 21) {
         win: !!team.isWinner,
         teamScore: team.score,
         opponentScore: opp.score,
-        opponentAbbr: opp.team.abbreviation ?? opp.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
+        opponentAbbr: _teamAbbr(opp.team),
         opponentName: opp.team.name,
         home: teamSide === 'home',
       });
@@ -495,10 +507,13 @@ async function getHitterSpotlight(gamePk, teamId) {
   return candidates[0];
 }
 
-// Live state of a game in progress (short 30s cache)
+// Live state of a game in progress (short 30s cache).
+// Cache key is prefixed: this caches a *reduced* view of the live feed, and
+// must never collide with _mlbFetch's cache of the full feed at the same path.
 async function getLiveGame(gamePk) {
   const path = `/api/v1.1/game/${gamePk}/feed/live`;
-  const cached = _getCached(path);
+  const cacheKey = `live:${gamePk}`;
+  const cached = _getCached(cacheKey);
   if (cached) return cached;
 
   const res = await fetch(`${MLB_BASE}${path}`);
@@ -522,8 +537,8 @@ async function getLiveGame(gamePk) {
     outs: linescore.outs ?? 0,
   };
 
-  _setCached(path, result, 30 * 1000);
+  _setCached(cacheKey, result, 30 * 1000);
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal, getHitterSpotlight };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getPlayByPlayData, getLiveGame, getStarterArsenal, getHitterSpotlight };
