@@ -173,7 +173,11 @@ function OffenseCard({ players, t }) {
                 ))}
               </div>
             </div>
-            {p.note && <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>{p.note}</p>}
+            {p.note && (
+              <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>
+                <EmText text={p.note} />
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -703,6 +707,20 @@ export default function MsMinute() {
       const report = await res.json();
 
       const sp = report.boxScore.startingPitcher;
+
+      // Match a batter to their note tolerantly: strip any tags from the note's
+      // name, try exact match, then fall back to last name — so a model that
+      // wrote "Canzone" or "<em>Young</em>" still lands on the right player.
+      const notes = report.playerNotes ?? [];
+      const cleanName = (s) => (s ?? '').replace(/<[^>]+>/g, '').trim().toLowerCase();
+      const noteFor = (batterName) => {
+        const target = cleanName(batterName);
+        const last = target.split(' ').pop();
+        const hit =
+          notes.find(n => cleanName(n.name) === target) ??
+          notes.find(n => cleanName(n.name).split(' ').pop() === last);
+        return hit?.note ?? '';
+      };
       setData({
         teamId: report.teamId,
         teamName: report.teamName,
@@ -725,7 +743,7 @@ export default function MsMinute() {
         offense: report.boxScore.offense.map(b => ({
           name: b.name,
           pos: b.position,
-          note: report.playerNotes.find(n => n.name === b.name)?.note ?? '',
+          note: noteFor(b.name),
           stats: [
             { val: `${b.hits}/${b.atBats}`, lbl: 'H/AB' },
             ...(b.homeRuns > 0 ? [{ val: b.homeRuns, lbl: 'HR' }] : []),

@@ -230,13 +230,33 @@ function _stripSentences(text, quotes) {
 // instead of once per section. On flags: one regen, then per-section stripping.
 // Returns { value: { headline, recap, playerNotes, pitching }, record }.
 async function _generateVerifiedGameSections({ prompt, facts, fallbacks, brandTitle, teamName }) {
+  // Player notes are plain prose: strip any markup the model sneaks in, then
+  // align entries to the canonical roster names (exact match first, then
+  // last-name) so the client's exact-name lookup always hits.
+  const stripTags = (t) => (typeof t === 'string' ? t.replace(/<[^>]+>/g, '').trim() : '');
+  const alignNotes = (rawNotes) => {
+    const cleaned = (rawNotes ?? [])
+      .map(n => ({ name: stripTags(n?.name), note: stripTags(n?.note) }))
+      .filter(n => n.name && n.note);
+    return fallbacks.notes.map(({ name }) => {
+      const lower = name.toLowerCase();
+      const lastName = lower.split(' ').pop();
+      const hit =
+        cleaned.find(c => c.name.toLowerCase() === lower) ??
+        cleaned.find(c => {
+          const cl = c.name.toLowerCase();
+          return lower.includes(cl) || cl.includes(lower) || cl.split(' ').pop() === lastName;
+        });
+      return { name, note: hit?.note ?? '' };
+    });
+  };
   const parse = (raw) => {
     try {
       const p = JSON.parse(stripJsonFences(raw));
       return {
         headline: typeof p.headline === 'string' ? p.headline : null,
         recap: typeof p.recap === 'string' ? p.recap : null,
-        playerNotes: Array.isArray(p.playerNotes) ? p.playerNotes : null,
+        playerNotes: alignNotes(Array.isArray(p.playerNotes) ? p.playerNotes : []),
         pitching: {
           starter: p.pitching?.starter ?? null,
           bullpen: p.pitching?.bullpen ?? null,
@@ -307,12 +327,15 @@ async function _generateVerifiedGameSections({ prompt, facts, fallbacks, brandTi
 // candidates carry deterministic fallback text, so any failure degrades to the
 // grounded template rather than dropping the thread. Returns { value, record }.
 async function _generateVerifiedStorylines({ candidates, prompt, facts, brandTitle, teamName }) {
+  // An empty or whitespace-only model sentence must never ship — fall through
+  // to the deterministic fallback instead of rendering a blank thread.
+  const pickText = (v) => (typeof v === 'string' && v.trim() ? v : null);
   const toThreads = (textByKind) => candidates.map((c, i) => ({
     kind: c.kind,
     label: c.label,
     metric: c.metric,
     value: c.value,
-    text: textByKind[c.kind] ?? textByKind[`__idx${i}`] ?? c.fallbackText,
+    text: pickText(textByKind[c.kind]) ?? pickText(textByKind[`__idx${i}`]) ?? c.fallbackText,
   }));
   const fallbackThreads = toThreads({});
 
@@ -490,6 +513,11 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const storylineCandidates = storylines.build({
     teamConfig, standings, recentResults, standingsHistory, todayIso: todayPt,
   });
+  if (storylineCandidates.length === 0) {
+    // Position is the guaranteed fallback thread, so this should only happen
+    // when the team's standings row is missing — surface it for diagnosis.
+    console.warn(`[generate] ${teamName}: no storyline candidates (standings row for teamId ${teamId} missing?)`);
+  }
 
   // Featured franchise moment for today's calendar date (null when none is curated)
   const onThisDay = history.getOnThisDay(teamKey, todayPt.slice(5));
@@ -554,6 +582,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `- Wrap every player name in <em> tags.\n\n` +
     `PLAYERNOTES rules:\n` +
     `- One entry per hitter listed above: one punchy journalist sentence starting with the player's name.\n` +
+    `- Use each player's name exactly as written above. Plain text only — NO <em> tags anywhere in playerNotes.\n` +
     `- HR type labels (solo, 2-run, etc.) tell you exactly how many runs that home run scored — ` +
     `a player's total RBI may include other at-bats, so do not attribute all their RBI to the home run.\n\n` +
     `PITCHING rules:\n` +
