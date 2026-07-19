@@ -22,6 +22,12 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand; `POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache.
 
+**Season-intelligence track (separate from the SMS phases):** Season Storylines is
+shipped (see below). **Beat Report** is designed but NOT built — full spec in
+`BEAT_REPORT.md`: an RSS-driven "outside voices" digest in Section C that curates
+(does not summarize) ~3–4 beat articles, ranked by relevance to today's game via
+Haiku, with feeds configurable in `server/content/feeds.json`. Start there to build it.
+
 ## Build order
 
 1. **Phase 1** — `server/lib/mlb.js` — MLB Stats API (no key needed, Mariners teamId=136) ✅
@@ -62,6 +68,7 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 - `GAPS.md` — what's missing, in priority order, with build specs per gap
 - `DESIGN.md` — visual system, palette, typography
 - `OPTIMIZATIONS.md` — 7 perf optimizations already in the prototype
+- `BEAT_REPORT.md` — spec for the Beat Report (RSS "outside voices" digest), designed but not yet built
 - `CLAUDE_CODE_PROMPTS.md` — ready-to-use prompts for each phase
 - `ms-minute-prototype.jsx` — canonical UX reference; keep all styling from this
 
