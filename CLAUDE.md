@@ -9,8 +9,9 @@ A daily Seattle Mariners briefing: game recap, player highlights, stat explained
 Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/mlb.js`):
 - `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, play-by-play, live feed, pitch arsenal)
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
-- `server/lib/db.js` — SQLite cache (`reports`, `odds_history`); `server/lib/cron.js` — 5am PT daily job
+- `server/lib/db.js` — SQLite cache (`reports`, `odds_history`, `standings_history`); `server/lib/cron.js` — 5am PT daily job
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
+- `server/lib/storylines.js` — season "Storylines" threads (win/losing streak, last-10 form, division momentum, standings position)
 - `client/src/components/MsMinute.jsx` — full UI, responsive at 900px:
   mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
   (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal / Hitter Spotlight /
@@ -42,6 +43,17 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
   (`year`, `headline`, `story`); prose is pre-written in the site voice and every event must be
   web-verified (Baseball-Reference / MLB.com) before it ships. Mariners file only, so far; the card
   hides for teams/dates with no entry.
+
+### Season Storylines (shipped July 2026)
+
+- **Storylines** — `server/lib/storylines.js` builds up to 3 season "threads" that carry game-to-game,
+  rendered as a badge + one-line card at the top of "Around the League" (Section C / desktop rail).
+  Threads: win/losing streak and last-10 form (computed fresh from `getRecentResults` schedule walk —
+  drift-proof, no stored state), division momentum (games gained/lost over the trailing window, from
+  the new `standings_history` snapshot table, mirroring `odds_history`), and a standings-position
+  fallback so the card is never empty. Every thread is fully grounded: the module computes exact
+  numbers + a deterministic fallback sentence, Haiku only rewrites for voice, and the sentence is
+  fact-checked (`verify.js`) against `factsBlock` — flagged threads revert to the template.
 
 ## Key reference docs
 

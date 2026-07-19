@@ -439,6 +439,38 @@ function Sparkline({ data, color, width = 120, height = 24 }) {
   );
 }
 
+// Season threads that carry game-to-game: a metric badge + one in-voice line
+// each. Numbers come from the API; the sentence is fact-checked in the backend.
+function StorylinesCard({ threads, t }) {
+  if (!threads?.length) return null;
+  return (
+    <div>
+      <SectionHead label="Storylines" t={t} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {threads.map((th, i) => (
+          <div
+            key={th.kind + i}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              paddingTop: i === 0 ? 0 : 12, paddingBottom: 12,
+              borderBottom: i < threads.length - 1 ? `1px solid ${PAPER2}` : 'none',
+            }}
+          >
+            <div style={{ flexShrink: 0, border: `1px solid ${t.navy}`, padding: '4px 8px', textAlign: 'center', minWidth: 52 }}>
+              <div style={{ fontFamily: INTER, fontSize: 16, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{th.metric}</div>
+              <div style={{ fontSize: 9, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{th.label}</div>
+            </div>
+            <p
+              style={{ fontFamily: INTER, fontSize: 14.5, lineHeight: 1.6, color: INK2, margin: 0 }}
+              dangerouslySetInnerHTML={{ __html: th.text }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StandingsCard({ rows, divisionName, t }) {
   if (!rows?.length) return null;
   return (
@@ -694,6 +726,7 @@ export default function MsMinute() {
         hitterSpotlight: report.hitterSpotlight ?? null,
         onThisDay: report.onThisDay ?? null,
         statOfGame: report.statOfGame,
+        storylines: report.storylines ?? [],
         titleOdds: report.titleOdds ?? null,
         titleOddsTrend: report.titleOddsTrend ?? [],
         standings: [...report.standings]
@@ -736,7 +769,7 @@ export default function MsMinute() {
     ? [
         { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
         { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.hitterSpotlight || data.onThisDay) },
-        { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.standings?.length || data.nextGame || data.titleOdds) },
+        { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.storylines?.length || data.standings?.length || data.nextGame || data.titleOdds) },
       ].filter(z => z.show)
     : [];
 
@@ -840,9 +873,10 @@ export default function MsMinute() {
                 </section>
               )}
 
-              {(data.standings?.length > 0 || data.nextGame || data.titleOdds) && (
+              {(data.storylines?.length > 0 || data.standings?.length > 0 || data.nextGame || data.titleOdds) && (
                 <section id="zone-league" style={{ scrollMarginTop: 56 }}>
                   <ZoneBanner kicker="Section C" label="Around the League" t={t} />
+                  <StorylinesCard threads={data.storylines} t={t} />
                   <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
@@ -874,6 +908,7 @@ export default function MsMinute() {
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
                 </div>
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
+                  <StorylinesCard threads={data.storylines} t={t} />
                   <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
                   <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
                   <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />

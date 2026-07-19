@@ -23,6 +23,16 @@ db.exec(`
     median_odds INTEGER,
     PRIMARY KEY (team_key, date)
   );
+
+  CREATE TABLE IF NOT EXISTS standings_history (
+    team_key TEXT NOT NULL,
+    date TEXT NOT NULL,
+    gb REAL,
+    division_rank INTEGER,
+    wins INTEGER,
+    losses INTEGER,
+    PRIMARY KEY (team_key, date)
+  );
 `);
 
 function getReport(date) {
@@ -58,4 +68,23 @@ function getTitleOddsTrend(teamKey, days = 30) {
   return rows.reverse();
 }
 
-module.exports = { getReport, saveReport, getRecentStatAbbrs, saveTitleOdds, getTitleOddsTrend };
+// Persist today's division position so tomorrow's report can measure momentum.
+// gb is numeric (leader = 0); null when unknown.
+function saveStandingsSnapshot(teamKey, date, { gb, divisionRank, wins, losses }) {
+  db.prepare(
+    'INSERT OR REPLACE INTO standings_history (team_key, date, gb, division_rank, wins, losses) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(teamKey, date, gb ?? null, divisionRank ?? null, wins ?? null, losses ?? null);
+}
+
+// Trailing standings snapshots, oldest → newest, for the momentum storyline.
+function getStandingsHistory(teamKey, days = 28) {
+  const rows = db.prepare(
+    'SELECT date, gb, division_rank FROM standings_history WHERE team_key = ? ORDER BY date DESC LIMIT ?'
+  ).all(teamKey, days);
+  return rows.reverse();
+}
+
+module.exports = {
+  getReport, saveReport, getRecentStatAbbrs, saveTitleOdds, getTitleOddsTrend,
+  saveStandingsSnapshot, getStandingsHistory,
+};

@@ -209,6 +209,41 @@ async function getNextGame(teamId) {
   return null;
 }
 
+// Completed regular-season games in the trailing window, oldest → newest.
+// Each: { date, gamePk, win, teamScore, opponentScore, opponentAbbr, opponentName, home }.
+// Powers the streak / recent-form storylines — one schedule call for the whole run.
+async function getRecentResults(teamId, lookbackDays = 21) {
+  const start = _ptDate(-lookbackDays);
+  const end = _ptDate(0);
+  const data = await _mlbFetch(
+    `/api/v1/schedule?sportId=1&teamId=${teamId}&startDate=${start}&endDate=${end}&hydrate=team`
+  );
+
+  const games = [];
+  for (const day of data.dates ?? []) {
+    for (const g of day.games ?? []) {
+      if (g.status?.abstractGameState !== 'Final' || g.gameType !== 'R') continue;
+      const teamSide = g.teams.home.team.id === teamId ? 'home' : 'away';
+      const team = g.teams[teamSide];
+      const opp = g.teams[teamSide === 'home' ? 'away' : 'home'];
+      games.push({
+        date: day.date,
+        gamePk: g.gamePk,
+        win: !!team.isWinner,
+        teamScore: team.score,
+        opponentScore: opp.score,
+        opponentAbbr: opp.team.abbreviation ?? opp.team.name.split(' ').pop().slice(0, 3).toUpperCase(),
+        opponentName: opp.team.name,
+        home: teamSide === 'home',
+      });
+    }
+  }
+
+  // Schedule is date-ordered; sort defensively (doubleheaders share a date).
+  games.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.gamePk - b.gamePk));
+  return games;
+}
+
 async function getStandings(divisionId, leagueId) {
   const season = new Date().getFullYear();
   const data = await _mlbFetch(
@@ -491,4 +526,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal, getHitterSpotlight };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getPlayByPlayData, getLiveGame, getPitchArsenal, getSeasonPitchMix, getStarterArsenal, getHitterSpotlight };
