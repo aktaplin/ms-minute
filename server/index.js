@@ -57,11 +57,14 @@ function rateLimit({ windowMs, max }) {
   };
 }
 
-app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 60 }));
-
+// Health check is registered BEFORE the rate limiter so platform probes
+// (Railway polls this rapidly during deploy) are never throttled — a 429 here
+// reads as an unhealthy deploy and gets the container SIGTERM'd.
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 60 }));
 
 // Public team registry — drives the client toggle, theming, and titles
 app.get('/api/teams', (req, res) => {
