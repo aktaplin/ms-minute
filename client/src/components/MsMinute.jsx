@@ -151,14 +151,20 @@ function NarrativeCard({ text, t, columns = false }) {
   );
 }
 
-function OffenseCard({ players, t }) {
+function OffenseCard({ players, t, columns = false }) {
   if (!players?.length) return null;
+  // On desktop the card runs the full well width, so the batters flow in two
+  // newspaper columns — same treatment as NarrativeCard. Each batter block is
+  // kept whole so a name never splits from its stat boxes.
+  const columnStyle = columns
+    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    : { display: 'flex', flexDirection: 'column' };
   return (
     <div>
       <SectionHead label="At the Plate" t={t} />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={columnStyle}>
         {players.map((p, i) => (
-          <div key={p.name} style={{ paddingTop: i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <div key={p.name} style={{ breakInside: 'avoid', paddingTop: !columns && i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
@@ -223,31 +229,39 @@ function PitchMixRow({ p, isLast, t }) {
   );
 }
 
-function PitchingCard({ data, t }) {
+function PitchingCard({ data, t, columns = false }) {
   const pitches = data?.arsenal?.pitches;
   if (!data || (!data.starter && !data.bullpen && !pitches?.length)) return null;
   const paragraph = {
     fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK,
     textAlign: 'justify', hyphens: 'auto', margin: 0,
   };
+  // On desktop the card runs the full well width: prose and the arsenal rows
+  // flow together in two newspaper columns, which balances the card's height
+  // instead of leaving the neighbouring column short.
+  const columnStyle = columns
+    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    : {};
   return (
     <div>
       <SectionHead label="Pitching" t={t} />
-      {data.starter && (
-        <p style={{ ...paragraph, marginBottom: (pitches?.length || data.bullpen) ? 14 : 0 }}>
-          <EmText text={data.starter} />
-        </p>
-      )}
-      {pitches?.length > 0 && (
-        <div style={{ marginBottom: data.bullpen ? 14 : 0 }}>
-          {pitches.map((p, i) => (
-            <PitchMixRow key={p.code} p={p} isLast={i === pitches.length - 1} t={t} />
-          ))}
-        </div>
-      )}
-      {data.bullpen && (
-        <p style={paragraph}><EmText text={data.bullpen} /></p>
-      )}
+      <div style={columnStyle}>
+        {data.starter && (
+          <p style={{ ...paragraph, marginBottom: (pitches?.length || data.bullpen) ? 14 : 0 }}>
+            <EmText text={data.starter} />
+          </p>
+        )}
+        {pitches?.length > 0 && (
+          <div style={{ marginBottom: data.bullpen ? 14 : 0 }}>
+            {pitches.map((p, i) => (
+              <PitchMixRow key={p.code} p={p} isLast={i === pitches.length - 1} t={t} />
+            ))}
+          </div>
+        )}
+        {data.bullpen && (
+          <p style={paragraph}><EmText text={data.bullpen} /></p>
+        )}
+      </div>
     </div>
   );
 }
@@ -866,10 +880,8 @@ export default function MsMinute() {
                   )}
                   <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
                   <NarrativeCard text={data.narrative} t={t} columns />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32 }}>
-                    <OffenseCard players={data.offense} t={t} />
-                    <PitchingCard data={data.pitching} t={t} />
-                  </div>
+                  <OffenseCard players={data.offense} t={t} columns />
+                  <PitchingCard data={data.pitching} t={t} columns />
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
                 </div>
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
