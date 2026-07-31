@@ -267,52 +267,6 @@ function PitchArsenalCard({ data, t }) {
   );
 }
 
-// Statcast batted-ball lesson: measured chips + per-ball rows + Haiku story
-function HitterSpotlightCard({ data, t }) {
-  if (!data?.ballsInPlay?.length) return null;
-  const longest = Math.max(...data.ballsInPlay.map(b => b.distance ?? 0));
-  const chips = [
-    { val: `${data.maxExitVelo}`, lbl: 'Max EV' },
-    { val: `${data.hardHits}`, lbl: 'Hard-hit' },
-    ...(longest > 0 ? [{ val: `${longest}'`, lbl: 'Longest' }] : []),
-  ];
-  return (
-    <div>
-      <SectionHead label="Hitter Spotlight" t={t} />
-
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{data.name}</span>
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          {chips.map(c => (
-            <div key={c.lbl} style={{ border: `1px solid ${t.navy}`, padding: '2px 7px', textAlign: 'center', minWidth: 36 }}>
-              <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{c.val}</div>
-              <div style={{ fontSize: 9, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{c.lbl}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ fontSize: 11, color: MUTED, fontFamily: INTER, marginBottom: 10 }}>
-        Every ball in play, as measured by Statcast · hard-hit = 95+ mph off the bat
-      </div>
-
-      {data.ballsInPlay.map((b, i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: i < data.ballsInPlay.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
-          <span style={{ fontFamily: INTER, fontSize: 14, fontWeight: 600, color: b.exitVelo >= 95 ? t.navy : INK2 }}>{b.event ?? 'In play'}</span>
-          <span style={{ fontSize: 12.5, color: MUTED, fontFamily: INTER, fontVariantNumeric: 'tabular-nums' }}>
-            {b.exitVelo} mph
-            {b.launchAngle != null && ` · ${b.launchAngle}°`}
-            {b.distance != null && b.distance > 20 && ` · ${b.distance} ft`}
-          </span>
-        </div>
-      ))}
-
-      {data.story && (
-        <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.75, color: INK, margin: '12px 0 0' }}>{data.story}</p>
-      )}
-    </div>
-  );
-}
-
 // Archival-clipping treatment: hairline box on aged paper — double rules stay
 // exclusive to zone banners.
 function OnThisDayCard({ data, t }) {
@@ -747,7 +701,6 @@ export default function MsMinute() {
         })),
         pitching: report.pitching ?? null,
         pitchArsenal: report.pitchArsenal ?? null,
-        hitterSpotlight: report.hitterSpotlight ?? null,
         onThisDay: report.onThisDay ?? null,
         statOfGame: report.statOfGame,
         storylines: report.storylines ?? [],
@@ -799,7 +752,7 @@ export default function MsMinute() {
   const zones = data
     ? [
         { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
-        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.hitterSpotlight || data.onThisDay) },
+        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.pitchArsenal || data.statOfGame || data.onThisDay) },
         { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.storylines?.length || data.standings?.length || data.nextGame || data.titleOdds) },
       ].filter(z => z.show)
     : [];
@@ -893,11 +846,10 @@ export default function MsMinute() {
                 <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               </section>
 
-              {(data.pitchArsenal || data.statOfGame || data.hitterSpotlight || data.onThisDay) && (
+              {(data.pitchArsenal || data.statOfGame || data.onThisDay) && (
                 <section id="zone-learn" style={{ scrollMarginTop: 56 }}>
                   <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
                   <PitchArsenalCard data={data.pitchArsenal} t={t} />
-                  <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} />
                   <OnThisDayCard data={data.onThisDay} t={t} />
                 </section>
@@ -946,13 +898,10 @@ export default function MsMinute() {
                 </aside>
               </div>
 
-              {(data.pitchArsenal || data.statOfGame || data.hitterSpotlight) && (
+              {(data.pitchArsenal || data.statOfGame) && (
                 <>
                   <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 56 }}>
-                    <PitchArsenalCard data={data.pitchArsenal} t={t} />
-                    <HitterSpotlightCard data={data.hitterSpotlight} t={t} />
-                  </div>
+                  <PitchArsenalCard data={data.pitchArsenal} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </>
               )}

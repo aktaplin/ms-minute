@@ -470,13 +470,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   ]);
   const titleOdds = allTitleOdds?.[teamName] ?? null;
 
-  // Starter's pitch mix vs. season norms + Statcast batted-ball story, in
-  // parallel (the live feed is already cached by getPlayByPlayData; this costs
-  // one extra request for the season arsenal).
-  const [arsenal, spotlight] = await Promise.all([
-    mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id),
-    mlb.getHitterSpotlight(lastGame.gamePk, teamId),
-  ]);
+  // Starter's pitch mix vs. season norms (the live feed is already cached by
+  // getPlayByPlayData; this costs one extra request for the season arsenal).
+  const arsenal = await mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id);
 
   // Order relievers by actual first appearance (play-by-play), not the boxscore
   // array — this is what "who came in before whom" claims are checked against.
@@ -658,28 +654,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
       `- Use ONLY the numbers provided above. Do not invent velocities, counts, percentages, or outcomes.`
     : null;
 
-  const spotlightLines = spotlight
-    ? spotlight.ballsInPlay
-        .map(b =>
-          `${b.event ?? 'Ball in play'}: ${b.exitVelo} mph exit velocity` +
-          (b.launchAngle != null ? `, ${b.launchAngle}° launch angle` : '') +
-          (b.distance != null ? `, ${b.distance} ft` : '')
-        )
-        .join('\n')
-    : null;
-
-  const spotlightPrompt = spotlight
-    ? `You are writing the "Hitter Spotlight" — teaching a reader who is learning baseball ` +
-      `what exit velocity and launch angle mean, using one hitter's actual batted balls.\n\n` +
-      `Hitter: ${spotlight.name} (${teamShort}), yesterday vs. the ${lastGame.opponentName}.\n` +
-      `Batted balls (Statcast measurements from this game):\n${spotlightLines}\n\n` +
-      `Context: 95+ mph exit velocity is a "hard-hit" ball. Line drives (roughly 10-25° launch angle) ` +
-      `become hits most often; balls hit hard but very low become groundouts, very high become flyouts.\n\n` +
-      `Write 2-3 sentences telling the story of this hitter's night through these measurements — ` +
-      `teach what the numbers mean by what they produced. ` +
-      `Use ONLY the measurements provided. Plain text, no <em> tags. Return only the sentences.`
-    : null;
-
   // Season storylines: one in-voice sentence per grounded thread. The exact facts
   // are pre-computed; Haiku only rewrites them, and the deterministic sentence is
   // the guaranteed fallback on any refusal or fact-check miss.
@@ -718,11 +692,10 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   };
 
   console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
-  const [gameV, statRaw, arsenalRaw, spotlightRaw, storylinesV, ytVideoId] = await Promise.all([
+  const [gameV, statRaw, arsenalRaw, storylinesV, ytVideoId] = await Promise.all([
     _generateVerifiedGameSections({ prompt: gamePrompt, facts: factsBlock, fallbacks: gameFallbacks, brandTitle, teamName }),
     _callClaude(statPrompt, 600, brandTitle, teamName),
     arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
-    spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
     _generateVerifiedStorylines({ candidates: storylineCandidates, prompt: storylinePrompt, facts: factsBlock, brandTitle, teamName }),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
@@ -792,9 +765,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     statOfGame,
     storylines: seasonStorylines,
     pitchArsenal,
-    hitterSpotlight: spotlight
-      ? { ...spotlight, story: (spotlightRaw ?? '').trim() || null }
-      : null,
     onThisDay,
     titleOdds,
     titleOddsTrend,

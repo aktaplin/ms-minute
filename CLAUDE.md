@@ -14,10 +14,10 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/storylines.js` — season "Storylines" threads (win/losing streak, last-10 form, division momentum, standings position)
 - `client/src/components/MsMinute.jsx` — full UI, responsive at 900px:
   mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
-  (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal / Hitter Spotlight /
+  (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal /
   Stat of the Game / On This Day, Section C "Around the League");
-  desktop = newspaper front page (main well + right rail with vertical rule, two-column recap,
-  Learn as a two-across spread), no nav. Daily Haiku headline as the Fraunces lede.
+  desktop = newspaper front page (main well + right rail with vertical rule, two-column recap),
+  no nav. Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand (open locally; Bearer REGEN_TOKEN in production);
@@ -52,6 +52,8 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
   (`year`, `headline`, `story`); prose is pre-written in the site voice and every event must be
   web-verified (Baseball-Reference / MLB.com) before it ships. Mariners file only, so far; the card
   hides for teams/dates with no entry.
+- **Hitter Spotlight** — removed from the live app (July 2026) to cut API calls/compute; code is
+  preserved in `archive/hitter-spotlight/` with restore instructions if it's worth bringing back.
 
 ### Season Storylines (shipped July 2026)
 
