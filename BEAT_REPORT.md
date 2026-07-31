@@ -73,7 +73,7 @@ hides (exactly like On This Day).
   `history._loadTeamHistory`). Missing/malformed file → `[]`, feature no-ops.
 - `fetchFeedItems(feed)` → parse one feed → `[{ title, link, description,
   publishedAt, sourceName, paywall }]`. Best-effort: a failing feed is skipped,
-  never throws (same posture as `getStarterArsenal` / `getHitterSpotlight`).
+  never throws (same posture as `getStarterArsenal`).
 - `getCandidateItems(teamKey, { windowHours = 36, max = 15 })` → fetch all feeds
   in parallel, flatten, filter to the recency window, dedupe by normalized title,
   sort by recency, cap the pool. Returns the candidate list handed to the ranker.

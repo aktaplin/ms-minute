@@ -1,0 +1,50 @@
+// --- server/lib/generate.js ---
+// Three insertion points (context shown so you can find where they went).
+
+// 1. Alongside the starter's arsenal fetch:
+//
+//   const [arsenal, spotlight] = await Promise.all([
+//     mlb.getStarterArsenal(lastGame.gamePk, boxScore.startingPitcher?.id),
+//     mlb.getHitterSpotlight(lastGame.gamePk, teamId),
+//   ]);
+
+// 2. Prompt construction (sat right after the arsenalPrompt block):
+
+const spotlightLines = spotlight
+  ? spotlight.ballsInPlay
+      .map(b =>
+        `${b.event ?? 'Ball in play'}: ${b.exitVelo} mph exit velocity` +
+        (b.launchAngle != null ? `, ${b.launchAngle}° launch angle` : '') +
+        (b.distance != null ? `, ${b.distance} ft` : '')
+      )
+      .join('\n')
+  : null;
+
+const spotlightPrompt = spotlight
+  ? `You are writing the "Hitter Spotlight" — teaching a reader who is learning baseball ` +
+    `what exit velocity and launch angle mean, using one hitter's actual batted balls.\n\n` +
+    `Hitter: ${spotlight.name} (${teamShort}), yesterday vs. the ${lastGame.opponentName}.\n` +
+    `Batted balls (Statcast measurements from this game):\n${spotlightLines}\n\n` +
+    `Context: 95+ mph exit velocity is a "hard-hit" ball. Line drives (roughly 10-25° launch angle) ` +
+    `become hits most often; balls hit hard but very low become groundouts, very high become flyouts.\n\n` +
+    `Write 2-3 sentences telling the story of this hitter's night through these measurements — ` +
+    `teach what the numbers mean by what they produced. ` +
+    `Use ONLY the measurements provided. Plain text, no <em> tags. Return only the sentences.`
+  : null;
+
+// 3. In the big Promise.all (add a spotlightRaw slot):
+//
+//   const [gameV, statRaw, arsenalRaw, spotlightRaw, storylinesV, ytVideoId] = await Promise.all([
+//     _generateVerifiedGameSections({ prompt: gamePrompt, facts: factsBlock, fallbacks: gameFallbacks, brandTitle, teamName }),
+//     _callClaude(statPrompt, 600, brandTitle, teamName),
+//     arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
+//     spotlightPrompt ? _callClaude(spotlightPrompt, 300, brandTitle, teamName) : Promise.resolve(null),
+//     _generateVerifiedStorylines({ candidates: storylineCandidates, prompt: storylinePrompt, facts: factsBlock, brandTitle, teamName }),
+//     _fetchYouTubeVideoId(lastGame, teamName),
+//   ]);
+
+// 4. In the `report` object:
+//
+//   hitterSpotlight: spotlight
+//     ? { ...spotlight, story: (spotlightRaw ?? '').trim() || null }
+//     : null,
