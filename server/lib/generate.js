@@ -622,38 +622,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `  "todayContext": "1–2 sentences: how today\\'s specific game data illustrates this stat. Be precise — reference the actual numbers."\n` +
     `}`;
 
-  const arsenalLines = arsenal
-    ? arsenal.pitches
-        .map(p =>
-          `${p.name} (${p.code}): ${p.count} thrown (${p.gamePct}% of pitches), ` +
-          `avg ${p.avgVelo ?? '?'} mph, max ${p.maxVelo ?? '?'} mph, ${p.whiffs} swinging strikes` +
-          (p.seasonPct != null
-            ? ` | season usage ${p.seasonPct}% (${p.deltaPts >= 0 ? '+' : ''}${p.deltaPts} pts vs. season)`
-            : ' | no season usage data')
-        )
-        .join('\n')
-    : null;
-
-  const arsenalPrompt = arsenal
-    ? `You are writing the "Pitch Arsenal" section — teaching a reader who is learning baseball ` +
-      `what each pitch type is, using the starter's actual outing.\n\n` +
-      `Starter: ${sp.name} (${teamShort}), yesterday vs. the ${lastGame.opponentName}.\n` +
-      `Line: ${spLine}\n\n` +
-      `Pitches thrown (measured data from this game):\n${arsenalLines}\n\n` +
-      `Return only valid JSON:\n` +
-      `{\n` +
-      `  "pitches": [{"code": "FF", "note": "..."}, ...],\n` +
-      `  "insight": "..." or null\n` +
-      `}\n` +
-      `Rules:\n` +
-      `- One entry per pitch listed above, using the same codes.\n` +
-      `- Each note: ONE sentence in plain English — what this pitch type does (movement, purpose) ` +
-      `woven with how it played in this game (whiffs, velocity).\n` +
-      `- "insight": one sentence about the most notable difference between this game's usage and ` +
-      `season usage, using the +/- pts provided. Set to null if season data is unavailable or no delta exceeds 5 pts.\n` +
-      `- Use ONLY the numbers provided above. Do not invent velocities, counts, percentages, or outcomes.`
-    : null;
-
   // Season storylines: one in-voice sentence per grounded thread. The exact facts
   // are pre-computed; Haiku only rewrites them, and the deterministic sentence is
   // the guaranteed fallback on any refusal or fact-check miss.
@@ -692,10 +660,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   };
 
   console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
-  const [gameV, statRaw, arsenalRaw, storylinesV, ytVideoId] = await Promise.all([
+  const [gameV, statRaw, storylinesV, ytVideoId] = await Promise.all([
     _generateVerifiedGameSections({ prompt: gamePrompt, facts: factsBlock, fallbacks: gameFallbacks, brandTitle, teamName }),
     _callClaude(statPrompt, 600, brandTitle, teamName),
-    arsenalPrompt ? _callClaude(arsenalPrompt, 600, brandTitle, teamName) : Promise.resolve(null),
     _generateVerifiedStorylines({ candidates: storylineCandidates, prompt: storylinePrompt, facts: factsBlock, brandTitle, teamName }),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
@@ -723,29 +690,11 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     statOfGame = { statName: null, abbr: null, player: null, value: null, leagueContext: null, definition: statRaw, todayContext: null };
   }
 
-  // Merge Claude's per-pitch teaching notes into the measured arsenal data.
-  // Numbers shown in the UI always come from the API; Claude only supplies prose.
-  let pitchArsenal = null;
-  if (arsenal) {
-    let notesByCode = {};
-    let arsenalInsight = null;
-    try {
-      const parsed = JSON.parse(stripJsonFences(arsenalRaw));
-      for (const p of parsed.pitches ?? []) {
-        if (p?.code) notesByCode[p.code] = p.note ?? null;
-      }
-      arsenalInsight = parsed.insight ?? null;
-    } catch {
-      console.warn('[generate] Failed to parse pitch arsenal JSON');
-    }
-    pitchArsenal = {
-      pitcher: sp?.name ?? null,
-      totalPitches: arsenal.totalPitches,
-      hasSeasonMix: arsenal.hasSeasonMix,
-      insight: arsenalInsight,
-      pitches: arsenal.pitches.map(p => ({ ...p, note: notesByCode[p.code] ?? null })),
-    };
-  }
+  // Pitch mix rides in the Pitching card now, right under the starter
+  // paragraph — numbers straight from the API, no prose layer.
+  const pitchArsenal = arsenal
+    ? { totalPitches: arsenal.totalPitches, hasSeasonMix: arsenal.hasSeasonMix, pitches: arsenal.pitches }
+    : null;
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -761,10 +710,9 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     headline: (headlineRaw ?? '').replace(/^["'\s]+|["'\s.]+$/g, '') || null,
     narrative,
     playerNotes,
-    pitching,
+    pitching: { ...pitching, arsenal: pitchArsenal },
     statOfGame,
     storylines: seasonStorylines,
-    pitchArsenal,
     onThisDay,
     titleOdds,
     titleOddsTrend,

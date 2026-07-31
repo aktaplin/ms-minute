@@ -14,8 +14,8 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/storylines.js` — season "Storylines" threads (win/losing streak, last-10 form, division momentum, standings position)
 - `client/src/components/MsMinute.jsx` — full UI, responsive at 900px:
   mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
-  (Section A "The Game", Section B "Learn the Game" with Pitch Arsenal /
-  Stat of the Game / On This Day, Section C "Around the League");
+  (Section A "The Game" — Pitch Arsenal rides in the Pitching card here,
+  Section B "Learn the Game" with Stat of the Game / On This Day, Section C "Around the League");
   desktop = newspaper front page (main well + right rail with vertical rule, two-column recap),
   no nav. Daily Haiku headline as the Fraunces lede.
 
@@ -46,8 +46,10 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 ### Learn-zone features (shipped July 2026)
 
 - **Pitch Arsenal** — starter's per-pitch mix from the game feed (`getStarterArsenal` in mlb.js:
-  usage %, avg/max velo, whiffs) vs. season norms (`stats=pitchArsenal`); Haiku writes one teaching
-  line per pitch + a usage-delta insight, grounded strictly in the provided numbers.
+  usage %, avg/max velo, whiffs) vs. season norms (`stats=pitchArsenal`), rendered as compact rows
+  in the "Pitching" card (Section A) right under the starter paragraph — numbers straight from the
+  API, no Haiku prose layer. (The old standalone Learn-zone card + per-pitch teaching notes are
+  archived in `archive/pitch-arsenal-standalone/`.)
 - **On This Day** — `server/content/history/{teamKey}.json` keyed by `MM-DD`, one event per date
   (`year`, `headline`, `story`); prose is pre-written in the site voice and every event must be
   web-verified (Baseball-Reference / MLB.com) before it ships. Mariners file only, so far; the card

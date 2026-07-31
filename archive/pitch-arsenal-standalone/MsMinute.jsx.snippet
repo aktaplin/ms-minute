@@ -1,0 +1,89 @@
+{/* --- client/src/components/MsMinute.jsx --- */}
+
+{/* 1. Standalone card component (sat between OffenseCard's neighbor and OnThisDayCard) */}
+
+function PitchArsenalCard({ data, t }) {
+  if (!data?.pitches?.length) return null;
+  const n = data.pitches.length;
+  return (
+    <div>
+      <SectionHead label="Pitch Arsenal" t={t} />
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{data.pitcher}</span>
+        <span style={{ fontSize: 13, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>{data.totalPitches} pitches</span>
+      </div>
+      <div style={{ fontSize: 11, color: MUTED, fontFamily: INTER, marginBottom: 12 }}>
+        Bar: share of this game's pitches{data.hasSeasonMix ? ' · tick: season share' : ''}
+      </div>
+
+      {data.pitches.map((p, i) => (
+        <div key={p.code} style={{ paddingBottom: 12, marginBottom: i < n - 1 ? 12 : 0, borderBottom: i < n - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <span style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: t.navy }}>{p.name}</span>
+            {p.avgVelo != null && (
+              <span style={{ fontSize: 12.5, color: MUTED, fontFamily: INTER, fontVariantNumeric: 'tabular-nums' }}>
+                {p.avgVelo} mph avg{p.maxVelo != null && p.maxVelo > p.avgVelo ? ` · ${p.maxVelo} max` : ''}
+              </span>
+            )}
+          </div>
+
+          <div style={{ position: 'relative', height: 10, background: PAPER2, marginBottom: 6 }}>
+            <div style={{ width: `${p.gamePct}%`, height: '100%', background: t.teal }} />
+            {p.seasonPct != null && (
+              <div style={{ position: 'absolute', top: -2, bottom: -2, left: `calc(${Math.min(p.seasonPct, 100)}% - 1px)`, width: 2, background: t.navy }} />
+            )}
+          </div>
+
+          <div style={{ fontSize: 12.5, fontFamily: INTER, color: INK2, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontWeight: 700, color: t.navy }}>{p.gamePct}%</span> of pitches
+            {p.seasonPct != null && (
+              <>
+                {' · '}season {p.seasonPct}%{' '}
+                <span style={{ color: t.teal, fontWeight: 700 }}>
+                  {p.deltaPts > 0 ? `▲${p.deltaPts}` : p.deltaPts < 0 ? `▼${Math.abs(p.deltaPts)}` : '—'}
+                </span>
+              </>
+            )}
+            {p.whiffs > 0 && ` · ${p.whiffs} whiff${p.whiffs === 1 ? '' : 's'}`}
+          </div>
+
+          {p.note && (
+            <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: '5px 0 0' }}>{p.note}</p>
+          )}
+        </div>
+      ))}
+
+      {data.insight && (
+        <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 10, marginTop: 14 }}>
+          <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.teal, fontStyle: 'italic', margin: 0 }}>{data.insight}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+{/* 2. In loadReport(), building `data`: */}
+//   pitchArsenal: report.pitchArsenal ?? null,
+
+{/* 3. Mobile zones array — "learn" zone's show condition: */}
+//   show: !!(data.pitchArsenal || data.statOfGame || data.onThisDay)
+
+{/* 4. Mobile Learn section guard + render (first card in the section): */}
+//   {(data.pitchArsenal || data.statOfGame || data.onThisDay) && (
+//     <section id="zone-learn" style={{ scrollMarginTop: 56 }}>
+//       <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
+//       <PitchArsenalCard data={data.pitchArsenal} t={t} />
+//       <StatOfGameCard stat={data.statOfGame} t={t} />
+//       <OnThisDayCard data={data.onThisDay} t={t} />
+//     </section>
+//   )}
+
+{/* 5. Desktop Learn spread guard + render: */}
+//   {(data.pitchArsenal || data.statOfGame) && (
+//     <>
+//       <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
+//       <PitchArsenalCard data={data.pitchArsenal} t={t} />
+//       <StatOfGameCard stat={data.statOfGame} t={t} columns />
+//     </>
+//   )}
