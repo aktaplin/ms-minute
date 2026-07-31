@@ -16,8 +16,11 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
   (Section A "The Game" — Pitch Arsenal rides in the Pitching card here,
   Section B "Learn the Game" with Stat of the Game / On This Day, Section C "Around the League");
-  desktop = newspaper front page (main well + right rail with vertical rule, two-column recap),
-  no nav. Daily Haiku headline as the Fraunces lede.
+  desktop = newspaper front page (main well + right rail with vertical rule), no nav.
+  In the main well every block below the score runs the full well width and flows in
+  two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
+  vertically so a long Pitching card can't strand white space beside a short one.
+  Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand (open locally; Bearer REGEN_TOKEN in production);
