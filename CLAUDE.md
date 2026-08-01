@@ -7,7 +7,7 @@ A daily Seattle Mariners briefing: game recap, player highlights, stat explained
 ## Current state
 
 Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/mlb.js`):
-- `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, play-by-play, live feed, pitch arsenal)
+- `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, wild card, play-by-play, live feed, pitch arsenal)
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
 - `server/lib/db.js` — SQLite cache (`reports`, `odds_history`, `standings_history`); `server/lib/cron.js` — 5am PT daily job
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
@@ -64,6 +64,25 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 
 - **Storylines** — `server/lib/storylines.js` builds up to 3 season "threads" that carry game-to-game,
   rendered as a badge + one-line card at the top of "Around the League" (Section C / desktop rail).
+
+### Wild Card standings (shipped August 2026)
+
+- **Wild Card** — `getWildCard(leagueId)` in mlb.js derives the league's wild card race from the
+  same regularSeason standings payload the division table already fetches (cached by path, so it
+  costs no extra request): division leaders dropped, the rest ranked by winning percentage, WCGB
+  computed against the cut line — teams holding a spot show how far they sit ahead of the first
+  team out (`+2.0`), chasers how far back of the last spot (`2.0`). Rendered by `WildCardCard`
+  directly under the division standings in both layouts: three spots, a "cut line" rule, the next
+  two chasing, and the team's own row after a break when it sits further back. A team missing from
+  the list is leading its division — the card says so instead of highlighting a row.
+- **Form trend** — each wild card row carries an L10 arrow. `getLeagueForm()` drops the `teamId`
+  filter from the schedule endpoint, so one call returns every team's recent games (last 10 per
+  team, plus the active streak) instead of fifteen per-team calls. `_formTrend` scales the record
+  to a per-10 basis and buckets it into tiers −3…+3, rounding away from zero so a slide never
+  grades softer than the mirror-image surge; under 6 games is too thin to call and returns null.
+  `TrendGlyph` puts direction in the arrow's *shape* (so it survives colour loss) and intensity in
+  three redundant channels — arrowhead size, ink depth, and a doubled head at ±3 — with the actual
+  L10 record alongside, since an arrow on its own is a mood, not a number.
   Threads: win/losing streak and last-10 form (computed fresh from `getRecentResults` schedule walk —
   drift-proof, no stored state), division momentum (games gained/lost over the trailing window, from
   the new `standings_history` snapshot table, mirroring `odds_history`), and a standings-position

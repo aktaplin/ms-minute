@@ -256,13 +256,21 @@ async function getRecentResults(teamId, lookbackDays = 21) {
   return games;
 }
 
-async function getStandings(divisionId, leagueId) {
+// One regularSeason standings call per league covers all three divisions. Both
+// getStandings and getWildCard read from it, and _mlbFetch caches by path, so
+// asking for the division table and the wild card race costs one request.
+async function _leagueRecords(leagueId) {
   const season = new Date().getFullYear();
   const data = await _mlbFetch(
     `/api/v1/standings?leagueId=${leagueId}&season=${season}&standingsTypes=regularSeason`
   );
+  return data.records ?? [];
+}
 
-  const division = data.records.find(r => r.division.id === divisionId);
+async function getStandings(divisionId, leagueId) {
+  const records = await _leagueRecords(leagueId);
+
+  const division = records.find(r => r.division.id === divisionId);
   if (!division) throw new Error(`Division ${divisionId} standings not found`);
 
   return division.teamRecords.map(tr => ({
@@ -274,6 +282,159 @@ async function getStandings(divisionId, leagueId) {
     gb: tr.gamesBack,
     divisionRank: parseInt(tr.divisionRank, 10),
   }));
+}
+
+// Wild card spots per league (three since the 2022 expansion)
+const WILD_CARD_SPOTS = 3;
+
+// Games team `b` trails team `a` by, the standard half-of-(win gap + loss gap).
+function _gamesBetween(a, b) {
+  return ((a.wins - b.wins) + (b.losses - a.losses)) / 2;
+}
+
+// "-" when level, otherwise one decimal to match the MLB API's own gamesBack strings
+function _formatGb(games) {
+  return games === 0 ? '-' : games.toFixed(1);
+}
+
+// Recent form for every team in one request: the schedule endpoint without a
+// teamId filter returns all of baseball for the window, so a whole league's
+// last-10 costs one call instead of fifteen. Window is generous enough that an
+// off-day stretch still clears ten games; teams with fewer (early season, rain)
+// come back with what they have and the caller scales accordingly.
+//
+// Returns Map(teamId → { wins, losses, games, streakType, streakNumber }),
+// counting only the most recent FORM_WINDOW completed regular-season games.
+const FORM_WINDOW = 10;
+
+async function getLeagueForm(lookbackDays = 18) {
+  const start = _ptDate(-lookbackDays);
+  const end = _ptDate(0);
+  const data = await _mlbFetch(
+    `/api/v1/schedule?sportId=1&startDate=${start}&endDate=${end}`
+  );
+
+  // teamId → [{ date, gamePk, win }], oldest first
+  const byTeam = new Map();
+  for (const day of data.dates ?? []) {
+    for (const g of day.games ?? []) {
+      if (g.status?.abstractGameState !== 'Final' || g.gameType !== 'R') continue;
+      for (const side of ['home', 'away']) {
+        const entry = g.teams?.[side];
+        const id = entry?.team?.id;
+        if (id == null) continue;
+        if (!byTeam.has(id)) byTeam.set(id, []);
+        byTeam.get(id).push({ date: day.date, gamePk: g.gamePk, win: !!entry.isWinner });
+      }
+    }
+  }
+
+  const form = new Map();
+  for (const [id, games] of byTeam) {
+    games.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.gamePk - b.gamePk));
+    const recent = games.slice(-FORM_WINDOW);
+    const wins = recent.filter(g => g.win).length;
+
+    // Active streak, walking back from the most recent game
+    let streakNumber = 0;
+    const streakType = games.length ? (games[games.length - 1].win ? 'wins' : 'losses') : null;
+    for (let i = games.length - 1; i >= 0; i--) {
+      const matches = games[i].win === (streakType === 'wins');
+      if (!matches) break;
+      streakNumber++;
+    }
+
+    form.set(id, { wins, losses: recent.length - wins, games: recent.length, streakType, streakNumber });
+  }
+  return form;
+}
+
+// Which way a team is heading, and how hard. Scaled to a per-10-game basis so a
+// short window (early season, rained-out stretch) still lands on the same axis:
+//   tier  +3 surging   +2 hot     +1 nudging up
+//          0 even
+//         -1 slipping  -2 sliding -3 collapsing
+// Anything under MIN_FORM_GAMES is too small a sample to call, and returns null
+// so the row simply shows no arrow.
+const MIN_FORM_GAMES = 6;
+
+function _formTrend(form) {
+  if (!form || form.games < MIN_FORM_GAMES) return null;
+  const per10 = (form.wins / form.games - 0.5) * 10;
+  // Round away from zero rather than with Math.round, which breaks .5 toward
+  // +Infinity and would quietly grade a slide softer than the mirror-image surge.
+  const rounded = Math.sign(per10) * Math.round(Math.abs(per10));
+  const tier = Math.max(-3, Math.min(3, rounded));
+  return {
+    tier,
+    wins: form.wins,
+    losses: form.losses,
+    games: form.games,
+    streakType: form.streakType,
+    streakNumber: form.streakNumber,
+  };
+}
+
+// The wild card race for a league: every team that isn't leading its division,
+// ranked by winning percentage. Computed here rather than read from the API's
+// wildCard standingsType so the numbers can't drift out of step with the
+// division table above them — both come from the same records payload.
+//
+// gb follows the MLB.com convention: teams holding a spot show how far they sit
+// ahead of the first team out ("+2.0"), chasers show how far back of the last
+// spot they are ("2.0"). Division leaders are excluded — a team missing from
+// this list is leading its division, not out of the race.
+//
+// Each row also carries `trend` (see _formTrend) so the table can show which way
+// a team is moving, or null when the sample is too thin to say.
+async function getWildCard(leagueId) {
+  // Form is a nice-to-have on top of the race; if that call fails the table
+  // still renders, just without arrows.
+  const [records, form] = await Promise.all([
+    _leagueRecords(leagueId),
+    getLeagueForm().catch(err => {
+      console.warn('[mlb] getLeagueForm failed (wild card trend hides):', err.message);
+      return new Map();
+    }),
+  ]);
+
+  const contenders = [];
+  for (const rec of records) {
+    for (const tr of rec.teamRecords) {
+      // divisionLeader is the API's own flag; divisionRank is the fallback for
+      // the rare payload that omits it.
+      const leadsDivision = tr.divisionLeader ?? parseInt(tr.divisionRank, 10) === 1;
+      if (leadsDivision) continue;
+      contenders.push({
+        teamId: tr.team.id,
+        team: tr.team.name,
+        abbr: _teamAbbr(tr.team),
+        wins: tr.wins,
+        losses: tr.losses,
+        pct: tr.leagueRecord.pct,
+        trend: _formTrend(form.get(tr.team.id)),
+      });
+    }
+  }
+
+  // Sort by winning percentage, then by wins — the API's own tiebreakers
+  // (head-to-head, intradivision) aren't in this payload, so ties stay ordered
+  // by the numbers we do have rather than by an invented rule.
+  contenders.sort((a, b) => Number(b.pct) - Number(a.pct) || b.wins - a.wins);
+
+  const lastSpot = contenders[WILD_CARD_SPOTS - 1];
+  const firstOut = contenders[WILD_CARD_SPOTS];
+
+  return contenders.map((c, i) => {
+    const inSpot = i < WILD_CARD_SPOTS;
+    // Teams in a spot measure how far ahead of the first team out they are;
+    // chasers measure how far back of the last team holding a spot.
+    const marker = inSpot ? firstOut : lastSpot;
+    if (!marker) return { ...c, wildCardRank: i + 1, inSpot, gb: '-' };
+    const games = inSpot ? _gamesBetween(c, marker) : _gamesBetween(marker, c);
+    const gb = games > 0 && inSpot ? `+${games.toFixed(1)}` : _formatGb(games);
+    return { ...c, wildCardRank: i + 1, inSpot, gb };
+  });
 }
 
 // Returns play-by-play derived data for a completed game:
@@ -493,4 +654,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getPlayByPlayData, getLiveGame, getStarterArsenal };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getWildCard, getLeagueForm, getPlayByPlayData, getLiveGame, getStarterArsenal };
