@@ -75,6 +75,14 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
   directly under the division standings in both layouts: three spots, a "cut line" rule, the next
   two chasing, and the team's own row after a break when it sits further back. A team missing from
   the list is leading its division — the card says so instead of highlighting a row.
+- **Form trend** — each wild card row carries an L10 arrow. `getLeagueForm()` drops the `teamId`
+  filter from the schedule endpoint, so one call returns every team's recent games (last 10 per
+  team, plus the active streak) instead of fifteen per-team calls. `_formTrend` scales the record
+  to a per-10 basis and buckets it into tiers −3…+3, rounding away from zero so a slide never
+  grades softer than the mirror-image surge; under 6 games is too thin to call and returns null.
+  `TrendGlyph` puts direction in the arrow's *shape* (so it survives colour loss) and intensity in
+  three redundant channels — arrowhead size, ink depth, and a doubled head at ±3 — with the actual
+  L10 record alongside, since an arrow on its own is a mood, not a number.
   Threads: win/losing streak and last-10 form (computed fresh from `getRecentResults` schedule walk —
   drift-proof, no stored state), division momentum (games gained/lost over the trailing window, from
   the new `standings_history` snapshot table, mirroring `odds_history`), and a standings-position

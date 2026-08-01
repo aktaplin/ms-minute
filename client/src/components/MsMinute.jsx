@@ -466,6 +466,60 @@ function StandingsCard({ rows, divisionName, t }) {
   );
 }
 
+// Form arrows for the wild card table. Direction lives in the shape, so the
+// arrow still reads with colour stripped; intensity is carried three ways at
+// once — the arrowhead grows, the ink deepens, and the steepest tier doubles
+// the head — so a collapse looks like a collapse and a nudge looks like a
+// nudge. The last-10 record rides alongside, because an arrow on its own is a
+// mood and the point is to report a number.
+const TREND_UP   = { 1: '#6E8F76', 2: '#3F7550', 3: '#245C3B' };
+const TREND_DOWN = { 1: '#B08585', 2: '#A03A3A', 3: '#8B1A1A' };
+
+function trendSummary({ wins, losses, games, streakType, streakNumber }) {
+  const base = `${wins}-${losses} over their last ${games}`;
+  if (!streakType || streakNumber < 2) return base;
+  return `${base} · ${streakType === 'wins' ? 'won' : 'lost'} ${streakNumber} straight`;
+}
+
+function TrendGlyph({ trend }) {
+  // No arrow at all when the sample is too thin to claim a direction
+  if (!trend) return <span style={{ color: MUTED, fontSize: 12 }} aria-hidden="true">·</span>;
+
+  const { tier, wins, losses } = trend;
+  const label = trendSummary(trend);
+
+  if (tier === 0) {
+    return (
+      <span title={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+        <span aria-hidden="true" style={{ color: MUTED, fontSize: 12, lineHeight: 1 }}>–</span>
+        <span style={{ fontSize: 11, color: MUTED, fontFamily: INTER }}>{wins}-{losses}</span>
+      </span>
+    );
+  }
+
+  const up = tier > 0;
+  const mag = Math.abs(tier);
+  const colour = (up ? TREND_UP : TREND_DOWN)[mag];
+  const steepest = mag === 3;
+  const w = { 1: 7, 2: 9, 3: 9 }[mag];
+  const h = w * 0.8;
+  const gap = 3;
+  const head = y => (up ? `${w / 2},${y} ${w},${y + h} 0,${y + h}` : `0,${y} ${w},${y} ${w / 2},${y + h}`);
+  const boxH = steepest ? h * 2 + gap : h;
+
+  return (
+    <span title={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+      <svg width={w} height={boxH} viewBox={`0 0 ${w} ${boxH}`} role="img" aria-label={label}>
+        <polygon points={head(0)} fill={colour} />
+        {steepest && <polygon points={head(h + gap)} fill={colour} />}
+      </svg>
+      <span style={{ fontSize: 11, fontFamily: INTER, color: steepest ? colour : MUTED, fontWeight: steepest ? 700 : 400 }}>
+        {wins}-{losses}
+      </span>
+    </span>
+  );
+}
+
 // The league's wild card race, sitting right under the division table. Shows the
 // three teams holding spots with a cut line under them, the next two chasing,
 // and — when our team is further back than that — its own row after a break.
@@ -479,13 +533,14 @@ function WildCardCard({ rows, divisionName, teamAbbr, t }) {
   const visible = rows.slice(0, WINDOW);
   const tail = mine && mine.rank > WINDOW ? mine : null;
 
-  const cell = { padding: '7px 6px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
+  const cell = { padding: '7px 4px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
   const row = r => (
     <tr key={r.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
-      <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, width: 20 }}>{r.rank}</td>
-      <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
+      <td style={{ padding: '7px 4px', fontSize: 12, color: MUTED, width: 16 }}>{r.rank}</td>
+      <td style={{ padding: '7px 4px', fontSize: 14, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
         {r.isM ? <span>▸ {r.name}</span> : r.name}
       </td>
+      <td style={{ padding: '7px 4px', textAlign: 'center' }}><TrendGlyph trend={r.trend} /></td>
       <td style={{ ...cell, color: INK }}>{r.w}</td>
       <td style={{ ...cell, color: INK2 }}>{r.l}</td>
       <td style={{ ...cell, fontSize: 13, color: MUTED, fontFamily: 'inherit' }}>{r.gb}</td>
@@ -503,8 +558,8 @@ function WildCardCard({ rows, divisionName, teamAbbr, t }) {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
-            {['', 'Team', 'W', 'L', 'WCGB'].map(h => (
-              <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
+            {['', 'Team', 'L10', 'W', 'L', 'WCGB'].map(h => (
+              <th key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, padding: '4px 4px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : h === 'L10' ? 'center' : 'right' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -514,7 +569,7 @@ function WildCardCard({ rows, divisionName, teamAbbr, t }) {
               {row(r)}
               {r.rank === SPOTS && (visible.length > SPOTS || tail) && (
                 <tr>
-                  <td colSpan={5} style={{ padding: '3px 6px 5px' }}>
+                  <td colSpan={6} style={{ padding: '3px 4px 5px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER }}>Cut line</span>
                       <div style={{ flex: 1, height: 1, background: t.teal }} />
@@ -527,7 +582,7 @@ function WildCardCard({ rows, divisionName, teamAbbr, t }) {
           {tail && (
             <>
               <tr>
-                <td colSpan={5} style={{ padding: '2px 6px', fontSize: 12, color: MUTED, letterSpacing: '0.2em' }}>···</td>
+                <td colSpan={6} style={{ padding: '2px 4px', fontSize: 12, color: MUTED, letterSpacing: '0.2em' }}>···</td>
               </tr>
               {row(tail)}
             </>
@@ -792,6 +847,7 @@ export default function MsMinute() {
           l: row.losses,
           gb: row.gb,
           rank: row.wildCardRank,
+          trend: row.trend ?? null,
         })),
         nextGame: report.nextGame
           ? {
