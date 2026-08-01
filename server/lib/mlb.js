@@ -256,13 +256,21 @@ async function getRecentResults(teamId, lookbackDays = 21) {
   return games;
 }
 
-async function getStandings(divisionId, leagueId) {
+// One regularSeason standings call per league covers all three divisions. Both
+// getStandings and getWildCard read from it, and _mlbFetch caches by path, so
+// asking for the division table and the wild card race costs one request.
+async function _leagueRecords(leagueId) {
   const season = new Date().getFullYear();
   const data = await _mlbFetch(
     `/api/v1/standings?leagueId=${leagueId}&season=${season}&standingsTypes=regularSeason`
   );
+  return data.records ?? [];
+}
 
-  const division = data.records.find(r => r.division.id === divisionId);
+async function getStandings(divisionId, leagueId) {
+  const records = await _leagueRecords(leagueId);
+
+  const division = records.find(r => r.division.id === divisionId);
   if (!division) throw new Error(`Division ${divisionId} standings not found`);
 
   return division.teamRecords.map(tr => ({
@@ -274,6 +282,69 @@ async function getStandings(divisionId, leagueId) {
     gb: tr.gamesBack,
     divisionRank: parseInt(tr.divisionRank, 10),
   }));
+}
+
+// Wild card spots per league (three since the 2022 expansion)
+const WILD_CARD_SPOTS = 3;
+
+// Games team `b` trails team `a` by, the standard half-of-(win gap + loss gap).
+function _gamesBetween(a, b) {
+  return ((a.wins - b.wins) + (b.losses - a.losses)) / 2;
+}
+
+// "-" when level, otherwise one decimal to match the MLB API's own gamesBack strings
+function _formatGb(games) {
+  return games === 0 ? '-' : games.toFixed(1);
+}
+
+// The wild card race for a league: every team that isn't leading its division,
+// ranked by winning percentage. Computed here rather than read from the API's
+// wildCard standingsType so the numbers can't drift out of step with the
+// division table above them — both come from the same records payload.
+//
+// gb follows the MLB.com convention: teams holding a spot show how far they sit
+// ahead of the first team out ("+2.0"), chasers show how far back of the last
+// spot they are ("2.0"). Division leaders are excluded — a team missing from
+// this list is leading its division, not out of the race.
+async function getWildCard(leagueId) {
+  const records = await _leagueRecords(leagueId);
+
+  const contenders = [];
+  for (const rec of records) {
+    for (const tr of rec.teamRecords) {
+      // divisionLeader is the API's own flag; divisionRank is the fallback for
+      // the rare payload that omits it.
+      const leadsDivision = tr.divisionLeader ?? parseInt(tr.divisionRank, 10) === 1;
+      if (leadsDivision) continue;
+      contenders.push({
+        teamId: tr.team.id,
+        team: tr.team.name,
+        abbr: _teamAbbr(tr.team),
+        wins: tr.wins,
+        losses: tr.losses,
+        pct: tr.leagueRecord.pct,
+      });
+    }
+  }
+
+  // Sort by winning percentage, then by wins — the API's own tiebreakers
+  // (head-to-head, intradivision) aren't in this payload, so ties stay ordered
+  // by the numbers we do have rather than by an invented rule.
+  contenders.sort((a, b) => Number(b.pct) - Number(a.pct) || b.wins - a.wins);
+
+  const lastSpot = contenders[WILD_CARD_SPOTS - 1];
+  const firstOut = contenders[WILD_CARD_SPOTS];
+
+  return contenders.map((c, i) => {
+    const inSpot = i < WILD_CARD_SPOTS;
+    // Teams in a spot measure how far ahead of the first team out they are;
+    // chasers measure how far back of the last team holding a spot.
+    const marker = inSpot ? firstOut : lastSpot;
+    if (!marker) return { ...c, wildCardRank: i + 1, inSpot, gb: '-' };
+    const games = inSpot ? _gamesBetween(c, marker) : _gamesBetween(marker, c);
+    const gb = games > 0 && inSpot ? `+${games.toFixed(1)}` : _formatGb(games);
+    return { ...c, wildCardRank: i + 1, inSpot, gb };
+  });
 }
 
 // Returns play-by-play derived data for a completed game:
@@ -493,4 +564,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getPlayByPlayData, getLiveGame, getStarterArsenal };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getWildCard, getPlayByPlayData, getLiveGame, getStarterArsenal };

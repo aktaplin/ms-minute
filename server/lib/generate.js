@@ -457,10 +457,16 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, recentResults, allTitleOdds, { hrMap, scoringTimeline, pitcherOrder }] = await Promise.all([
+  const [boxScore, nextGame, standings, wildCard, recentResults, allTitleOdds, { hrMap, scoringTimeline, pitcherOrder }] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
+    // Same standings payload as above (cached by path), so this is free. The
+    // race is a nice-to-have, not worth failing the report over.
+    mlb.getWildCard(leagueId).catch(err => {
+      console.warn('[generate] getWildCard failed (card hides):', err.message);
+      return [];
+    }),
     mlb.getRecentResults(teamId).catch(err => {
       console.warn('[generate] getRecentResults failed (storylines degrade):', err.message);
       return [];
@@ -706,6 +712,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     lastGame,
     boxScore,
     standings,
+    wildCard,
     nextGame,
     headline: (headlineRaw ?? '').replace(/^["'\s]+|["'\s.]+$/g, '') || null,
     narrative,

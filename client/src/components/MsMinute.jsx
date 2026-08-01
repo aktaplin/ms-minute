@@ -466,6 +466,78 @@ function StandingsCard({ rows, divisionName, t }) {
   );
 }
 
+// The league's wild card race, sitting right under the division table. Shows the
+// three teams holding spots with a cut line under them, the next two chasing,
+// and — when our team is further back than that — its own row after a break.
+function WildCardCard({ rows, divisionName, teamAbbr, t }) {
+  if (!rows?.length) return null;
+
+  const SPOTS = 3;
+  const WINDOW = 5;
+  const league = (divisionName ?? '').split(' ')[0] || 'League';
+  const mine = rows.find(r => r.isM);
+  const visible = rows.slice(0, WINDOW);
+  const tail = mine && mine.rank > WINDOW ? mine : null;
+
+  const cell = { padding: '7px 6px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
+  const row = r => (
+    <tr key={r.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
+      <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, width: 20 }}>{r.rank}</td>
+      <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
+        {r.isM ? <span>▸ {r.name}</span> : r.name}
+      </td>
+      <td style={{ ...cell, color: INK }}>{r.w}</td>
+      <td style={{ ...cell, color: INK2 }}>{r.l}</td>
+      <td style={{ ...cell, fontSize: 13, color: MUTED, fontFamily: 'inherit' }}>{r.gb}</td>
+    </tr>
+  );
+
+  return (
+    <div>
+      <SectionHead label={`${league} Wild Card`} t={t} />
+      {!mine && (
+        <div style={{ fontSize: 13, color: MUTED, fontStyle: 'italic', marginTop: -4, marginBottom: 10, fontFamily: INTER }}>
+          {teamAbbr} leads the {divisionName} — no wild card needed.
+        </div>
+      )}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
+            {['', 'Team', 'W', 'L', 'WCGB'].map(h => (
+              <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map(r => (
+            <Fragment key={r.name}>
+              {row(r)}
+              {r.rank === SPOTS && (visible.length > SPOTS || tail) && (
+                <tr>
+                  <td colSpan={5} style={{ padding: '3px 6px 5px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER }}>Cut line</span>
+                      <div style={{ flex: 1, height: 1, background: t.teal }} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          ))}
+          {tail && (
+            <>
+              <tr>
+                <td colSpan={5} style={{ padding: '2px 6px', fontSize: 12, color: MUTED, letterSpacing: '0.2em' }}>···</td>
+              </tr>
+              {row(tail)}
+            </>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function TitleOddsCard({ data, trend, t }) {
   if (!data) return null;
   const pct = (data.impliedProb * 100).toFixed(1);
@@ -713,6 +785,14 @@ export default function MsMinute() {
             l: row.losses,
             gb: row.gb,
           })),
+        wildCard: (report.wildCard ?? []).map(row => ({
+          name: row.team,
+          isM: row.teamId === report.teamId,
+          w: row.wins,
+          l: row.losses,
+          gb: row.gb,
+          rank: row.wildCardRank,
+        })),
         nextGame: report.nextGame
           ? {
               oppAbbr: report.nextGame.opponentAbbr,
@@ -857,6 +937,7 @@ export default function MsMinute() {
                   <ZoneBanner kicker="Section C" label="Around the League" t={t} />
                   <StorylinesCard threads={data.storylines} t={t} />
                   <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
+                  <WildCardCard rows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
                     <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
@@ -887,6 +968,7 @@ export default function MsMinute() {
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
                   <StorylinesCard threads={data.storylines} t={t} />
                   <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
+                  <WildCardCard rows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
                   <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
                   <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
                   <OnThisDayCard data={data.onThisDay} t={t} />
