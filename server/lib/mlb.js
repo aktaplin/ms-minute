@@ -110,6 +110,30 @@ async function _getGamesInRange(teamId, startOffset, endOffset) {
   return games;
 }
 
+// The newspaper line score: innings across, R/H/E at the right. The schedule
+// call already hydrates `linescore`, so reading it here costs no extra request.
+// An inning the home side never needed to bat carries no runs value — that cell
+// is null and renders as a dash, the way a box score prints it.
+function _lineScore(ls, teamSide) {
+  if (!ls?.innings?.length) return null;
+  const oppSide = teamSide === 'home' ? 'away' : 'home';
+  const totals = side => ({
+    runs:   ls.teams?.[side]?.runs   ?? null,
+    hits:   ls.teams?.[side]?.hits   ?? null,
+    errors: ls.teams?.[side]?.errors ?? null,
+  });
+  return {
+    teamIsHome: teamSide === 'home',
+    innings: ls.innings.map(inn => ({
+      num: inn.num,
+      team: inn[teamSide]?.runs ?? null,
+      opponent: inn[oppSide]?.runs ?? null,
+    })),
+    team: totals(teamSide),
+    opponent: totals(oppSide),
+  };
+}
+
 // Most recent completed regular-season game for the given team (excludes today)
 async function getLastGame(teamId) {
   const games = await _getGamesInRange(teamId, -10, -1);
@@ -134,6 +158,7 @@ async function getLastGame(teamId) {
     opponentAbbr: _teamAbbr(opponent.team),
     venue: venue.name,
     win: !!team.isWinner,
+    lineScore: _lineScore(last.game.linescore, teamSide),
   };
 }
 

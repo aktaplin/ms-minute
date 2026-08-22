@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 
 const PAPER   = '#F6F1E7';
 const PAPER2  = '#EDE7D8';
@@ -12,6 +12,13 @@ const WIN_GREEN = '#245C3B';
 const FRAUNCES = "'Fraunces', Georgia, serif";
 const INTER    = "'Inter', system-ui, sans-serif";
 const OPSZ9    = { fontVariationSettings: "'opsz' 9" };
+
+// Visually hidden, still announced — for header cells whose meaning is obvious
+// on the page but empty to a screen reader.
+const SR_ONLY = {
+  position: 'absolute', width: 1, height: 1, padding: 0, overflow: 'hidden',
+  clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+};
 
 function todayFormatted() {
   return new Date().toLocaleDateString('en-US', {
@@ -41,24 +48,104 @@ function EmText({ text }) {
   return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
 }
 
-// Section flag: full-width rule + small-caps label. Every section carries the
-// same flag — there is no zone above it, so no section outranks another.
-function SectionHead({ label, t }) {
+// Section flag, in two weights. The main well gets the heavy flag (2px rule,
+// 15px label); the rail gets a lighter one, so the sidebar reads as subordinate
+// to the front page instead of claiming equal rank with it. `first` pulls the
+// top margin back to the headline's, so the rail's opening rule registers
+// against the lede across the vertical rule — the alignment a broadsheet lives on.
+function SectionHead({ label, t, rail = false, first = false }) {
   return (
-    <div style={{ marginTop: 40, marginBottom: 14 }}>
-      <div style={{ height: 2, background: t.navy }} />
-      <div style={{ paddingTop: 8, fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
+    <div style={{ marginTop: first ? 26 : 40, marginBottom: rail ? 10 : 14 }}>
+      <div style={{ height: rail ? 1 : 2, background: t.navy }} />
+      <div style={{ paddingTop: rail ? 6 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
   );
 }
 
+// The line score — innings across, R/H/E at the right. Away on top, home
+// below, the way it has always been printed. Scoring innings are set in navy;
+// the zeros recede to MUTED, so the shape of the game (a five-run third, a
+// bullpen that held) reads at a glance instead of resolving into one number.
+// A half-inning the home side never needed to bat prints "x", not a zero.
+function LineScore({ ls, teamAbbr, oppAbbr, t }) {
+  if (!ls?.innings?.length) return null;
+
+  const mine = { abbr: teamAbbr, isMine: true, ...ls.team, cells: ls.innings.map(i => i.team) };
+  const theirs = { abbr: oppAbbr, isMine: false, ...ls.opponent, cells: ls.innings.map(i => i.opponent) };
+  const rows = ls.teamIsHome ? [theirs, mine] : [mine, theirs];
+
+  const head = {
+    fontFamily: INTER, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+    color: t.teal, padding: '0 0 5px', textAlign: 'center', minWidth: 22,
+  };
+  const cell = {
+    fontFamily: INTER, fontSize: 13, textAlign: 'center', padding: '5px 0',
+    fontVariantNumeric: 'tabular-nums',
+  };
+  const total = {
+    ...cell, fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, ...OPSZ9,
+  };
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${t.navy}`, overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 300 }}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...head, textAlign: 'left', minWidth: 42 }}><span style={SR_ONLY}>Team</span></th>
+            {ls.innings.map(i => <th scope="col" key={i.num} style={head}>{i.num}</th>)}
+            {['R', 'H', 'E'].map((h, i) => (
+              <th scope="col" key={h} style={{ ...head, color: t.navy, borderLeft: i === 0 ? `1px solid ${t.navy}` : 'none', paddingLeft: i === 0 ? 8 : 0 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.abbr} style={{ borderTop: `1px solid ${PAPER2}` }}>
+              <td style={{
+                fontFamily: r.isMine ? FRAUNCES : INTER, fontSize: r.isMine ? 15 : 13,
+                fontWeight: r.isMine ? 900 : 600, color: r.isMine ? t.navy : INK2,
+                padding: '5px 0', whiteSpace: 'nowrap', ...(r.isMine ? OPSZ9 : {}),
+              }}>
+                {r.abbr}
+              </td>
+              {r.cells.map((runs, i) => (
+                <td key={i} style={{
+                  ...cell,
+                  color: runs == null ? MUTED : runs > 0 ? t.navy : MUTED,
+                  fontWeight: runs > 0 ? 700 : 400,
+                }}>
+                  {runs == null ? 'x' : runs}
+                </td>
+              ))}
+              {[r.runs, r.hits, r.errors].map((v, i) => (
+                <td key={i} style={{
+                  ...total,
+                  color: i === 0 ? t.navy : INK2,
+                  fontSize: i === 0 ? 15 : 13,
+                  fontFamily: i === 0 ? FRAUNCES : INTER,
+                  fontWeight: i === 0 ? 900 : 400,
+                  borderLeft: i === 0 ? `1px solid ${t.navy}` : 'none',
+                  paddingLeft: i === 0 ? 8 : 0,
+                }}>
+                  {v ?? '—'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// No section flag here: this is the front page, and the one block nobody needs
+// labelled. The headline runs straight into the score.
 function ScoreCard({ data, teamAbbr, t }) {
   if (!data) return null;
   return (
-    <div>
-      <SectionHead label="Last Game" t={t} />
+    <div style={{ marginTop: 18 }}>
       <div style={{ display: 'flex' }}>
         <div style={{ flex: '0 0 44%', paddingRight: 18, borderRight: `1px solid ${t.navy}` }}>
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
@@ -75,7 +162,7 @@ function ScoreCard({ data, teamAbbr, t }) {
           </div>
         </div>
         <div style={{ flex: 1, paddingLeft: 18 }}>
-          <div style={{ fontFamily: INTER, fontSize: 15, fontStyle: 'italic', color: INK2, marginBottom: 10 }}>{data.oppName}</div>
+          <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 10 }}>{data.oppName}</div>
           <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
             <div>{data.venue}</div>
             <div>{data.gameDate}</div>
@@ -88,6 +175,7 @@ function ScoreCard({ data, teamAbbr, t }) {
           )}
         </div>
       </div>
+      <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
     </div>
   );
 }
@@ -121,7 +209,7 @@ function OffenseCard({ players, t, columns = false }) {
       <SectionHead label="At the Plate" t={t} />
       <div style={columnStyle}>
         {players.map((p, i) => (
-          <div key={p.name} style={{ breakInside: 'avoid', paddingTop: !columns && i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <div key={p.name} style={{ breakInside: 'avoid', paddingBottom: 12, marginBottom: i < players.length - 1 ? 12 : 0, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
@@ -225,14 +313,14 @@ function PitchingCard({ data, t, columns = false }) {
 
 // Archival-clipping treatment: hairline box on aged paper — double rules stay
 // exclusive to zone banners.
-function OnThisDayCard({ data, t }) {
+function OnThisDayCard({ data, t, rail = false, first = false }) {
   if (!data) return null;
   const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric',
   });
   return (
     <div>
-      <SectionHead label="On This Day" t={t} />
+      <SectionHead label="On This Day" t={t} rail={rail} first={first} />
       <div style={{ background: PAPER2, border: `1px solid ${t.navy}`, padding: '16px 18px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
           {dateLabel}, {data.year}
@@ -265,7 +353,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
             </span>
           )}
           {stat.statName && (
-            <span style={{ fontFamily: INTER, fontSize: 15, fontStyle: 'italic', color: t.lteal }}>
+            <span style={{ fontFamily: INTER, fontSize: 15, color: t.lteal }}>
               {stat.statName}
             </span>
           )}
@@ -288,7 +376,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
 
         <div style={columnStyle}>
           {stat.definition && (
-            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 10, breakInside: 'avoid' }}>{stat.definition}</p>
+            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 10 }}>{stat.definition}</p>
           )}
 
           {stat.leagueContext && (
@@ -298,7 +386,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
           )}
 
           {stat.todayContext && (
-            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 0, breakInside: 'avoid' }}>{stat.todayContext}</p>
+            <p style={{ fontFamily: INTER, fontSize: 15, lineHeight: 1.8, color: LGREY, marginBottom: 0 }}>{stat.todayContext}</p>
           )}
         </div>
       </div>
@@ -329,7 +417,7 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
             <div style={{ fontSize: 12, color: t.lteal, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
           </a>
         )}
-        <div style={{ padding: '7px 12px', borderTop: `1px solid ${t.navy}`, fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '7px 12px', borderTop: `1px solid ${t.navy}`, fontSize: 12, color: MUTED, fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Official MLB Highlights</span>
           {videoId && (
             <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: t.teal, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
@@ -340,23 +428,33 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
   );
 }
 
-// Tiny inline SVG line chart for a series of normalized values
-function Sparkline({ data, color, width = 120, height = 24 }) {
+// Tiny inline SVG line chart for a series of normalized values. `fluid` lets it
+// span its container: the viewBox stretches horizontally while a non-scaling
+// stroke keeps the line the same weight it would be at any other width.
+function Sparkline({ data, color, width = 120, height = 24, fluid = false }) {
   if (!data || data.length < 2) return null;
+  const vbW = fluid ? 300 : width;
   const probs = data.map(d => d.implied_prob);
   const min = Math.min(...probs);
   const max = Math.max(...probs);
   const range = max - min || 1;
   const points = probs
     .map((p, i) => {
-      const x = (i / (probs.length - 1)) * (width - 2) + 1;
+      const x = (i / (probs.length - 1)) * (vbW - 2) + 1;
       const y = height - 1 - ((p - min) / range) * (height - 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(' ');
   return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    <svg
+      viewBox={`0 0 ${vbW} ${height}`}
+      width={fluid ? '100%' : vbW}
+      height={height}
+      preserveAspectRatio={fluid ? 'none' : 'xMidYMid meet'}
+      style={{ display: 'block' }}
+      aria-hidden="true"
+    >
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -364,7 +462,7 @@ function Sparkline({ data, color, width = 120, height = 24 }) {
 // One standings section, two views. The tables and their data are unchanged —
 // the tabs just decide which one is on the page. Wild card leads, because the
 // race is the live question most days.
-function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t }) {
+function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = false, first = false }) {
   const hasDivision = !!rows?.length;
   const hasWildCard = !!wildCardRows?.length;
   const [tab, setTab] = useState('wildcard');
@@ -379,7 +477,7 @@ function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t }) {
 
   return (
     <div>
-      <SectionHead label="Standings" t={t} />
+      <SectionHead label="Standings" t={t} rail={rail} first={first} />
       {tabs.length > 1 && (
         <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${PAPER2}`, marginBottom: 12 }}>
           {tabs.map(tb => (
@@ -392,7 +490,10 @@ function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t }) {
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 padding: '0 0 8px', fontFamily: INTER, fontSize: 12, fontWeight: 700,
                 letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: active === tb.id ? t.navy : t.teal,
+                // Inactive reads MUTED, not teal — teal means "label" everywhere
+                // else on the page, so spending it on the unselected tab said
+                // the opposite of what it meant.
+                color: active === tb.id ? t.navy : MUTED,
                 boxShadow: active === tb.id ? `inset 0 -2px 0 0 ${t.navy}` : 'none',
               }}
             >
@@ -454,18 +555,29 @@ function trendSummary({ wins, losses, games, streakType, streakNumber }) {
   return `${base} · ${streakType === 'wins' ? 'won' : 'lost'} ${streakNumber} straight`;
 }
 
+// Compact streak token — "W5" / "L5" — rendered beside the record rather than
+// hidden in a title tooltip, which never opens on touch. This is a phone-first
+// paper; a run of five is the most interesting thing in the row and it was
+// only reachable with a mouse.
+function streakToken({ streakType, streakNumber }) {
+  if (!streakType || streakNumber < 2) return null;
+  return `${streakType === 'wins' ? 'W' : 'L'}${streakNumber}`;
+}
+
 function TrendGlyph({ trend }) {
   // No arrow at all when the sample is too thin to claim a direction
   if (!trend) return <span style={{ color: MUTED, fontSize: 12 }} aria-hidden="true">·</span>;
 
   const { tier, wins, losses } = trend;
   const label = trendSummary(trend);
+  const streak = streakToken(trend);
 
   if (tier === 0) {
     return (
       <span title={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
         <span aria-hidden="true" style={{ color: MUTED, fontSize: 12, lineHeight: 1 }}>–</span>
         <span style={{ fontSize: 11, color: MUTED, fontFamily: INTER }}>{wins}-{losses}</span>
+        {streak && <span style={{ fontSize: 10, color: MUTED, fontFamily: INTER, fontWeight: 700 }}>{streak}</span>}
       </span>
     );
   }
@@ -489,6 +601,9 @@ function TrendGlyph({ trend }) {
       <span style={{ fontSize: 11, fontFamily: INTER, color: steepest ? colour : MUTED, fontWeight: steepest ? 700 : 400 }}>
         {wins}-{losses}
       </span>
+      {streak && (
+        <span style={{ fontSize: 10, fontFamily: INTER, color: colour, fontWeight: 700 }}>{streak}</span>
+      )}
     </span>
   );
 }
@@ -522,7 +637,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
   return (
     <div>
       {!mine && (
-        <div style={{ fontSize: 13, color: MUTED, fontStyle: 'italic', marginTop: -4, marginBottom: 10, fontFamily: INTER }}>
+        <div style={{ fontSize: 13, color: MUTED, marginTop: -4, marginBottom: 10, fontFamily: INTER }}>
           {teamAbbr} leads the {divisionName} — no wild card needed.
         </div>
       )}
@@ -564,57 +679,242 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
   );
 }
 
-function TitleOddsCard({ data, trend, t }) {
+// A market quote, not a schedule item: one number, its movement, and the line
+// it came from. The teal bar is gone — it now means "aside" and nothing else —
+// so this card carries its own shape instead: a hero figure with the sparkline
+// running the full width beneath it, the way a paper prints a market table.
+function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
   if (!data) return null;
   const pct = (data.impliedProb * 100).toFixed(1);
   const oddsStr = data.medianOdds > 0 ? `+${data.medianOdds}` : String(data.medianOdds);
-  const first = trend?.[0]?.implied_prob;
+  const firstProb = trend?.[0]?.implied_prob;
   const last  = trend?.[trend.length - 1]?.implied_prob;
-  const haveTrend = trend && trend.length >= 2 && first != null && last != null;
-  const deltaPp = haveTrend ? ((last - first) * 100).toFixed(1) : null;
-  const deltaSign = haveTrend ? (Number(deltaPp) >= 0 ? '+' : '') : '';
+  const haveTrend = trend && trend.length >= 2 && firstProb != null && last != null;
+  const deltaPp = haveTrend ? ((last - firstProb) * 100).toFixed(1) : null;
+  const rising = haveTrend && Number(deltaPp) >= 0;
+  const deltaSign = rising ? '+' : '';
   return (
     <div>
-      <SectionHead label="WS Odds" t={t} />
-      <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 14 }}>
-        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: t.navy, marginBottom: 6, ...OPSZ9 }}>{pct}%</div>
-        <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER, fontStyle: 'italic' }}>To win the World Series</div>
+      <SectionHead label="WS Odds" t={t} rail={rail} first={first} />
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FRAUNCES, fontSize: 32, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>{pct}%</span>
+          <span style={{ fontSize: 13, color: INK2, fontFamily: INTER }}>to win the World Series</span>
+        </div>
         {haveTrend && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <Sparkline data={trend} color={t.navy} width={90} height={22} />
-            <span style={{ fontSize: 12, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
-              {trend.length}d · {deltaSign}{deltaPp}pp
-            </span>
+          <div style={{ marginTop: 10 }}>
+            <Sparkline data={trend} color={t.navy} fluid height={28} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, borderTop: `1px solid ${PAPER2}`, paddingTop: 5 }}>
+              <span style={{ fontSize: 11, color: MUTED, fontFamily: INTER, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Last {trend.length} days
+              </span>
+              <span style={{ fontSize: 12, color: rising ? WIN_GREEN : WIN_RED, fontWeight: 700, fontFamily: INTER, fontVariantNumeric: 'tabular-nums' }}>
+                {deltaSign}{deltaPp} pp
+              </span>
+            </div>
           </div>
         )}
-        <div style={{ fontSize: 13, color: MUTED, fontFamily: INTER, fontStyle: 'italic', marginTop: 6 }}>
-          <span style={{ color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', fontStyle: 'normal' }}>Median: </span>
-          <span style={{ color: t.navy, fontWeight: 700, fontStyle: 'normal' }}>{oddsStr}</span> · {data.bookmakerCount} US books
+        <div style={{ fontSize: 13, color: MUTED, fontFamily: INTER, marginTop: 8 }}>
+          <span style={{ color: t.teal, fontWeight: 700, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Median </span>
+          <span style={{ color: t.navy, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{oddsStr}</span> · {data.bookmakerCount} US books
         </div>
       </div>
     </div>
   );
 }
 
-function NextGameCard({ data, teamAbbr, t }) {
+// Forward-looking, so it opens the way a dispatch does: a dateline first — day
+// and first pitch, the two things you actually need — then the matchup, then
+// who's throwing. No teal bar; the dateline is what marks it as ahead in time.
+function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
   if (!data) return null;
   const dayLabel = data.date
     ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString('en-US', {
         timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric',
       })
     : null;
+  const dateline = [dayLabel, data.time].filter(Boolean).join(' · ');
   return (
     <div>
-      <SectionHead label="Next Game" t={t} />
-      <div style={{ borderLeft: `3px solid ${t.teal}`, paddingLeft: 14 }}>
-        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: t.navy, marginBottom: 6, ...OPSZ9 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-        <div style={{ fontSize: 14, color: INK2, lineHeight: 1.9, fontFamily: INTER }}>
-          <div style={{ fontStyle: 'italic' }}>{data.oppName}</div>
-          <div>{data.venue}</div>
-          {dayLabel && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Date: </span>{dayLabel}</div>}
-          <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>First pitch: </span>{data.time}</div>
-          {data.pitcher && <div><span style={{ color: t.teal, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable: </span>{data.pitcher}</div>}
+      <SectionHead label="Next Game" t={t} rail={rail} first={first} />
+      <div>
+        {dateline && (
+          <div style={{ fontFamily: INTER, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, marginBottom: 6 }}>
+            {dateline}
+          </div>
+        )}
+        <div style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: t.navy, lineHeight: 1.15, marginBottom: 4, ...OPSZ9 }}>
+          {teamAbbr} vs. {data.oppAbbr}
         </div>
+        <div style={{ fontSize: 14, color: INK2, fontFamily: INTER, lineHeight: 1.6 }}>
+          <div>{data.oppName}</div>
+          <div style={{ color: MUTED, fontSize: 13 }}>{data.venue}</div>
+        </div>
+        {data.pitcher && (
+          <div style={{ marginTop: 8, paddingTop: 7, borderTop: `1px solid ${PAPER2}`, fontSize: 13, color: INK2, fontFamily: INTER }}>
+            <span style={{ color: t.teal, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable </span>
+            {data.pitcher}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonLine({ w = '100%', h = 11, mt = 8 }) {
+  return <div className="skeleton" style={{ width: w, height: h, marginTop: mt }} />;
+}
+
+// The edition assembling itself, in the shape of the page that's coming —
+// DESIGN.md always called for these; the `pulse` keyframe had been sitting in
+// the stylesheet unused while a spinner stood in, saying nothing.
+function LoadingEdition({ isDesktop }) {
+  const well = (
+    <>
+      <SkeletonLine w="88%" h={isDesktop ? 38 : 30} mt={26} />
+      <SkeletonLine w="58%" h={isDesktop ? 38 : 30} />
+      <SkeletonLine w="34%" h={54} mt={22} />
+      <div style={{ height: 1, background: PAPER2, margin: '20px 0' }} />
+      <SkeletonLine mt={0} />
+      <SkeletonLine />
+      <SkeletonLine />
+      <SkeletonLine w="71%" />
+    </>
+  );
+  const rail = (
+    <>
+      <SkeletonLine w="44%" h={13} mt={26} />
+      <SkeletonLine h={92} mt={12} />
+      <SkeletonLine w="44%" h={13} mt={28} />
+      <SkeletonLine h={66} mt={12} />
+    </>
+  );
+  return (
+    <div role="status">
+      {isDesktop ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
+          <div style={{ paddingRight: 36 }}>{well}</div>
+          <div style={{ borderLeft: `1px solid ${PAPER2}`, paddingLeft: 36 }}>{rail}</div>
+        </div>
+      ) : well}
+      <div style={{ textAlign: 'center', marginTop: 30, fontSize: 12, color: MUTED, fontFamily: INTER, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+        Compiling today's edition
+      </div>
+    </div>
+  );
+}
+
+// A real dialog. Focus moves in on open, Tab is trapped, Escape closes, and
+// focus returns to the button that opened it — `aria-modal` was asserting all
+// of that before any of it was implemented. The frame carries the active
+// edition's theme too: dropping to neutral ink at the moment you choose an
+// edition was the one place the paper forgot which paper it was.
+function EditionPicker({ teams, team, t, onSelect, onClose }) {
+  const panelRef = useRef(null);
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    const opener = document.activeElement;
+    closeRef.current?.focus();
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const items = panelRef.current?.querySelectorAll('button');
+      if (!items?.length) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) {
+        e.preventDefault(); lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
+        e.preventDefault(); firstEl.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Choose edition"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: PAPER, color: INK, overflowY: 'auto',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
+        <button
+          ref={closeRef}
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            width: 48, height: 48, background: 'transparent', border: 'none',
+            cursor: 'pointer', fontSize: 26, lineHeight: 1, color: t.navy,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: INTER,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
+        <div style={{ height: 2, background: t.navy, marginBottom: 14 }} />
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal, textAlign: 'center', marginBottom: 6, fontFamily: INTER }}>
+          Choose Edition
+        </div>
+        <h2 style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-0.5px', margin: '0 0 28px', ...OPSZ9 }}>
+          Editions
+        </h2>
+
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {teams.map((tm, i) => {
+            const selected = team === tm.key;
+            return (
+              <li key={tm.key}>
+                <button
+                  onClick={() => onSelect(tm.key)}
+                  aria-current={selected ? 'true' : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    width: '100%', minHeight: 64, padding: '14px 4px',
+                    background: 'transparent', border: 'none',
+                    borderTop: i === 0 ? `1px solid ${PAPER2}` : 'none',
+                    borderBottom: `1px solid ${PAPER2}`,
+                    cursor: 'pointer', textAlign: 'left',
+                    fontFamily: INTER,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                    <span style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: tm.theme.navy, lineHeight: 1.1, ...OPSZ9 }}>
+                      {tm.brandTitle}
+                    </span>
+                    <span style={{ fontSize: 12, color: MUTED, letterSpacing: '0.04em' }}>
+                      {tm.edition}
+                    </span>
+                  </div>
+                  <span style={{
+                    flexShrink: 0, marginLeft: 12,
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+                    color: selected ? tm.theme.teal : 'transparent',
+                  }}>
+                    {selected ? '▸ Reading' : ''}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );
@@ -680,6 +980,10 @@ export default function MsMinute() {
     loadReport(team);
     localStorage.setItem('teamKey', team);
   }, [team]);
+
+  // Stable identity: EditionPicker takes this in a useEffect dependency, and a
+  // fresh arrow each render would tear down and rebuild the focus trap.
+  const closePicker = useCallback(() => setPickerOpen(false), []);
 
   function selectTeam(nextKey) {
     if (nextKey === team) return;
@@ -755,6 +1059,7 @@ export default function MsMinute() {
           venue: report.lastGame.venue,
           gameDate: formatDate(report.lastGame.date),
           won: report.lastGame.win,
+          lineScore: report.lastGame.lineScore ?? null,
           startingPitcher: sp
             ? { name: sp.name, ip: sp.inningsPitched, k: sp.strikeOuts, er: sp.earnedRuns }
             : null,
@@ -807,6 +1112,8 @@ export default function MsMinute() {
         ytVideoId: report.ytVideoId,
       });
     } catch (err) {
+      // The reader gets plain language; the detail goes here, where it helps.
+      console.error('[report] load failed:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -830,11 +1137,29 @@ export default function MsMinute() {
   return (
     <>
       <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         em { color: ${t.navy}; font-style: normal; font-weight: 700; }
         a  { color: inherit; }
+
+        /* The page shipped with no focus styles at all. One ring, everywhere. */
+        :focus-visible { outline: 2px solid ${t.teal}; outline-offset: 2px; }
+
+        /* Next Game and WS Odds pair up on phones, but under ~380px each column
+           is too narrow for a 22px Fraunces matchup line — so they stack. */
+        .pair-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 380px) { .pair-grid { grid-template-columns: 1fr; gap: 0; } }
+
+        .skeleton { background: ${PAPER2}; animation: pulse 1.6s ease-in-out infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+          }
+        }
       `}</style>
 
       <div style={{ background: PAPER, minHeight: '100vh', color: INK }}>
@@ -854,7 +1179,10 @@ export default function MsMinute() {
                   padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 12,
                   cursor: teams ? 'pointer' : 'default', fontFamily: INTER,
                 }}
-                aria-label="Choose edition"
+                // Name the edition that's loaded, then the action. The bare
+                // "Choose edition" overrode the visible text, so a screen
+                // reader never learned which paper it was reading.
+                aria-label={editionLabel ? `${editionLabel} edition — choose a different edition` : 'Choose edition'}
               >
                 {editionLabel || ' '}
                 {teams && (
@@ -873,27 +1201,29 @@ export default function MsMinute() {
             <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
               {brandTitle}
             </h1>
-            <div style={{ textAlign: 'center', fontSize: 13, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>
+            <div style={{ textAlign: 'center', fontSize: 13, color: MUTED, fontFamily: INTER }}>
               {todayFormatted()}
             </div>
           </div>
 
-          {/* Error — nothing loaded */}
+          {/* Error — nothing loaded. Say what happened in the reader's terms and
+              give them the one action worth taking; the raw fetch message goes
+              to the console, where it's actually useful. */}
           {error && !data && (
             <div style={{ margin: '24px 0', padding: '18px', border: `1px solid ${WIN_RED}` }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Edition Unavailable</div>
-              <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6, fontFamily: INTER, fontStyle: 'italic' }}>{error}</div>
-              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Retry</button>
+              <div style={{ fontSize: 12, fontWeight: 700, color: WIN_RED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Today's edition hasn't been filed</div>
+              <div style={{ fontSize: 15, color: INK2, lineHeight: 1.6, fontFamily: INTER }}>
+                The paper posts by 5am Pacific. If it's later than that, the presses jammed — try again in a minute.
+              </div>
+              {import.meta.env.DEV && (
+                <div style={{ marginTop: 10, fontSize: 12, color: MUTED, fontFamily: INTER }}>{error}</div>
+              )}
+              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Try again</button>
             </div>
           )}
 
-          {/* Loading spinner — before any data arrives */}
-          {loading && !data && !error && (
-            <div style={{ textAlign: 'center', padding: '52px 0' }}>
-              <div style={{ width: 24, height: 24, border: `2px solid ${PAPER2}`, borderTopColor: t.teal, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
-              <div style={{ fontSize: 14, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>Compiling today's edition…</div>
-            </div>
-          )}
+          {/* Loading — before any data arrives */}
+          {loading && !data && !error && <LoadingEdition isDesktop={isDesktop} />}
 
           {/* Content */}
           {data && !isDesktop && (
@@ -911,7 +1241,7 @@ export default function MsMinute() {
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <OnThisDayCard data={data.onThisDay} t={t} />
               <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="pair-grid">
                 <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
                 <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
               </div>
@@ -936,10 +1266,10 @@ export default function MsMinute() {
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
-                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
-                  <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
-                  <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
-                  <OnThisDayCard data={data.onThisDay} t={t} />
+                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} rail first />
+                  <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} rail />
+                  <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} rail />
+                  <OnThisDayCard data={data.onThisDay} t={t} rail />
                 </aside>
               </div>
             </>
@@ -950,7 +1280,7 @@ export default function MsMinute() {
             <>
               <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', fontFamily: INTER }}>MLB data · Claude AI</div>
+                <div style={{ fontSize: 12, color: MUTED, fontFamily: INTER }}>MLB data · Claude AI</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {import.meta.env.DEV && (
                     <button onClick={regenerateReport} title="Bust cache and regenerate today's report" style={{ background: 'transparent', border: 'none', color: MUTED, padding: '5px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: INTER }}>Regenerate</button>
@@ -964,78 +1294,13 @@ export default function MsMinute() {
         </div>
 
         {pickerOpen && teams && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Choose edition"
-            style={{
-              position: 'fixed', inset: 0, zIndex: 100,
-              background: PAPER, color: INK, overflowY: 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
-              <button
-                onClick={() => setPickerOpen(false)}
-                aria-label="Close"
-                style={{
-                  width: 48, height: 48, background: 'transparent', border: 'none',
-                  cursor: 'pointer', fontSize: 26, lineHeight: 1, color: INK,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: INTER,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
-              <div style={{ height: 2, background: INK, marginBottom: 14 }} />
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: MUTED, textAlign: 'center', marginBottom: 6 }}>
-                Choose Edition
-              </div>
-              <h2 style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: INK, textAlign: 'center', lineHeight: 1, letterSpacing: '-0.5px', margin: '0 0 28px', ...OPSZ9 }}>
-                Editions
-              </h2>
-
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {teams.map((tm, i) => {
-                  const selected = team === tm.key;
-                  return (
-                    <li key={tm.key}>
-                      <button
-                        onClick={() => { selectTeam(tm.key); setPickerOpen(false); }}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          width: '100%', minHeight: 64, padding: '14px 4px',
-                          background: 'transparent', border: 'none',
-                          borderTop: i === 0 ? `1px solid ${PAPER2}` : 'none',
-                          borderBottom: `1px solid ${PAPER2}`,
-                          cursor: 'pointer', textAlign: 'left',
-                          fontFamily: INTER,
-                        }}
-                      >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                          <span style={{ fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, color: tm.theme.navy, lineHeight: 1.1, ...OPSZ9 }}>
-                            {tm.brandTitle}
-                          </span>
-                          <span style={{ fontSize: 12, color: MUTED, fontStyle: 'italic', letterSpacing: '0.04em' }}>
-                            {tm.edition}
-                          </span>
-                        </div>
-                        <span style={{
-                          flexShrink: 0, marginLeft: 12,
-                          fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
-                          color: selected ? tm.theme.teal : 'transparent',
-                        }}>
-                          {selected ? '▸ Reading' : ''}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
+          <EditionPicker
+            teams={teams}
+            team={team}
+            t={t}
+            onSelect={key => { selectTeam(key); setPickerOpen(false); }}
+            onClose={closePicker}
+          />
         )}
       </div>
     </>
