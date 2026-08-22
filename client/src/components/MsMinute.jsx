@@ -41,59 +41,16 @@ function EmText({ text }) {
   return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
 }
 
-// Card head: a short "dinkus" tick + small caps label. Full-width rules are
-// reserved for zone banners so rule weight reads as hierarchy, not stripes.
+// Section flag: full-width rule + small-caps label. Every section carries the
+// same flag — there is no zone above it, so no section outranks another.
 function SectionHead({ label, t }) {
   return (
-    <div style={{ marginTop: 34, marginBottom: 12 }}>
-      <div style={{ width: 28, height: 2, background: t.navy, marginBottom: 7 }} />
-      <div style={{ fontFamily: FRAUNCES, fontSize: 13, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, fontVariationSettings: "'opsz' 40" }}>
+    <div style={{ marginTop: 40, marginBottom: 14 }}>
+      <div style={{ height: 2, background: t.navy }} />
+      <div style={{ paddingTop: 8, fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
-  );
-}
-
-// Newspaper section flag: double rule + centered "Section A · The Game" label
-function ZoneBanner({ kicker, label, t }) {
-  return (
-    <div style={{ marginTop: 36 }}>
-      <div style={{ height: 3, background: t.navy }} />
-      <div style={{ height: 1, background: t.navy, marginTop: 2 }} />
-      <div style={{ textAlign: 'center', paddingTop: 10, fontFamily: FRAUNCES, fontSize: 16, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
-        <span style={{ color: t.teal }}>{kicker}</span>
-        <span style={{ margin: '0 8px', color: MUTED }}>·</span>
-        {label}
-      </div>
-    </div>
-  );
-}
-
-// Sticky section index under the masthead; jump-scrolls to each zone
-function SectionNav({ zones, active, onJump, t }) {
-  return (
-    <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: PAPER, borderBottom: `1px solid ${t.navy}`, margin: '18px -20px 0', padding: '0 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 4 }}>
-        {zones.map((z, i) => (
-          <Fragment key={z.id}>
-            {i > 0 && <span aria-hidden="true" style={{ alignSelf: 'center', color: t.teal, fontSize: 12 }}>·</span>}
-            <button
-              onClick={() => onJump(z.id)}
-              aria-current={active === z.id ? 'true' : undefined}
-              style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                padding: '13px 10px', fontFamily: INTER, fontSize: 12, fontWeight: 700,
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: active === z.id ? t.navy : t.teal,
-                boxShadow: active === z.id ? `inset 0 -2px 0 0 ${t.navy}` : 'none',
-              }}
-            >
-              {z.label}
-            </button>
-          </Fragment>
-        ))}
-      </div>
-    </nav>
   );
 }
 
@@ -404,42 +361,58 @@ function Sparkline({ data, color, width = 120, height = 24 }) {
   );
 }
 
-// Season threads that carry game-to-game: a metric badge + one in-voice line
-// each. Numbers come from the API; the sentence is fact-checked in the backend.
-function StorylinesCard({ threads, t }) {
-  if (!threads?.length) return null;
+// One standings section, two views. The tables and their data are unchanged —
+// the tabs just decide which one is on the page. Wild card leads, because the
+// race is the live question most days.
+function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t }) {
+  const hasDivision = !!rows?.length;
+  const hasWildCard = !!wildCardRows?.length;
+  const [tab, setTab] = useState('wildcard');
+  if (!hasDivision && !hasWildCard) return null;
+
+  // Never strand the reader on a tab with nothing behind it
+  const active = (tab === 'wildcard' && hasWildCard) || !hasDivision ? 'wildcard' : 'division';
+  const tabs = [
+    ...(hasDivision ? [{ id: 'division', label: 'Division' }] : []),
+    ...(hasWildCard ? [{ id: 'wildcard', label: 'Wild Card' }] : []),
+  ];
+
   return (
     <div>
-      <SectionHead label="Storylines" t={t} />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {threads.map((th, i) => (
-          <div
-            key={th.kind + i}
-            style={{
-              display: 'flex', alignItems: 'flex-start', gap: 12,
-              paddingTop: i === 0 ? 0 : 12, paddingBottom: 12,
-              borderBottom: i < threads.length - 1 ? `1px solid ${PAPER2}` : 'none',
-            }}
-          >
-            <div style={{ flexShrink: 0, border: `1px solid ${t.navy}`, padding: '4px 8px', textAlign: 'center', minWidth: 52 }}>
-              <div style={{ fontFamily: INTER, fontSize: 16, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{th.metric}</div>
-              <div style={{ fontSize: 9, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{th.label}</div>
-            </div>
-            <p style={{ fontFamily: INTER, fontSize: 14.5, lineHeight: 1.6, color: INK2, margin: 0 }}>
-              <EmText text={th.text} />
-            </p>
-          </div>
-        ))}
-      </div>
+      <SectionHead label="Standings" t={t} />
+      {tabs.length > 1 && (
+        <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${PAPER2}`, marginBottom: 12 }}>
+          {tabs.map(tb => (
+            <button
+              key={tb.id}
+              role="tab"
+              aria-selected={active === tb.id}
+              onClick={() => setTab(tb.id)}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: '0 0 8px', fontFamily: INTER, fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: active === tb.id ? t.navy : t.teal,
+                boxShadow: active === tb.id ? `inset 0 -2px 0 0 ${t.navy}` : 'none',
+              }}
+            >
+              {tb.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {active === 'division'
+        ? <DivisionTable rows={rows} t={t} />
+        : <WildCardTable rows={wildCardRows} divisionName={divisionName} teamAbbr={teamAbbr} t={t} />}
     </div>
   );
 }
 
-function StandingsCard({ rows, divisionName, t }) {
+function DivisionTable({ rows, t }) {
   if (!rows?.length) return null;
   return (
     <div>
-      <SectionHead label={`${divisionName} Standings`} t={t} />
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
@@ -520,15 +493,14 @@ function TrendGlyph({ trend }) {
   );
 }
 
-// The league's wild card race, sitting right under the division table. Shows the
-// three teams holding spots with a cut line under them, the next two chasing,
-// and — when our team is further back than that — its own row after a break.
-function WildCardCard({ rows, divisionName, teamAbbr, t }) {
+// The league's wild card race: the three teams holding spots with a cut line
+// under them, the next two chasing, and — when our team is further back than
+// that — its own row after a break.
+function WildCardTable({ rows, divisionName, teamAbbr, t }) {
   if (!rows?.length) return null;
 
   const SPOTS = 3;
   const WINDOW = 5;
-  const league = (divisionName ?? '').split(' ')[0] || 'League';
   const mine = rows.find(r => r.isM);
   const visible = rows.slice(0, WINDOW);
   const tail = mine && mine.rank > WINDOW ? mine : null;
@@ -549,7 +521,6 @@ function WildCardCard({ rows, divisionName, teamAbbr, t }) {
 
   return (
     <div>
-      <SectionHead label={`${league} Wild Card`} t={t} />
       {!mine && (
         <div style={{ fontSize: 13, color: MUTED, fontStyle: 'italic', marginTop: -4, marginBottom: 10, fontFamily: INTER }}>
           {teamAbbr} leads the {divisionName} — no wild card needed.
@@ -656,7 +627,6 @@ export default function MsMinute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [activeZone, setActiveZone] = useState('game');
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 900px)').matches);
 
   // Front-page grid kicks in at 900px; below that, the single-column edition
@@ -666,30 +636,6 @@ export default function MsMinute() {
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, []);
-
-  // Track which zone the reader is in so the sticky section index can highlight it
-  useEffect(() => {
-    if (!data || isDesktop) return;
-    const NAV_H = 48;
-    function onScroll() {
-      let current = 'game';
-      for (const id of ['game', 'learn', 'league']) {
-        const el = document.getElementById(`zone-${id}`);
-        if (el && el.getBoundingClientRect().top <= NAV_H + 24) current = id;
-      }
-      setActiveZone(current);
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [data, isDesktop]);
-
-  function jumpToZone(id) {
-    const el = document.getElementById(`zone-${id}`);
-    if (!el) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-  }
 
   // Bootstrap: fetch the team registry, then derive initial team from the URL
   useEffect(() => {
@@ -828,7 +774,6 @@ export default function MsMinute() {
         pitching: report.pitching ?? null,
         onThisDay: report.onThisDay ?? null,
         statOfGame: report.statOfGame,
-        storylines: report.storylines ?? [],
         titleOdds: report.titleOdds ?? null,
         titleOddsTrend: report.titleOddsTrend ?? [],
         standings: [...report.standings]
@@ -881,15 +826,6 @@ export default function MsMinute() {
   useEffect(() => {
     document.title = brandTitle;
   }, [brandTitle]);
-
-  // Page zones — newspaper sections. A zone renders only when it has content.
-  const zones = data
-    ? [
-        { id: 'game', label: 'Game', kicker: 'Section A', title: 'The Game', show: true },
-        { id: 'learn', label: 'Learn', kicker: 'Section B', title: 'Learn the Game', show: !!(data.statOfGame || data.onThisDay) },
-        { id: 'league', label: 'League', kicker: 'Section C', title: 'Around the League', show: !!(data.storylines?.length || data.standings?.length || data.nextGame || data.titleOdds) },
-      ].filter(z => z.show)
-    : [];
 
   return (
     <>
@@ -962,52 +898,29 @@ export default function MsMinute() {
           {/* Content */}
           {data && !isDesktop && (
             <>
-              {zones.length > 1 && (
-                <SectionNav zones={zones} active={activeZone} onJump={jumpToZone} t={t} />
+              {data.headline && (
+                <h2 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(26px, 7.5vw, 34px)', fontWeight: 900, color: t.navy, lineHeight: 1.15, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                  {data.headline}
+                </h2>
               )}
-
-              <section id="zone-game" style={{ scrollMarginTop: 56 }}>
-                <ZoneBanner kicker="Section A" label="The Game" t={t} />
-                {data.headline && (
-                  <h2 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(26px, 7.5vw, 34px)', fontWeight: 900, color: t.navy, lineHeight: 1.15, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
-                    {data.headline}
-                  </h2>
-                )}
-                <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
-                <NarrativeCard text={data.narrative} t={t} />
-                <OffenseCard players={data.offense} t={t} />
-                <PitchingCard data={data.pitching} t={t} />
-                <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
-              </section>
-
-              {(data.statOfGame || data.onThisDay) && (
-                <section id="zone-learn" style={{ scrollMarginTop: 56 }}>
-                  <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
-                  <StatOfGameCard stat={data.statOfGame} t={t} />
-                  <OnThisDayCard data={data.onThisDay} t={t} />
-                </section>
-              )}
-
-              {(data.storylines?.length > 0 || data.standings?.length > 0 || data.nextGame || data.titleOdds) && (
-                <section id="zone-league" style={{ scrollMarginTop: 56 }}>
-                  <ZoneBanner kicker="Section C" label="Around the League" t={t} />
-                  <StorylinesCard threads={data.storylines} t={t} />
-                  <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
-                  <WildCardCard rows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
-                    <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
-                  </div>
-                </section>
-              )}
-
+              <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
+              <NarrativeCard text={data.narrative} t={t} />
+              <OffenseCard players={data.offense} t={t} />
+              <PitchingCard data={data.pitching} t={t} />
+              <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+              <StatOfGameCard stat={data.statOfGame} t={t} />
+              <OnThisDayCard data={data.onThisDay} t={t} />
+              <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
+                <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
+              </div>
             </>
           )}
 
-          {/* Desktop: newspaper front page — main well + rail, then the Learn spread */}
+          {/* Desktop: newspaper front page — main well + rail */}
           {data && isDesktop && (
             <>
-              <ZoneBanner kicker="Section A" label="The Game" t={t} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
                 <div style={{ paddingRight: 36 }}>
                   {data.headline && (
@@ -1020,23 +933,15 @@ export default function MsMinute() {
                   <OffenseCard players={data.offense} t={t} columns />
                   <PitchingCard data={data.pitching} t={t} columns />
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+                  <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
-                  <StorylinesCard threads={data.storylines} t={t} />
-                  <StandingsCard rows={data.standings} divisionName={data.divisionName} t={t} />
-                  <WildCardCard rows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
+                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
                   <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} />
                   <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} />
                   <OnThisDayCard data={data.onThisDay} t={t} />
                 </aside>
               </div>
-
-              {data.statOfGame && (
-                <>
-                  <ZoneBanner kicker="Section B" label="Learn the Game" t={t} />
-                  <StatOfGameCard stat={data.statOfGame} t={t} columns />
-                </>
-              )}
             </>
           )}
 

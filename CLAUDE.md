@@ -9,14 +9,15 @@ A daily Seattle Mariners briefing: game recap, player highlights, stat explained
 Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/mlb.js`):
 - `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, wild card, play-by-play, live feed, pitch arsenal)
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
-- `server/lib/db.js` — SQLite cache (`reports`, `odds_history`, `standings_history`); `server/lib/cron.js` — 5am PT daily job
+- `server/lib/db.js` — SQLite cache (`reports`, `odds_history`); `server/lib/cron.js` — 5am PT daily job
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
-- `server/lib/storylines.js` — season "Storylines" threads (win/losing streak, last-10 form, division momentum, standings position)
-- `client/src/components/MsMinute.jsx` — full UI, responsive at 900px:
-  mobile = single column with sticky GAME/LEARN/LEAGUE jump-nav and three zones
-  (Section A "The Game" — Pitch Arsenal rides in the Pitching card here,
-  Section B "Learn the Game" with Stat of the Game / On This Day, Section C "Around the League");
-  desktop = newspaper front page (main well + right rail with vertical rule), no nav.
+- `client/src/components/MsMinute.jsx` — full UI, responsive at 900px. There are no
+  lettered zones and no jump-nav: every card is a peer top-level section, each flagged
+  by `SectionHead` (full-width rule + small-caps label). Order: Last Game, Recap, At the
+  Plate, Pitching (Pitch Arsenal rides inside it), Game Highlights, Stat of the Game,
+  On This Day, Standings, Next Game, WS Odds.
+  mobile = that list in one column;
+  desktop = newspaper front page (main well + right rail with vertical rule).
   In the main well every block below the score runs the full well width and flows in
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
@@ -26,13 +27,12 @@ Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after t
 `GET /api/dev/report?team=` regenerates on demand (open locally; Bearer REGEN_TOKEN in production);
 `POST /api/report/regenerate` (Bearer REGEN_TOKEN) busts cache. All `/api` routes are rate-limited per IP.
 
-**Season-intelligence track (separate from the SMS phases):** Season Storylines is
-shipped (see below). **Beat Report** is designed but NOT built — full spec in
-`BEAT_REPORT.md`: an RSS-driven "outside voices" digest in Section C that curates
-(does not summarize) ~3–4 beat articles, ranked by relevance to today's game via
-Haiku, with feeds configurable in `server/content/feeds.json`. Start there to build it.
-v1 includes Tier-1 storyline linkage (ranker tags each article with its active
-thread); a Tier-2 persistent thread↔article "dossier" is the planned next step.
+**Season-intelligence track (separate from the SMS phases):** **Beat Report** is
+designed but NOT built — full spec in `BEAT_REPORT.md`: an RSS-driven "outside voices"
+digest that curates (does not summarize) ~3–4 beat articles, ranked by relevance to
+today's game via Haiku, with feeds configurable in `server/content/feeds.json`. Start
+there to build it. Caveat: the spec predates the removal of Season Storylines and the
+lettered sections, and still describes both — adapt it as you build.
 
 ## Build order
 
@@ -46,12 +46,12 @@ thread); a Tier-2 persistent thread↔article "dossier" is the planned next step
 
 Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 
-### Learn-zone features (shipped July 2026)
+### Explainer features (shipped July 2026)
 
 - **Pitch Arsenal** — starter's per-pitch mix from the game feed (`getStarterArsenal` in mlb.js:
   usage %, avg/max velo, whiffs) vs. season norms (`stats=pitchArsenal`), rendered as compact rows
-  in the "Pitching" card (Section A) right under the starter paragraph — numbers straight from the
-  API, no Haiku prose layer. (The old standalone Learn-zone card + per-pitch teaching notes are
+  in the "Pitching" card right under the starter paragraph — numbers straight from the
+  API, no Haiku prose layer. (The old standalone card + per-pitch teaching notes are
   archived in `archive/pitch-arsenal-standalone/`.)
 - **On This Day** — `server/content/history/{teamKey}.json` keyed by `MM-DD`, one event per date
   (`year`, `headline`, `story`); prose is pre-written in the site voice and every event must be
@@ -60,21 +60,17 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
 - **Hitter Spotlight** — removed from the live app (July 2026) to cut API calls/compute; code is
   preserved in `archive/hitter-spotlight/` with restore instructions if it's worth bringing back.
 
-### Season Storylines (shipped July 2026)
-
-- **Storylines** — `server/lib/storylines.js` builds up to 3 season "threads" that carry game-to-game,
-  rendered as a badge + one-line card at the top of "Around the League" (Section C / desktop rail).
-
 ### Wild Card standings (shipped August 2026)
 
 - **Wild Card** — `getWildCard(leagueId)` in mlb.js derives the league's wild card race from the
   same regularSeason standings payload the division table already fetches (cached by path, so it
   costs no extra request): division leaders dropped, the rest ranked by winning percentage, WCGB
   computed against the cut line — teams holding a spot show how far they sit ahead of the first
-  team out (`+2.0`), chasers how far back of the last spot (`2.0`). Rendered by `WildCardCard`
-  directly under the division standings in both layouts: three spots, a "cut line" rule, the next
-  two chasing, and the team's own row after a break when it sits further back. A team missing from
-  the list is leading its division — the card says so instead of highlighting a row.
+  team out (`+2.0`), chasers how far back of the last spot (`2.0`). Rendered by `WildCardTable`, one of
+  the two views inside the tabbed `StandingsCard` (Division / Wild Card, defaulting to Wild
+  Card): three spots, a "cut line" rule, the next two chasing, and the team's own row after a
+  break when it sits further back. A team missing from the list is leading its division — the
+  table says so instead of highlighting a row.
 - **Form trend** — each wild card row carries an L10 arrow. `getLeagueForm()` drops the `teamId`
   filter from the schedule endpoint, so one call returns every team's recent games (last 10 per
   team, plus the active streak) instead of fifteen per-team calls. `_formTrend` scales the record
@@ -83,12 +79,6 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
   `TrendGlyph` puts direction in the arrow's *shape* (so it survives colour loss) and intensity in
   three redundant channels — arrowhead size, ink depth, and a doubled head at ±3 — with the actual
   L10 record alongside, since an arrow on its own is a mood, not a number.
-  Threads: win/losing streak and last-10 form (computed fresh from `getRecentResults` schedule walk —
-  drift-proof, no stored state), division momentum (games gained/lost over the trailing window, from
-  the new `standings_history` snapshot table, mirroring `odds_history`), and a standings-position
-  fallback so the card is never empty. Every thread is fully grounded: the module computes exact
-  numbers + a deterministic fallback sentence, Haiku only rewrites for voice, and the sentence is
-  fact-checked (`verify.js`) against `factsBlock` — flagged threads revert to the template.
 
 ## Key reference docs
 

@@ -5,7 +5,6 @@ const mlb = require('./mlb');
 const oddsApi = require('./oddsApi');
 const db = require('./db');
 const history = require('./history');
-const storylines = require('./storylines');
 const verify = require('./verify');
 const { ptDateToday, stripJsonFences } = require('./util');
 
@@ -323,71 +322,6 @@ async function _generateVerifiedGameSections({ prompt, facts, fallbacks, brandTi
   return { value: repaired, record: _record('game', 'stripped', initialFlags, violations) };
 }
 
-// Generate the season storyline sentences, verify them, repair as needed.
-// candidates carry deterministic fallback text, so any failure degrades to the
-// grounded template rather than dropping the thread. Returns { value, record }.
-async function _generateVerifiedStorylines({ candidates, prompt, facts, brandTitle, teamName }) {
-  // An empty or whitespace-only model sentence must never ship — fall through
-  // to the deterministic fallback instead of rendering a blank thread.
-  const pickText = (v) => (typeof v === 'string' && v.trim() ? v : null);
-  const toThreads = (textByKind) => candidates.map((c, i) => ({
-    kind: c.kind,
-    label: c.label,
-    metric: c.metric,
-    value: c.value,
-    text: pickText(textByKind[c.kind]) ?? pickText(textByKind[`__idx${i}`]) ?? c.fallbackText,
-  }));
-  const fallbackThreads = toThreads({});
-
-  if (!prompt || candidates.length === 0) return { value: fallbackThreads, record: null };
-
-  const parseTextByKind = (raw) => {
-    const map = {};
-    try {
-      const arr = JSON.parse(stripJsonFences(raw));
-      if (!Array.isArray(arr)) return map;
-      arr.forEach((entry, i) => {
-        if (!entry || typeof entry.text !== 'string') return;
-        if (entry.kind) map[entry.kind] = entry.text;
-        map[`__idx${i}`] = entry.text;
-      });
-    } catch {
-      console.warn('[generate] Failed to parse storylines JSON');
-    }
-    return map;
-  };
-  const passageOf = (threads) => threads.map(t => t.text).filter(Boolean).join('\n');
-
-  let raw = await _callClaude(prompt, 500, brandTitle, teamName);
-  if (_looksLikeRefusal(raw)) {
-    console.warn('[generate] storylines: writer returned meta/refusal; using fallback.');
-    return { value: fallbackThreads, record: _record('storylines', 'refusal_fallback', [], []) };
-  }
-  let threads = toThreads(parseTextByKind(raw));
-  let violations = await verify.findViolations({ label: 'storylines', facts, passage: passageOf(threads) });
-  if (violations.length === 0) return { value: threads, record: null };
-
-  const initialFlags = violations;
-  console.warn(`[generate] storylines: ${violations.length} issue(s) flagged; regenerating once.`);
-  raw = await _callClaude(`${prompt}\n\n${_violationNote(violations)}`, 500, brandTitle, teamName);
-  if (!_looksLikeRefusal(raw)) {
-    threads = toThreads(parseTextByKind(raw));
-    violations = await verify.findViolations({ label: 'storylines', facts, passage: passageOf(threads) });
-    if (violations.length === 0) {
-      return { value: threads, record: _record('storylines', 'fixed_on_regen', initialFlags, []) };
-    }
-  }
-
-  // Still flagged (or refused on regen): swap only the flagged threads back to
-  // their deterministic fallback sentence; keep the clean ones as written.
-  console.warn('[generate] storylines: still flagged after retry; reverting flagged threads to fallback.');
-  const quotes = _flaggedQuotes(violations);
-  const repaired = threads.map((t, i) =>
-    _containsFlagged(t.text, quotes) ? { ...t, text: candidates[i].fallbackText } : t
-  );
-  return { value: repaired, record: _record('storylines', 'stripped', initialFlags, violations) };
-}
-
 function _formatDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -457,7 +391,7 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   const { id: teamId, name: teamName, abbr: teamAbbr, divisionId, leagueId, divisionName, brandTitle } = teamConfig;
   console.log(`[generate] Fetching game data for ${teamName}...`);
   const lastGame = await mlb.getLastGame(teamId);
-  const [boxScore, nextGame, standings, wildCard, recentResults, allTitleOdds, { hrMap, scoringTimeline, pitcherOrder }] = await Promise.all([
+  const [boxScore, nextGame, standings, wildCard, allTitleOdds, { hrMap, scoringTimeline, pitcherOrder }] = await Promise.all([
     mlb.getBoxScore(lastGame.gamePk, teamId),
     mlb.getNextGame(teamId),
     mlb.getStandings(divisionId, leagueId),
@@ -465,10 +399,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     // race is a nice-to-have, not worth failing the report over.
     mlb.getWildCard(leagueId).catch(err => {
       console.warn('[generate] getWildCard failed (card hides):', err.message);
-      return [];
-    }),
-    mlb.getRecentResults(teamId).catch(err => {
-      console.warn('[generate] getRecentResults failed (storylines degrade):', err.message);
       return [];
     }),
     oddsApi.getWorldSeriesOdds(),
@@ -495,31 +425,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     db.saveTitleOdds(teamKey, todayPt, titleOdds.impliedProb, titleOdds.medianOdds);
   }
   const titleOddsTrend = db.getTitleOddsTrend(teamKey, 30);
-
-  // Snapshot today's division position, then read the trailing window so the
-  // momentum storyline can measure how the race has moved since last week.
-  const standingsRow = standings.find(r => r.teamId === teamId);
-  if (standingsRow) {
-    db.saveStandingsSnapshot(teamKey, todayPt, {
-      gb: storylines.parseGb(standingsRow.gb),
-      divisionRank: standingsRow.divisionRank,
-      wins: standingsRow.wins,
-      losses: standingsRow.losses,
-    });
-  }
-  const standingsHistory = db.getStandingsHistory(teamKey, 28);
-
-  // Season threads that carry game-to-game (streaks, form, division momentum).
-  // Each candidate is fully grounded in the numbers and carries a deterministic
-  // fallback sentence; Haiku only rewrites for voice, checked against factsBlock.
-  const storylineCandidates = storylines.build({
-    teamConfig, standings, recentResults, standingsHistory, todayIso: todayPt,
-  });
-  if (storylineCandidates.length === 0) {
-    // Position is the guaranteed fallback thread, so this should only happen
-    // when the team's standings row is missing — surface it for diagnosis.
-    console.warn(`[generate] ${teamName}: no storyline candidates (standings row for teamId ${teamId} missing?)`);
-  }
 
   // Featured franchise moment for today's calendar date (null when none is curated)
   const onThisDay = history.getOnThisDay(teamKey, todayPt.slice(5));
@@ -628,21 +533,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     `  "todayContext": "1–2 sentences: how today\\'s specific game data illustrates this stat. Be precise — reference the actual numbers."\n` +
     `}`;
 
-  // Season storylines: one in-voice sentence per grounded thread. The exact facts
-  // are pre-computed; Haiku only rewrites them, and the deterministic sentence is
-  // the guaranteed fallback on any refusal or fact-check miss.
-  const storylinePrompt = storylineCandidates.length > 0
-    ? `You are writing the "Storylines" strip for ${brandTitle} — short season-context threads that carry from game to game.\n\n` +
-      `Each thread below has exact facts. Rewrite each as ONE sentence in the house voice — factual and warm, no hype.\n\n` +
-      `Threads (keep this exact order):\n` +
-      storylineCandidates.map((c, i) => `${i + 1}. [${c.label}] ${c.facts}`).join('\n') +
-      `\n\nRules:\n` +
-      `- Exactly one sentence per thread, in the same order.\n` +
-      `- Use ONLY the numbers in that thread's facts. Do not invent comparisons, superlatives, records, or standings not shown.\n` +
-      `- Plain text; wrap any player name in <em> tags (most threads are team-level with no player names).\n` +
-      `- Return only valid JSON: [{"kind": "...", "text": "..."}, ...] using each thread's kind.`
-    : null;
-
   // Single ground-truth block every fact-check runs against. Everything here
   // came straight from the MLB API — the checker treats it as the only truth.
   const factsBlock = [
@@ -653,9 +543,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     reliefLines
       ? `Relievers, numbered in order of appearance (1 entered first):\n${reliefLines}`
       : `No relievers — the starter went the distance.`,
-    storylineCandidates.length > 0
-      ? `Season storylines (each is an established fact):\n${storylineCandidates.map(c => `- ${c.facts}`).join('\n')}`
-      : null,
   ].filter(Boolean).join('\n\n');
 
   const opponentShort = lastGame.opponentName.split(' ').pop();
@@ -666,17 +553,15 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
   };
 
   console.log('[generate] Running Claude + YouTube in parallel (with fact-check)...');
-  const [gameV, statRaw, storylinesV, ytVideoId] = await Promise.all([
+  const [gameV, statRaw, ytVideoId] = await Promise.all([
     _generateVerifiedGameSections({ prompt: gamePrompt, facts: factsBlock, fallbacks: gameFallbacks, brandTitle, teamName }),
     _callClaude(statPrompt, 600, brandTitle, teamName),
-    _generateVerifiedStorylines({ candidates: storylineCandidates, prompt: storylinePrompt, facts: factsBlock, brandTitle, teamName }),
     _fetchYouTubeVideoId(lastGame, teamName),
   ]);
 
   const { headline: headlineRaw, recap: narrative, playerNotes, pitching } = gameV.value;
-  const seasonStorylines = storylinesV.value;
   // Per-section fact-check audit trail; empty when everything checked out clean.
-  const verification = [gameV.record, storylinesV.record].filter(Boolean);
+  const verification = [gameV.record].filter(Boolean);
 
   let statOfGame = null;
   try {
@@ -719,7 +604,6 @@ async function generateDailyReport(teamConfig = mlb.TEAM_CONFIGS[mlb.DEFAULT_TEA
     playerNotes,
     pitching: { ...pitching, arsenal: pitchArsenal },
     statOfGame,
-    storylines: seasonStorylines,
     onThisDay,
     titleOdds,
     titleOddsTrend,

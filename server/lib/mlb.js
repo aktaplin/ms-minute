@@ -221,41 +221,6 @@ async function getNextGame(teamId) {
   };
 }
 
-// Completed regular-season games in the trailing window, oldest → newest.
-// Each: { date, gamePk, win, teamScore, opponentScore, opponentAbbr, opponentName, home }.
-// Powers the streak / recent-form storylines — one schedule call for the whole run.
-async function getRecentResults(teamId, lookbackDays = 21) {
-  const start = _ptDate(-lookbackDays);
-  const end = _ptDate(0);
-  const data = await _mlbFetch(
-    `/api/v1/schedule?sportId=1&teamId=${teamId}&startDate=${start}&endDate=${end}&hydrate=team`
-  );
-
-  const games = [];
-  for (const day of data.dates ?? []) {
-    for (const g of day.games ?? []) {
-      if (g.status?.abstractGameState !== 'Final' || g.gameType !== 'R') continue;
-      const teamSide = g.teams.home.team.id === teamId ? 'home' : 'away';
-      const team = g.teams[teamSide];
-      const opp = g.teams[teamSide === 'home' ? 'away' : 'home'];
-      games.push({
-        date: day.date,
-        gamePk: g.gamePk,
-        win: !!team.isWinner,
-        teamScore: team.score,
-        opponentScore: opp.score,
-        opponentAbbr: _teamAbbr(opp.team),
-        opponentName: opp.team.name,
-        home: teamSide === 'home',
-      });
-    }
-  }
-
-  // Schedule is date-ordered; sort defensively (doubleheaders share a date).
-  games.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.gamePk - b.gamePk));
-  return games;
-}
-
 // One regularSeason standings call per league covers all three divisions. Both
 // getStandings and getWildCard read from it, and _mlbFetch caches by path, so
 // asking for the division table and the wild card race costs one request.
@@ -654,4 +619,4 @@ async function getLiveGame(gamePk) {
   return result;
 }
 
-module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getRecentResults, getStandings, getWildCard, getLeagueForm, getPlayByPlayData, getLiveGame, getStarterArsenal };
+module.exports = { TEAM_CONFIGS, DEFAULT_TEAM_KEY, resolveTeamKey, getLastGame, getBoxScore, getNextGame, getStandings, getWildCard, getLeagueForm, getPlayByPlayData, getLiveGame, getStarterArsenal };
