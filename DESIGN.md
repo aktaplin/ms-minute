@@ -2,29 +2,42 @@
 
 ## Concept
 
-Broadsheet newspaper aesthetic with Mariners team colors. The visual goal is "Sunday sports section" — serif headlines, column rules, structured layouts, cream paper. It should feel curated and editorial, not like an app.
+Broadsheet newspaper aesthetic in each edition's team colors. The visual goal is
+"Sunday sports section" — serif headlines, column rules, structured layouts, cream
+paper. It should feel curated and editorial, not like an app.
+
+The frame is borrowed from newspapers; the *specifics* are borrowed from baseball.
+Where a choice is free, spend it on something that comes from the sport — the line
+score, the pitch-usage bar, the L10 trend glyph — rather than on more newspaper.
 
 ## Palette
 
-All color pairs are WCAG AA verified.
+Structural color is **per-edition**, not fixed. Each team config in
+`TEAM_CONFIGS` (`server/lib/mlb.js`) supplies a `theme` of `{ navy, teal, lteal }`,
+delivered to the client by `GET /api/teams` and threaded through every component as
+the `t` prop. The Mariners values below are the reference pairing; other editions
+substitute their own and were chosen to hold the same contrast relationships.
 
-| Name | Hex | Use |
-|------|-----|-----|
-| `PAPER` | `#F6F1E7` | Main background — aged newsprint cream |
-| `PAPER2` | `#EDE7D8` | Subtle dividers, skeleton loaders |
-| `NAVY` | `#0C2340` | Headlines, masthead rules, structural borders, Stat of the Game card background. Mariners primary navy. |
-| `TEAL` | `#005C5C` | Section labels, kicker, accent rules. Mariners teal. |
-| `INK` | `#1A1A1A` | Primary body copy |
-| `INK2` | `#444444` | Secondary copy |
-| `MUTED` | `#5C5347` | Captions, dates, table rank numbers |
-| `LTEAL` | `#A8C8C8` | Labels and accents on NAVY backgrounds |
-| `LGREY` | `#C8D4DC` | Body copy on NAVY backgrounds |
-| `WIN_GREEN` | `#245C3B` | Win indicator (filled result tag). Team-independent, semantic. |
-| `WIN_RED` | `#8B1A1A` | Loss indicator (filled result tag), error states. Team-independent, semantic. |
+| Name | Token | Mariners hex | Use |
+|------|-------|--------------|-----|
+| Paper | `PAPER` | `#F6F1E7` | Main background — aged newsprint cream |
+| Paper 2 | `PAPER2` | `#EDE7D8` | Hairline dividers, skeleton loaders, On This Day fill |
+| Navy | `t.navy` | `#0C2340` | Headlines, section rules, structural borders, Stat of the Game fill |
+| Teal | `t.teal` | `#005C5C` | Small-caps labels, focus ring, accent rules |
+| Light teal | `t.lteal` | `#A8C8C8` | Labels and asides on navy backgrounds |
+| Ink | `INK` | `#1A1A1A` | Primary body copy |
+| Ink 2 | `INK2` | `#444444` | Secondary copy |
+| Muted | `MUTED` | `#5C5347` | Captions, dates, rank numbers, inactive tabs, zero cells |
+| Light grey | `LGREY` | `#C8D4DC` | Body copy on navy backgrounds |
+| Win green | `WIN_GREEN` | `#245C3B` | Win tag, rising odds. Team-independent, semantic. |
+| Win red | `WIN_RED` | `#8B1A1A` | Loss tag, falling odds, error states. Team-independent, semantic. |
+
+Trend arrows carry their own three-step ramps (`TREND_UP` / `TREND_DOWN` in
+`MsMinute.jsx`), deliberately outside the team palette — form is a neutral fact.
 
 ### Contrast verification
 
-Verified pairs (all AA-passing):
+Verified pairs for the Mariners theme (all AA-passing):
 
 ```
 PAPER bg (#F6F1E7):
@@ -47,67 +60,152 @@ Result tags (cream PAPER text on filled color):
 
 ## Typography
 
-| Role | Font | Weight | Size | Notes |
+Two families, loaded in `client/index.html` (not via `@import`, so they fetch in
+parallel with the bundle):
+
+- **Fraunces** — variable serif, used at weight 900 for display. The `opsz` axis is
+  driven explicitly: `OPSZ9` (`'opsz' 9`) for large display settings where the
+  high-contrast cut belongs, `'opsz' 40` for the small-caps section labels.
+- **Inter** — everything else: body copy, tables, labels, metadata.
+
+Georgia and Playfair Display are **not** used; Georgia survives only as the fallback
+in the Fraunces stack.
+
+| Role | Face | Weight | Size | Notes |
 |------|------|--------|------|-------|
-| Nameplate | Playfair Display | 900 | clamp(40px, 12vw, 64px) | Tight tracking |
-| Section headlines | Playfair Display | 900 | 22px | Player names, "SEA vs. X" |
-| Body copy | Georgia | 400 | 13–15px | Italic for narrative recaps |
-| Section labels | system-ui | 700 | 9px | Uppercase, 0.2em letter-spacing, teal |
-| Stat numbers | Playfair Display | 900 | 38–54px | Score, stat of the game value |
-| Stat chip values | Georgia | 700 | 13–20px | Box score numbers |
-| Stat chip labels | system-ui | 700 | 7–8px | Uppercase, teal |
-| Captions / meta | Georgia | 400 italic | 10–11px | MUTED color |
+| Nameplate | Fraunces | 900 | clamp(40px, 12vw, 64px) | `opsz` 9, −1px tracking |
+| Daily headline (lede) | Fraunces | 900 | 40px desktop / clamp(26px, 7.5vw, 34px) mobile | `opsz` 9 |
+| Section label | Fraunces | 900 | 15px well / 12px rail | Uppercase, `opsz` 40, 0.16em / 0.18em tracking |
+| Card headline | Fraunces | 900 | 22px | On This Day, Next Game matchup |
+| Score | Fraunces | 900 | 54px | `opsz` 9 |
+| Line score totals (R) | Fraunces | 900 | 15px | Tabular; H/E fall back to Inter |
+| Body copy | Inter | 400 | 17px | Justified with `hyphens: auto` in column flow |
+| Player note / league context | Inter | 400 italic | 14px | The only italic on the page — see below |
+| Small-caps label | Inter | 700 | 10–12px | Uppercase, 0.1–0.16em tracking, teal |
+| Table data | Inter | 400–700 | 13–15px | `font-variant-numeric: tabular-nums` |
+
+### The italic rule
+
+**Italic marks annotation. Roman marks the record.**
+
+Italic is reserved for prose that sits *beside* data and explains it: the one-line
+player notes in At the Plate, and the league-context aside in Stat of the Game.
+That is all — two uses.
+
+Everything else is roman, including the Recap. The recap is not an annotation; it is
+the report, and 17px justified two-column italic would be a worse reading experience
+than the problem it solved. Metadata — dates, venues, captions, opponent names, the
+footer — carries no italic at all. It previously carried it on fourteen elements,
+which is how italic stopped meaning anything.
 
 ## Layout patterns
 
-### Section dividers
+### Section flags, in two weights
 
-Every section uses one consistent pattern:
+`SectionHead` renders every section flag. It has two weights, because a front page
+that gives every item identical billing is a list, not a front page:
 
-```jsx
-<div style={{ marginTop: 28, marginBottom: 14 }}>
-  <div style={{ height: 2, background: NAVY, marginBottom: 6 }} />
-  <div style={{
-    fontSize: 9, fontWeight: 700, letterSpacing: "0.2em",
-    textTransform: "uppercase", color: TEAL
-  }}>
-    {label}
-  </div>
-</div>
-```
+- **Main well** (default): 2px navy rule, 15px Fraunces label, 14px below.
+- **Rail** (`rail`): 1px navy rule, 12px label, 10px below. The sidebar reads as
+  subordinate to the front page instead of competing with it.
 
-One thick navy rule above, teal label below. No bottom rule. Consistent across every section.
+`first` pulls the top margin from 40px to 26px, matching the headline's top margin
+so the rail's opening rule registers against the lede across the vertical rule.
+
+**The score block has no flag at all.** It is the front page; labelling it "Last
+Game" told the reader something they could already see, and cost the page its
+top-of-page. The headline runs straight into the score.
 
 ### Cards
 
-No rounded cards or drop shadows. Sections are delineated by rules and whitespace, not boxes. The only "boxed" elements are:
+No rounded corners, no drop shadows. Sections are delineated by rules and
+whitespace, not boxes. The only boxed elements:
+
 - Stat chips (1px navy border)
-- The Stat of the Game card (full navy fill, contained padding)
+- Stat of the Game (full navy fill)
+- On This Day (PAPER2 fill, 1px navy border — an archival clipping)
 - The YouTube player (1px navy border)
 - Error states (1px red border)
 
-### Score card
+### The 3px accent bar
 
-Two-column layout split with a vertical navy rule. Left column: big serif score, win/loss pill. Right column: opponent name in italic serif, venue/date metadata, starting pitcher line.
+`border-left: 3px solid` marks **an aside, and only an aside** — currently just the
+league-context callout inside Stat of the Game. It previously also marked Next Game
+and WS Odds, which put one device on three unrelated meanings and made two adjacent
+rail cards look like the same kind of object.
 
-### At the Plate (offensive lineup)
+### Score block
 
-A list of 3–4 player rows. Each row has player name + position on the left, a row of stat chips on the right (H/AB, HR, RBI, BB — max 3), and a one-sentence italic narrative below. Rows separated by 1px PAPER2 lines.
+Two columns split by a vertical navy rule — big serif score and win/loss tag on the
+left, opponent, venue, date and starter line on the right — with the **line score**
+beneath, full width, under a 1px navy rule.
+
+### Line score
+
+Innings across, R/H/E at the right behind a navy vertical rule. Away team on top,
+home below, always. Scoring innings set in navy bold; zeros recede to MUTED, so a
+six-run first is visible at a glance instead of collapsing into the final. A half
+inning the home side never needed to bat prints `x`. Horizontally scrollable so
+extra innings don't break the page. Data comes free from the `linescore` hydration
+already on the schedule call in `getLastGame`.
+
+### At the Plate
+
+Player rows: name + position left, up to three stat chips right, one italic
+annotation below. Separated by 1px PAPER2 rules. No top padding on any row, so both
+newspaper columns start level with the section flag.
 
 ### Stat of the Game
 
-Inverts the palette — navy background, cream and light-teal text. The stat value is huge (42px), accompanied by the abbreviation, the player it belongs to, an explanation paragraph, and a context callout with a teal vertical bar.
+Inverts the palette — navy fill, cream and light-teal text. Huge stat value, the
+abbreviation and full name, an explanation, and a bordered context aside. In column
+flow the prose breaks across the rule normally; only the bordered aside sets
+`break-inside: avoid`.
 
-### Standings table
+### Standings
 
-Plain HTML table. Mariners row gets a serif font and bold weight to stand out. Compact rows (~7px padding).
+Tabbed — Division / Wild Card, defaulting to Wild Card. The active tab is navy with
+a 2px navy underline; the inactive tab is MUTED. Teal is *not* used for the
+inactive state: teal means "label" everywhere else, and spending it on the
+unselected tab said the opposite of what it meant.
 
-### Next game
+Wild card rows carry a `TrendGlyph`: direction in the arrow's shape (survives colour
+loss), intensity in three redundant channels (arrowhead size, ink depth, doubled
+head at ±3), with the L10 record and a compact streak token (`W5` / `L5`) rendered
+as visible text — never in a `title` tooltip, which never opens on touch.
 
-Left navy bar, indented content. Smaller serif headline, italic opponent name, time and probable pitcher with teal labels.
+### Next Game
+
+Opens like a dispatch: a teal small-caps **dateline** (day · first pitch), then the
+matchup in Fraunces 22, then opponent and venue, then the probable pitcher behind a
+hairline. The dateline is what marks it as ahead in time — no accent bar.
+
+### WS Odds
+
+A market quote: the percentage as a 32px Fraunces hero, a full-width sparkline
+beneath it, then the window and the change in percentage points (green rising, red
+falling) split across a hairline, with the median line and book count as a footnote.
+
+## Motion and the quality floor
+
+- `@keyframes pulse` drives the skeleton loaders. It is the only animation.
+- A global `prefers-reduced-motion: reduce` block collapses all animation and
+  transition durations. The loading state degrades to a static skeleton, which
+  reads fine.
+- `:focus-visible` renders a 2px teal outline at 2px offset on every interactive
+  element. Do not remove it without replacing it.
+- The edition picker is a real dialog: focus moves in on open, Tab is trapped,
+  Escape closes, body scroll locks, and focus returns to the opener on close.
+- Below 380px, the Next Game / WS Odds pair stacks to one column (`.pair-grid`).
 
 ## Voice rules embedded in design
 
-- Italic Georgia is reserved for narrative voice — anywhere a human is "speaking" through the design.
-- Uppercase teal labels are reserved for section navigation and meta.
-- Numbers — scores, stats — always get serif treatment for editorial gravity.
+- Italic is annotation. Roman is the record. (See the italic rule above.)
+- Uppercase teal labels are for section flags, field labels, and datelines.
+- Numbers that carry editorial weight — scores, the R column, the odds figure — get
+  Fraunces. Numbers that are read in a table get Inter with tabular figures.
+- `<em>` from the generator renders as **bold navy**, not italic, so model emphasis
+  and the italic annotation rule never collide.
+- Errors say what happened and what to do, in the paper's voice. The raw fetch
+  message goes to the console and to a DEV-only line, never to the reader.
+</content>
