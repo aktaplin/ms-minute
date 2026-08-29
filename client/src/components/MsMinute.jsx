@@ -69,7 +69,7 @@ function SectionHead({ label, t, rail = false }) {
 // the zeros recede to MUTED, so the shape of the game (a five-run third, a
 // bullpen that held) reads at a glance instead of resolving into one number.
 // A half-inning the home side never needed to bat prints "x", not a zero.
-function LineScore({ ls, teamAbbr, oppAbbr, t }) {
+function LineScore({ ls, teamAbbr, oppAbbr, t, wide = false }) {
   if (!ls?.innings?.length) return null;
 
   const mine = { abbr: teamAbbr, isMine: true, ...ls.team, cells: ls.innings.map(i => i.team) };
@@ -88,9 +88,13 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
     ...cell, fontFamily: FRAUNCES, fontSize: 15, fontWeight: 900, ...OPSZ9,
   };
 
+  // The rule closes the header band across the whole page, but the table under it
+  // is agate, not a banner: spread over 1,080px the innings lose their row, so in
+  // the wide band it stops at 70% — the measure it had in the main well, and the
+  // column the hairline above it already draws.
   return (
     <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${t.navy}`, overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 300 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 300, maxWidth: wide ? '70%' : 'none' }}>
         <thead>
           <tr>
             <th scope="col" style={{ ...head, textAlign: 'left', minWidth: 42 }}><span style={SR_ONLY}>Team</span></th>
@@ -189,7 +193,7 @@ function ScoreCard({ data, teamAbbr, t, wide = false }) {
           </div>
         )}
       </div>
-      <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
+      <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} wide={wide} />
     </div>
   );
 }
