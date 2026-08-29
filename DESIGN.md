@@ -119,7 +119,7 @@ work:
 | Where | What it is |
 |---|---|
 | Masthead and footer | The frame of the paper |
-| Main-well section flags (`SectionHead`) | The one line that opens a section |
+| Section flags, well and rail (`SectionHead`) | The one line that opens a section |
 | Edition button, Refresh button | Affordances — this is a control |
 | Error box | A state, and a rare one |
 | Wild card cut line (teal) | A **report**, not a boundary: the playoff line itself |
@@ -138,20 +138,25 @@ its PAPER2 fill but loses its outline (the fill already ends where the clipping
 ends); the YouTube player loses its frame (a 16:9 black rectangle is its own
 edge); the stat chips lose their boxes (see At the Plate).
 
-### Section flags: the well is ruled, the rail is not
+### Section flags: same rule, different type
 
 `SectionHead` renders every section flag, because a front page that gives every
 item identical billing is a list, not a front page:
 
 - **Main well** (default): hairline at `RULE`, 15px Fraunces label, 14px below.
-- **Rail** (`rail`): no rule at all, 12px label, 12px below. The sidebar ranks
-  below the front page on type alone.
+- **Rail** (`rail`): the same hairline at the same ink, 12px label tracked wider
+  at 0.18em, 11px below.
 
-Whether a flag is ruled is a distinction a reader can see across a gutter; two
-alphas of the same navy never were. Both flags take the same 40px top margin and
-set their labels on the same line (the rail pads 9px where the well's rule plus
-padding sits), so where the two columns open, the rail's flag registers against
-the well's — the alignment that lets the gutter between them go unruled.
+Every section is flagged and every flag is ruled. The rail briefly ran unruled —
+type alone was meant to rank it below the well — and it does not hold up: a rail
+section is a table, a dispatch, a market quote and a clipping stacked in a 340px
+column, and 40px of air between them does not say where one ends and the next
+begins when the content inside them is also separated by air. Rank is carried by
+the label instead: 15px against 12px.
+
+Both flags take the same 40px top margin and set their labels on the same line,
+so where the two columns open, the rail's rule registers against the well's —
+the alignment that lets the gutter between them go unruled.
 
 **The score block has no flag at all.** It is the front page; labelling it "Last
 Game" told the reader something they could already see, and cost the page its
@@ -161,9 +166,31 @@ top-of-page. The headline runs straight into the score.
 
 On desktop the lede and the score card run the full page width; the main well and
 the rail open below them, so the columns start together at Recap / Standings. The
-score card takes a `wide` variant there: at 1,080px two panels would strand white
-space beside four short lines, so the meta splits in three — score, matchup,
-starter — held apart by 56px gutters.
+score card takes a `wide` variant there, splitting its meta in three — score,
+matchup, starter.
+
+**The panels are sized to what they hold, not to percentages of the band.** A
+column set at 30% under a 130px numeral opens a 200px hole beside the score, and
+a second one beside the venue; the band then reads as three boxes floating in
+white space rather than one line of type. So each panel takes `flex: 0 0 auto`
+and `justify-content: space-between` collects the slack into two even gutters:
+the score holds the left margin, the starter closes the band against the right,
+and the matchup sits between them.
+
+Two things keep the band short and its bottom even:
+
+- **The result tag rides beside the score**, not under it. Stacked, it hung 40px
+  below every other panel and left the band ragged along the bottom; beside the
+  numeral it fills the left panel's width and reads the way a scoreboard does —
+  `9–2  WIN` across, not down.
+- **Venue and date set on one line**, split by a middot. Stacked they made a
+  narrow three-line column in the middle of a 1,080px band, which is what the
+  hole beside it was made of. The phone keeps them stacked: at a 390px measure
+  one line would only wrap.
+
+The phone's score panel is sized to its content for the same reason — at 42% of
+the width it held a 100px numeral and pushed the starter line into a second
+line.
 
 The band carries no closing rule. The Recap and Standings flags sit at the same
 height directly beneath it and read as one broken line across the page, which is

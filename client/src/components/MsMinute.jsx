@@ -69,19 +69,19 @@ function EmText({ text }) {
   return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
 }
 
-// Section flag. The main well's flag keeps the one hairline the page still
-// spends on structure; the rail's carries none and ranks below it on type
-// alone — 12px against the well's 15px. Whether a flag is ruled at all is a
-// difference a reader can see across a gutter; two alphas of the same navy
-// never were. Both take the same top margin and set their labels on the same
-// line, so where the two columns open the rail's flag registers against the
-// well's — the alignment a broadsheet lives on, and the reason neither column
-// needs a rule between them.
+// Section flag. Every section gets the hairline, well and rail alike, at the
+// one ink — a rail section is a table, a dispatch, a market quote and a
+// clipping stacked in a 340px column, and the 40px of air between them is not
+// enough on its own to say where one ends. Rank is carried by type instead of
+// by a second, weaker ink: 15px in the well against 12px in the rail, tracked
+// wider. Both take the same top margin, so where the two columns open the
+// rail's rule registers against the well's — the alignment a broadsheet lives
+// on, and the reason neither column needs a rule between them.
 function SectionHead({ label, t, rail = false }) {
   return (
-    <div style={{ marginTop: 40, marginBottom: rail ? 12 : 14 }}>
-      {!rail && <div style={{ height: 1, background: ink(t.navy, RULE) }} />}
-      <div style={{ paddingTop: rail ? 9 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
+    <div style={{ marginTop: 40, marginBottom: rail ? 11 : 14 }}>
+      <div style={{ height: 1, background: ink(t.navy, RULE) }} />
+      <div style={{ paddingTop: rail ? 7 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
@@ -182,36 +182,67 @@ function LineScoreCard({ ls, teamAbbr, oppAbbr, t }) {
 // labelled. The headline runs straight into the score.
 //
 // `wide` is the desktop header band, where the card runs the full page width
-// instead of the main well's. Two panels stretched across 1,080px would strand
-// a column of white space beside four short lines, so the meta splits in three:
-// score, matchup, starter — held apart by the gutters between them, and the
-// line score drops out to run as its own section down in the well.
+// instead of the main well's. The meta splits in three — score, matchup,
+// starter — but the panels are sized to what they hold rather than to
+// percentages of the band: a 30% column under a 130px numeral opened a
+// 200px hole beside the score, and a second one beside the venue. Now the
+// score and matchup take their natural width, the slack collects in one
+// gutter, and the starter closes the band against the right margin, so the
+// three panels read as one line of type instead of three floating boxes.
+//
+// The result tag rides beside the score on the wide band for the same reason:
+// stacked under it, it hung forty pixels below everything else and left the
+// band with a ragged bottom. It belongs with the numeral anyway — a scoreboard
+// reads 9–2 WIN across, not down.
 function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
   const starter = data.startingPitcher;
   const starterLabel = { color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' };
+  const tag = (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
+      {data.won ? (
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      ) : (
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+      )}
+      {data.won ? 'Win' : 'Loss'}
+    </div>
+  );
+  const score = (
+    <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
+      {data.mScore}–{data.oScore}
+    </div>
+  );
   return (
-    <div style={{ marginTop: 18 }}>
-      <div style={{ display: 'flex', gap: wide ? 56 : 24 }}>
-        <div style={{ flex: wide ? '0 0 30%' : '0 0 42%' }}>
-          <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
-            {data.mScore}–{data.oScore}
-          </div>
-          <div style={{ fontSize: 13, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
-            {data.won ? (
-              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            ) : (
-              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-            )}
-            {data.won ? 'Win' : 'Loss'}
-          </div>
+    <div style={{ marginTop: wide ? 22 : 18 }}>
+      <div style={{ display: 'flex', gap: wide ? 40 : 24, justifyContent: wide ? 'space-between' : 'flex-start' }}>
+        <div style={{ flex: '0 0 auto' }}>
+          {wide ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
+              {score}
+              {tag}
+            </div>
+          ) : (
+            <div style={{ marginBottom: 6 }}>{score}</div>
+          )}
+          <div style={{ fontSize: 13, color: INK2, marginBottom: wide ? 0 : 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
+          {!wide && tag}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 10 }}>{data.oppName}</div>
-          <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
-            <div>{data.venue}</div>
-            <div>{data.gameDate}</div>
+        <div style={{ flex: wide ? '0 1 auto' : 1 }}>
+          <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 7 }}>{data.oppName}</div>
+          {/* Wide: venue and date set on one line. Stacked, they made a narrow
+              three-line column in the middle of a 1,080px band, which is what
+              the hole beside it was made of. The phone keeps them stacked —
+              there the measure is 390px and one line would wrap anyway. */}
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.75 }}>
+            {wide ? (
+              <div>{data.venue} · {data.gameDate}</div>
+            ) : (
+              <>
+                <div>{data.venue}</div>
+                <div>{data.gameDate}</div>
+              </>
+            )}
           </div>
           {starter && !wide && (
             <div style={{ marginTop: 16, fontSize: 13, color: INK2 }}>
@@ -221,8 +252,8 @@ function ScoreCard({ data, teamAbbr, t, wide = false }) {
           )}
         </div>
         {wide && starter && (
-          <div style={{ flex: '0 0 26%' }}>
-            <div style={{ ...starterLabel, marginBottom: 8 }}>Starter</div>
+          <div style={{ flex: '0 0 auto', textAlign: 'right' }}>
+            <div style={{ ...starterLabel, marginBottom: 7 }}>Starter</div>
             <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, marginBottom: 4 }}>{starter.name}</div>
             <div style={{ fontSize: 13, color: INK2 }}>{starter.ip} IP · {starter.k} K · {starter.er} ER</div>
           </div>

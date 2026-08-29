@@ -19,7 +19,8 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   Standings, Next Game, WS Odds.
   mobile = that list in one column;
   desktop = newspaper front page: a full-width header band (Haiku lede + score card,
-  which splits its meta into three panels at that width) running clear across the page,
+  which splits its meta into three content-sized panels at that width — score + result
+  tag, matchup, starter — spread by `space-between`) running clear across the page,
   then main well + right rail below it — so the rail's first flag (Standings) starts
   level with Recap. The line score leaves the score card on desktop and runs as its own
   flagged section in the well, under the Recap.
@@ -27,12 +28,12 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
   Rules are minimal: one 1px hairline at one ink (`RULE` via `ink()`), spent only on
-  the masthead, the footer, the main-well section flags, and the two buttons. The rail's
-  flags carry no rule (they rank by type alone); table rows, batters, pitch rows and
-  in-card asides are separated by space, and the stat chips, the On This Day outline and
-  the YouTube frame are gone. The only other horizontals are the wild card cut line and
-  the active tab's underline, both of which mark something rather than divide something.
-  No vertical rules anywhere — gutters do that work. See DESIGN.md.
+  the masthead, the footer, the section flags (well and rail alike — the rail ranks by
+  its 12px label, not by a lighter rule) and the two buttons. Table rows, batters, pitch
+  rows and in-card asides are separated by space, and the stat chips, the On This Day
+  outline and the YouTube frame are gone. The only other horizontals are the wild card
+  cut line and the active tab's underline, both of which mark something rather than
+  divide something. No vertical rules anywhere — gutters do that work. See DESIGN.md.
   Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
