@@ -34,7 +34,11 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   outline and the YouTube frame are gone. The only other horizontals are the wild card
   cut line and the active tab's underline, both of which mark something rather than
   divide something. No vertical rules anywhere — gutters do that work. See DESIGN.md.
-  Daily Haiku headline as the Fraunces lede. The metadata the header used to carry
+  The paper's name is a folio, not a nameplate: Fraunces 17 with the date beside it and
+  the edition picker at the right, above the frame's top rule. The daily Haiku headline is
+  the page's only display type (and its `<h1>`) at 54px desktop, balanced-wrapped, with the
+  score a step under it at 46px — one ladder instead of a nameplate, a headline and a score
+  all competing. The metadata the header used to carry
   lives in the sections that own it: opponent/venue/date as a teal dateline opening the
   Recap, the starter's line (name + IP/K/ER stat pairs) opening Pitching.
 

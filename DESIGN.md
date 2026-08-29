@@ -75,11 +75,11 @@ in the Fraunces stack.
 
 | Role | Face | Weight | Size | Notes |
 |------|------|--------|------|-------|
-| Nameplate | Fraunces | 900 | clamp(40px, 12vw, 64px) | `opsz` 9, −1px tracking |
-| Daily headline (lede) | Fraunces | 900 | 40px desktop / clamp(26px, 7.5vw, 34px) mobile | `opsz` 9 |
+| Folio (paper name) | Fraunces | 900 | 17px | `opsz` 9; a running head, not a nameplate |
+| Daily headline (lede) | Fraunces | 900 | 54px desktop / clamp(30px, 8.5vw, 40px) mobile | `opsz` 9, `text-wrap: balance` |
 | Section label | Fraunces | 900 | 15px well / 12px rail | Uppercase, `opsz` 40, 0.16em / 0.18em tracking |
 | Card headline | Fraunces | 900 | 22px | On This Day, Next Game matchup |
-| Score | Fraunces | 900 | 54px | `opsz` 9; flanked by 22px team abbreviations |
+| Score | Fraunces | 900 | 46px desktop / 40px mobile | `opsz` 9; flanked by 20/18px team abbreviations |
 | Line score totals (R) | Fraunces | 900 | 15px | Tabular; H/E fall back to Inter |
 | Body copy | Inter | 400 | 17px | Justified with `hyphens: auto` in column flow |
 | Player note / league context | Inter | 400 italic | 14px | The only italic on the page — see below |
@@ -118,7 +118,7 @@ work:
 
 | Where | What it is |
 |---|---|
-| Masthead and footer | The frame of the paper |
+| Under the folio, and the footer | The frame of the paper |
 | Section flags, well and rail (`SectionHead`) | The one line that opens a section |
 | Edition button, Refresh button | Affordances — this is a control |
 | Error box | A state, and a rare one |
@@ -161,6 +161,42 @@ the alignment that lets the gutter between them go unruled.
 **The score block has no flag at all.** It is the front page; labelling it "Last
 Game" told the reader something they could already see, and cost the page its
 top-of-page. The headline runs straight into the score.
+
+### One display voice: the folio and the headline
+
+The page used to open with a 64px centred nameplate and then a 46px headline —
+two pieces of display Fraunces stacked one on the other, so the reader had to
+work out which one was the page. The score, at 54px, was larger than both. Three
+things competing to be the loudest, and the one that was actually new — the
+headline — was the smallest of them.
+
+The paper's name is the same every morning. The headline is the only thing on
+the page that is new, so it takes the display and the name runs as a **folio**:
+the small line a newspaper sets along the top of a page. Paper name in Fraunces
+17, today's date beside it in Inter 12, the edition button at the right, and the
+frame's rule underneath — a folio runs *above* the rule, which also means the
+one line at the top of the page is the line that opens the headline.
+
+The result is a single ladder, each step visibly under the one above it:
+
+| Step | Size | What it is |
+|---|---|---|
+| Headline | 54 / clamp(30–40) | The day's story — the page's voice |
+| Score | 46 / 40 | The fact it reports |
+| Section flag | 15 well / 12 rail | Where you are |
+| Folio | 17 (Fraunces), 12 (date) | Which paper, which day |
+
+The folio outranks the section flags in raw point size and still reads below
+them, because it is one line at the top of the page above the frame rule rather
+than a flag opening a column — position and rule do that work, not size.
+
+`text-wrap: balance` sets the headline, so a two-line head breaks into two even
+lines instead of a long line and an orphan. The headline is also the page's
+`<h1>` now; the paper's name is a plain wordmark in the folio, which is the
+right semantic order for a page about one game.
+
+It costs the page its one centred element, so everything hangs off the same left
+margin as the columns beneath it.
 
 ### The header: the headline and the score, nothing else
 

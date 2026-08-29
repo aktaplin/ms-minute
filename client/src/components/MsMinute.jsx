@@ -193,11 +193,18 @@ function LineScoreCard({ ls, teamAbbr, oppAbbr, t }) {
 // so the score says who as well as how many, and the result tag closes it. Ours
 // is set in navy, theirs in the secondary ink — the same ranking the score
 // order already makes, said twice so it survives a glance.
+//
+// The figures sit a step under the headline (46 against 54 on desktop) rather
+// than level with it. Two pieces of display Fraunces at the same size, a
+// hundred pixels apart, is the same argument the old nameplate was having with
+// the headline: the story is the page's voice, and the score is the fact it
+// reports. A numeral also reads optically smaller than a line of text at the
+// same size, so the gap is smaller than it measures.
 function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
   const abbr = (text, mine) => (
     <span style={{
-      fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, letterSpacing: '0.02em',
+      fontFamily: FRAUNCES, fontSize: wide ? 20 : 18, fontWeight: 900, letterSpacing: '0.02em',
       color: mine ? t.navy : INK2, ...OPSZ9,
     }}>
       {text}
@@ -207,7 +214,7 @@ function ScoreCard({ data, teamAbbr, t, wide = false }) {
     <div style={{ marginTop: wide ? 26 : 22 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
         {abbr(teamAbbr, true)}
-        <span style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
+        <span style={{ fontFamily: FRAUNCES, fontSize: wide ? 46 : 40, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
           {data.mScore}–{data.oScore}
         </span>
         {abbr(data.oppAbbr, false)}
@@ -879,9 +886,9 @@ function SkeletonLine({ w = '100%', h = 11, mt = 8 }) {
 function LoadingEdition({ isDesktop }) {
   const header = (
     <>
-      <SkeletonLine w="88%" h={isDesktop ? 44 : 30} mt={26} />
-      <SkeletonLine w="58%" h={isDesktop ? 44 : 30} />
-      <SkeletonLine w="34%" h={54} mt={22} />
+      <SkeletonLine w="88%" h={isDesktop ? 50 : 34} mt={30} />
+      <SkeletonLine w="62%" h={isDesktop ? 50 : 34} />
+      <SkeletonLine w="38%" h={isDesktop ? 46 : 40} mt={26} />
     </>
   );
   const well = (
@@ -1275,18 +1282,34 @@ export default function MsMinute() {
       <div style={{ background: PAPER, minHeight: '100vh', color: INK }}>
         <div style={{ maxWidth: isDesktop ? 1140 : 520, margin: '0 auto', padding: isDesktop ? '0 28px 64px' : '0 20px 64px' }}>
 
-          {/* Masthead */}
-          <div style={{ paddingTop: 28 }}>
-            <div style={{ height: 1, background: ink(t.navy, RULE), marginBottom: 16 }} />
-            <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          {/* Masthead, as a folio rather than a nameplate.
+
+              A 64px centred nameplate and a 46px headline are two pieces of
+              display Fraunces stacked one on top of the other, and the reader
+              has to decide which one is the page. The paper's name is the same
+              every morning; the headline is the only thing on the page that is
+              new. So the name runs as a folio — the small line a newspaper sets
+              along the top of a page — and the headline takes the display.
+
+              It also loses the page its one centred element, so everything now
+              hangs off the same left margin as the columns beneath it. */}
+          <div style={{ paddingTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FRAUNCES, fontSize: 17, fontWeight: 900, color: t.navy, letterSpacing: '-0.2px', ...OPSZ9 }}>
+                  {brandTitle}
+                </span>
+                <span style={{ fontSize: 12, color: MUTED, fontFamily: INTER }}>
+                  {todayFormatted()}
+                </span>
+              </div>
               <button
                 onClick={() => teams && setPickerOpen(true)}
                 disabled={!teams}
                 style={{
-                  minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
-                  color: t.teal, border: 'none', borderBottom: `1px solid ${ink(t.teal, RULE)}`,
-                  background: 'transparent',
-                  padding: '12px 22px 10px', display: 'inline-flex', alignItems: 'center', gap: 12,
+                  minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                  color: t.teal, border: 'none', background: 'transparent',
+                  padding: '10px 0', display: 'inline-flex', alignItems: 'center', gap: 8,
                   cursor: teams ? 'pointer' : 'default', fontFamily: INTER,
                 }}
                 // Name the edition that's loaded, then the action. The bare
@@ -1294,26 +1317,24 @@ export default function MsMinute() {
                 // reader never learned which paper it was reading.
                 aria-label={editionLabel ? `${editionLabel} edition — choose a different edition` : 'Choose edition'}
               >
-                {editionLabel || ' '}
+                {editionLabel || ' '}
                 {teams && (
                   <svg
                     aria-hidden="true"
-                    width="18" height="18" viewBox="0 0 24 24"
+                    width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor"
                     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ marginLeft: 4, flexShrink: 0 }}
+                    style={{ flexShrink: 0 }}
                   >
                     <polyline points="6 9 12 16 18 9" />
                   </svg>
                 )}
               </button>
             </div>
-            <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
-              {brandTitle}
-            </h1>
-            <div style={{ textAlign: 'center', fontSize: 13, color: MUTED, fontFamily: INTER }}>
-              {todayFormatted()}
-            </div>
+            {/* The frame's top rule sits under the folio, not over it — a folio
+                runs above the rule, and this way the one line at the top of the
+                page is also what opens the headline. */}
+            <div style={{ height: 1, background: ink(t.navy, RULE), marginTop: 8 }} />
           </div>
 
           {/* Error — nothing loaded. Say what happened in the reader's terms and
@@ -1339,9 +1360,9 @@ export default function MsMinute() {
           {data && !isDesktop && (
             <>
               {data.headline && (
-                <h2 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(26px, 7.5vw, 34px)', fontWeight: 900, color: t.navy, lineHeight: 1.15, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(30px, 8.5vw, 40px)', fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '30px 0 0', textWrap: 'balance', ...OPSZ9 }}>
                   {data.headline}
-                </h2>
+                </h1>
               )}
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
               <NarrativeCard text={data.narrative} game={data.gameData} t={t} />
@@ -1365,9 +1386,9 @@ export default function MsMinute() {
           {data && isDesktop && (
             <>
               {data.headline && (
-                <h2 style={{ fontFamily: FRAUNCES, fontSize: 46, fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                <h1 style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1.08, letterSpacing: '-0.8px', margin: '34px 0 0', textWrap: 'balance', ...OPSZ9 }}>
                   {data.headline}
-                </h2>
+                </h1>
               )}
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} wide />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
