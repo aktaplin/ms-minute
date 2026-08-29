@@ -79,7 +79,7 @@ in the Fraunces stack.
 | Daily headline (lede) | Fraunces | 900 | 40px desktop / clamp(26px, 7.5vw, 34px) mobile | `opsz` 9 |
 | Section label | Fraunces | 900 | 15px well / 12px rail | Uppercase, `opsz` 40, 0.16em / 0.18em tracking |
 | Card headline | Fraunces | 900 | 22px | On This Day, Next Game matchup |
-| Score | Fraunces | 900 | 54px | `opsz` 9 |
+| Score | Fraunces | 900 | 54px | `opsz` 9; flanked by 22px team abbreviations |
 | Line score totals (R) | Fraunces | 900 | 15px | Tabular; H/E fall back to Inter |
 | Body copy | Inter | 400 | 17px | Justified with `hyphens: auto` in column flow |
 | Player note / league context | Inter | 400 italic | 14px | The only italic on the page — see below |
@@ -162,39 +162,66 @@ the alignment that lets the gutter between them go unruled.
 Game" told the reader something they could already see, and cost the page its
 top-of-page. The headline runs straight into the score.
 
-### The desktop header band
+### The header: the headline and the score, nothing else
 
-On desktop the lede and the score card run the full page width; the main well and
-the rail open below them, so the columns start together at Recap / Standings. The
-score card takes a `wide` variant there, splitting its meta in three — score,
-matchup, starter.
+On desktop the lede and the score run the full page width; the main well and the
+rail open below them, so the columns start together at Recap / Standings.
 
-**The panels are sized to what they hold, not to percentages of the band.** A
-column set at 30% under a 130px numeral opens a 200px hole beside the score, and
-a second one beside the venue; the band then reads as three boxes floating in
-white space rather than one line of type. So each panel takes `flex: 0 0 auto`
-and `justify-content: space-between` collects the slack into two even gutters:
-the score holds the left margin, the starter closes the band against the right,
-and the matchup sits between them.
+The header holds two things. It used to carry the opponent's name, the venue,
+the date and the starter's line as well, in three panels that had to be
+rebalanced twice to stop them stranding white space — which was the tell. The
+band was holding four different kinds of thing and composing none of them: a
+result, an identity, a time and place, and a pitcher's stat line, each wanting a
+different treatment and all of them set as columns of small grey type beside a
+54px numeral.
 
-Two things keep the band short and its bottom even:
+Everything but the score moved to the section that owns it:
 
-- **The result tag rides beside the score**, not under it. Stacked, it hung 40px
-  below every other panel and left the band ragged along the bottom; beside the
-  numeral it fills the left panel's width and reads the way a scoreboard does —
-  `9–2  WIN` across, not down.
-- **Venue and date set on one line**, split by a middot. Stacked they made a
-  narrow three-line column in the middle of a 1,080px band, which is what the
-  hole beside it was made of. The phone keeps them stacked: at a 390px measure
-  one line would only wrap.
+| What | Where it went |
+|---|---|
+| Opponent, venue, date | The Recap's **dateline** |
+| Starter's line | The top of **Pitching**, the section about him |
 
-The phone's score panel is sized to its content for the same reason — at 42% of
-the width it held a 100px numeral and pushed the starter line into a second
-line.
+A reader looking for the venue is reading the recap; a reader looking for the
+starter's line is reading about the pitching. Neither was ever looking at the
+top of the page for it.
 
-The band carries no closing rule. The Recap and Standings flags sit at the same
-height directly beneath it and read as one broken line across the page, which is
-the boundary; a rule above them would be a second one saying the same thing.
+### Score block
+
+A scoreboard line: the team abbreviations flank the figures — `SEA 9–2 TEX` —
+with the result tag closing it, all on one baseline. The abbreviations are
+Fraunces 22 against the 54px score; ours sets in navy and theirs in INK2, the
+same ranking the score order already makes, said a second way so it survives a
+glance.
+
+Flanking the score with the abbreviations is what let the header lose everything
+else: the block now says who as well as how many, so it no longer needs a
+matchup line under it. It wraps at the tag on a very narrow phone, and on mobile
+the **line score** sits 26px beneath; on desktop the line score leaves the card
+and runs as its own flagged section in the well (see below).
+
+### The Recap dateline
+
+The Recap opens the way a wire story does, with a teal small-caps dateline —
+opponent, venue, date — set on its own line above the prose. It is the same
+device Next Game uses to mark itself as ahead in time; here it marks what game
+the prose is about, which is exactly the metadata the header used to spend three
+panels on.
+
+Set on its own line, not run into the first sentence. The authentic form runs it
+in, but the Recap justifies in two columns and a tracked uppercase run inside
+justified text pulls the word spacing apart on whatever line it lands in. Each
+part is `white-space: nowrap` so a narrow measure breaks at a middot rather than
+orphaning the day of the month.
+
+### Pitching
+
+Opens with the starter's line — name at the left, then IP / K / ER as stat
+pairs, grouped beside the name rather than pushed to the far edge of the well.
+It is the same idiom a batter's row uses in At the Plate, so the two player
+sections rhyme instead of each inventing a format. The line sits above the
+column flow, as a header for the whole card; the starter prose, the pitch
+arsenal rows and the bullpen note flow in two columns beneath it.
 
 ### Cards
 
@@ -278,7 +305,8 @@ something rather than divides something, and it now reads that way.
 
 ### Next Game
 
-Opens like a dispatch: a teal small-caps **dateline** (day · first pitch), then the
+Opens like a dispatch: a teal small-caps **dateline** (day · first pitch) — the
+same device the Recap opens with — then the
 matchup in Fraunces 22, then opponent and venue, then the probable pitcher after a
 14px gap, opened by its own teal `PROBABLE` label. The dateline is what marks the
 card as ahead in time — no accent bar.

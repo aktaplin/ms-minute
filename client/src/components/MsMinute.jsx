@@ -181,83 +181,44 @@ function LineScoreCard({ ls, teamAbbr, oppAbbr, t }) {
 // No section flag here: this is the front page, and the one block nobody needs
 // labelled. The headline runs straight into the score.
 //
-// `wide` is the desktop header band, where the card runs the full page width
-// instead of the main well's. The meta splits in three — score, matchup,
-// starter — but the panels are sized to what they hold rather than to
-// percentages of the band: a 30% column under a 130px numeral opened a
-// 200px hole beside the score, and a second one beside the venue. Now the
-// score and matchup take their natural width, the slack collects in one
-// gutter, and the starter closes the band against the right margin, so the
-// three panels read as one line of type instead of three floating boxes.
+// The header holds the headline and the score. That is the whole band. It used
+// to carry the opponent's name, the venue, the date and the starter's line as
+// well, in three panels that had to be shuffled to stop them stranding white
+// space — which was the tell: the band was holding four different kinds of
+// thing and composing none of them. The rest has gone to the sections that own
+// it (the venue, date and opponent to the Recap's dateline; the starter to the
+// top of Pitching), where a reader looking for it would think to look anyway.
 //
-// The result tag rides beside the score on the wide band for the same reason:
-// stacked under it, it hung forty pixels below everything else and left the
-// band with a ragged bottom. It belongs with the numeral anyway — a scoreboard
-// reads 9–2 WIN across, not down.
+// What is left is a scoreboard line: the team abbreviations flank the figures,
+// so the score says who as well as how many, and the result tag closes it. Ours
+// is set in navy, theirs in the secondary ink — the same ranking the score
+// order already makes, said twice so it survives a glance.
 function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
-  const starter = data.startingPitcher;
-  const starterLabel = { color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' };
-  const tag = (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
-      {data.won ? (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      ) : (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-      )}
-      {data.won ? 'Win' : 'Loss'}
-    </div>
-  );
-  const score = (
-    <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
-      {data.mScore}–{data.oScore}
-    </div>
+  const abbr = (text, mine) => (
+    <span style={{
+      fontFamily: FRAUNCES, fontSize: 22, fontWeight: 900, letterSpacing: '0.02em',
+      color: mine ? t.navy : INK2, ...OPSZ9,
+    }}>
+      {text}
+    </span>
   );
   return (
-    <div style={{ marginTop: wide ? 22 : 18 }}>
-      <div style={{ display: 'flex', gap: wide ? 40 : 24, justifyContent: wide ? 'space-between' : 'flex-start' }}>
-        <div style={{ flex: '0 0 auto' }}>
-          {wide ? (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
-              {score}
-              {tag}
-            </div>
+    <div style={{ marginTop: wide ? 26 : 22 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+        {abbr(teamAbbr, true)}
+        <span style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
+          {data.mScore}–{data.oScore}
+        </span>
+        {abbr(data.oppAbbr, false)}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 4, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
+          {data.won ? (
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           ) : (
-            <div style={{ marginBottom: 6 }}>{score}</div>
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           )}
-          <div style={{ fontSize: 13, color: INK2, marginBottom: wide ? 0 : 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-          {!wide && tag}
-        </div>
-        <div style={{ flex: wide ? '0 1 auto' : 1 }}>
-          <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 7 }}>{data.oppName}</div>
-          {/* Wide: venue and date set on one line. Stacked, they made a narrow
-              three-line column in the middle of a 1,080px band, which is what
-              the hole beside it was made of. The phone keeps them stacked —
-              there the measure is 390px and one line would wrap anyway. */}
-          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.75 }}>
-            {wide ? (
-              <div>{data.venue} · {data.gameDate}</div>
-            ) : (
-              <>
-                <div>{data.venue}</div>
-                <div>{data.gameDate}</div>
-              </>
-            )}
-          </div>
-          {starter && !wide && (
-            <div style={{ marginTop: 16, fontSize: 13, color: INK2 }}>
-              <span style={starterLabel}>Starter: </span>
-              {starter.name} · {starter.ip} IP · {starter.k} K · {starter.er} ER
-            </div>
-          )}
-        </div>
-        {wide && starter && (
-          <div style={{ flex: '0 0 auto', textAlign: 'right' }}>
-            <div style={{ ...starterLabel, marginBottom: 7 }}>Starter</div>
-            <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, marginBottom: 4 }}>{starter.name}</div>
-            <div style={{ fontSize: 13, color: INK2 }}>{starter.ip} IP · {starter.k} K · {starter.er} ER</div>
-          </div>
-        )}
+          {data.won ? 'Win' : 'Loss'}
+        </span>
       </div>
       {!wide && (
         <div style={{ marginTop: 26 }}>
@@ -268,7 +229,48 @@ function ScoreCard({ data, teamAbbr, t, wide = false }) {
   );
 }
 
-function NarrativeCard({ text, t, columns = false }) {
+// A dateline, in the paper's existing form — the same teal small caps Next Game
+// opens with. It carries what the header used to: who, where, when. Set on its
+// own line above the prose rather than run into it, because the Recap justifies
+// in two columns and a tracked uppercase run inside justified text pulls the
+// spacing apart on the line it lands in.
+function Dateline({ game, t }) {
+  const parts = [game?.oppName, game?.venue, game?.gameDate].filter(Boolean);
+  if (!parts.length) return null;
+  return (
+    <div style={{
+      fontFamily: INTER, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+      textTransform: 'uppercase', color: t.teal, marginBottom: 12, lineHeight: 1.6,
+    }}>
+      {/* Each part breaks as a unit, so a narrow measure wraps at a separator
+          instead of orphaning the day of the month onto a line of its own. */}
+      {parts.map((part, i) => (
+        <Fragment key={part}>
+          {i > 0 && ' · '}
+          <span style={{ whiteSpace: 'nowrap' }}>{part}</span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+// Value over its teal small-caps label, right-aligned, held apart by a gutter.
+// At the Plate opens each batter with these and Pitching opens with the
+// starter's, so the two player sections read in the same idiom.
+function StatPairs({ stats, t, gap = 18 }) {
+  return (
+    <div style={{ display: 'flex', gap, flexShrink: 0 }}>
+      {stats.map(s => (
+        <div key={s.lbl} style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
+          <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 3 }}>{s.lbl}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NarrativeCard({ text, game, t, columns = false }) {
   if (!text) return null;
   // On desktop the recap flows in two newspaper columns, split by the gutter
   const columnStyle = columns
@@ -277,6 +279,7 @@ function NarrativeCard({ text, t, columns = false }) {
   return (
     <div>
       <SectionHead label="Recap" t={t} />
+      <Dateline game={game} t={t} />
       <p style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto', ...columnStyle }}>
         <EmText text={text} />
       </p>
@@ -303,19 +306,7 @@ function OffenseCard({ players, t, columns = false }) {
                 <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: t.teal, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
               </div>
-              {/* Stat pairs, not stat chips: twelve little boxes on a page of
-                  four batters was the densest ink in the paper, and a boxed 15px
-                  numeral is no easier to read than a bold one. The figure sits
-                  over its teal small-caps label, and the gutter holds the pairs
-                  apart. */}
-              <div style={{ display: 'flex', gap: 18, flexShrink: 0 }}>
-                {p.stats.map(s => (
-                  <div key={s.lbl} style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
-                    <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 3 }}>{s.lbl}</div>
-                  </div>
-                ))}
-              </div>
+              <StatPairs stats={p.stats} t={t} />
             </div>
             {p.note && (
               <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>
@@ -367,9 +358,10 @@ function PitchMixRow({ p, isLast, t }) {
   );
 }
 
-function PitchingCard({ data, t, columns = false }) {
+function PitchingCard({ data, starter, t, columns = false }) {
   const pitches = data?.arsenal?.pitches;
-  if (!data || (!data.starter && !data.bullpen && !pitches?.length)) return null;
+  const hasProse = data && (data.starter || data.bullpen || pitches?.length);
+  if (!hasProse && !starter) return null;
   const paragraph = {
     fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK,
     textAlign: 'justify', hyphens: 'auto', margin: 0,
@@ -383,6 +375,26 @@ function PitchingCard({ data, t, columns = false }) {
   return (
     <div>
       <SectionHead label="Pitching" t={t} />
+      {/* The starter's line, off the header band and onto the section that is
+          about him. It opens exactly the way a batter's row opens in At the
+          Plate — name at the left, figures over their labels at the right — so
+          the two player sections rhyme instead of each inventing a format.
+          Set above the column flow, as a header for the whole card — and grouped
+          left rather than pushed apart, because at the full width of the well
+          `space-between` would strand the figures 700px from the name. */}
+      {starter && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
+          <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{starter.name}</span>
+          <StatPairs
+            t={t}
+            stats={[
+              { val: starter.ip, lbl: 'IP' },
+              { val: starter.k, lbl: 'K' },
+              { val: starter.er, lbl: 'ER' },
+            ]}
+          />
+        </div>
+      )}
       <div style={columnStyle}>
         {data.starter && (
           <p style={{ ...paragraph, marginBottom: (pitches?.length || data.bullpen) ? 14 : 0 }}>
@@ -1332,9 +1344,9 @@ export default function MsMinute() {
                 </h2>
               )}
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
-              <NarrativeCard text={data.narrative} t={t} />
+              <NarrativeCard text={data.narrative} game={data.gameData} t={t} />
               <OffenseCard players={data.offense} t={t} />
-              <PitchingCard data={data.pitching} t={t} />
+              <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} />
               <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <OnThisDayCard data={data.onThisDay} t={t} />
@@ -1360,10 +1372,10 @@ export default function MsMinute() {
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} wide />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
                 <div style={{ paddingRight: 44 }}>
-                  <NarrativeCard text={data.narrative} t={t} columns />
+                  <NarrativeCard text={data.narrative} game={data.gameData} t={t} columns />
                   <LineScoreCard ls={data.gameData.lineScore} teamAbbr={data.teamAbbr} oppAbbr={data.gameData.oppAbbr} t={t} />
                   <OffenseCard players={data.offense} t={t} columns />
-                  <PitchingCard data={data.pitching} t={t} columns />
+                  <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} columns />
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
