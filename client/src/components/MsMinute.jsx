@@ -9,6 +9,23 @@ const LGREY   = '#C8D4DC';
 const WIN_RED   = '#8B1A1A';
 const WIN_GREEN = '#245C3B';
 
+// Rules are structure, not content, so the page sets them at one hairline
+// weight and varies only the ink — the edition's own navy, dialled back, so a
+// rule separates the type on either side of it without competing with either.
+// Three steps, and no fourth: the frame of the page, the rail's subordinate
+// flags, and the hairlines inside a table or a card.
+//
+// Vertical rules are gone. Every column break on the page — the well from the
+// rail, the two newspaper columns inside a block, the innings from the totals —
+// is held by a gutter instead, which does the same work without the ink.
+const RULE = 0.55;
+const RULE_SOFT = 0.3;
+const HAIR = 0.14;
+function ink(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 const FRAUNCES = "'Fraunces', Georgia, serif";
 const INTER    = "'Inter', system-ui, sans-serif";
 const OPSZ9    = { fontVariationSettings: "'opsz' 9" };
@@ -48,15 +65,16 @@ function EmText({ text }) {
   return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
 }
 
-// Section flag, in two weights. The main well gets the heavy flag (2px rule,
-// 15px label); the rail gets a lighter one, so the sidebar reads as subordinate
-// to the front page instead of claiming equal rank with it. `first` pulls the
-// top margin back to the headline's, so the rail's opening rule registers
-// against the lede across the vertical rule — the alignment a broadsheet lives on.
-function SectionHead({ label, t, rail = false, first = false }) {
+// Section flag, in two inks. Same hairline, same label face; the main well's
+// flag is set at full rule ink and 15px, the rail's at RULE_SOFT and 12px, so
+// the sidebar reads as subordinate to the front page instead of claiming equal
+// rank with it. Both take the same top margin, so where the two columns open
+// the rail's rule registers against the well's — the alignment a broadsheet
+// lives on, and the reason neither column needs a rule between them.
+function SectionHead({ label, t, rail = false }) {
   return (
-    <div style={{ marginTop: first ? 26 : 40, marginBottom: rail ? 10 : 14 }}>
-      <div style={{ height: rail ? 1 : 2, background: t.navy }} />
+    <div style={{ marginTop: 40, marginBottom: rail ? 10 : 14 }}>
+      <div style={{ height: 1, background: ink(t.navy, rail ? RULE_SOFT : RULE) }} />
       <div style={{ paddingTop: rail ? 6 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
@@ -78,7 +96,8 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
 
   const head = {
     fontFamily: INTER, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-    color: t.teal, padding: '0 0 5px', textAlign: 'center', minWidth: 22,
+    color: t.teal, padding: '0 0 7px', textAlign: 'center', minWidth: 22,
+    borderBottom: `1px solid ${ink(t.navy, HAIR)}`,
   };
   const cell = {
     fontFamily: INTER, fontSize: 13, textAlign: 'center', padding: '5px 0',
@@ -89,20 +108,20 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
   };
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${t.navy}`, overflowX: 'auto' }}>
+    <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 300 }}>
         <thead>
           <tr>
             <th scope="col" style={{ ...head, textAlign: 'left', minWidth: 42 }}><span style={SR_ONLY}>Team</span></th>
             {ls.innings.map(i => <th scope="col" key={i.num} style={head}>{i.num}</th>)}
             {['R', 'H', 'E'].map((h, i) => (
-              <th scope="col" key={h} style={{ ...head, color: t.navy, borderLeft: i === 0 ? `1px solid ${t.navy}` : 'none', paddingLeft: i === 0 ? 8 : 0 }}>{h}</th>
+              <th scope="col" key={h} style={{ ...head, color: t.navy, paddingLeft: i === 0 ? 26 : 0 }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map(r => (
-            <tr key={r.abbr} style={{ borderTop: `1px solid ${PAPER2}` }}>
+            <tr key={r.abbr}>
               <td style={{
                 fontFamily: r.isMine ? FRAUNCES : INTER, fontSize: r.isMine ? 15 : 13,
                 fontWeight: r.isMine ? 900 : 600, color: r.isMine ? t.navy : INK2,
@@ -126,8 +145,7 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
                   fontSize: i === 0 ? 15 : 13,
                   fontFamily: i === 0 ? FRAUNCES : INTER,
                   fontWeight: i === 0 ? 900 : 400,
-                  borderLeft: i === 0 ? `1px solid ${t.navy}` : 'none',
-                  paddingLeft: i === 0 ? 8 : 0,
+                  paddingLeft: i === 0 ? 26 : 0,
                 }}>
                   {v ?? '—'}
                 </td>
@@ -140,14 +158,37 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
   );
 }
 
+// On desktop the line score is a section of its own down in the well, set
+// under the recap: the prose says the Phillies scored two in the first and four
+// in the second, and the grid directly beneath it shows the shape of that. It
+// keeps the header band to the two things a reader wants in one second — what
+// happened, and the final — and it keeps the table at a readable measure.
+function LineScoreCard({ ls, teamAbbr, oppAbbr, t }) {
+  if (!ls?.innings?.length) return null;
+  return (
+    <div>
+      <SectionHead label="Line Score" t={t} />
+      <LineScore ls={ls} teamAbbr={teamAbbr} oppAbbr={oppAbbr} t={t} />
+    </div>
+  );
+}
+
 // No section flag here: this is the front page, and the one block nobody needs
 // labelled. The headline runs straight into the score.
-function ScoreCard({ data, teamAbbr, t }) {
+//
+// `wide` is the desktop header band, where the card runs the full page width
+// instead of the main well's. Two panels stretched across 1,080px would strand
+// a column of white space beside four short lines, so the meta splits in three:
+// score, matchup, starter — held apart by the gutters between them, and the
+// line score drops out to run as its own section down in the well.
+function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
+  const starter = data.startingPitcher;
+  const starterLabel = { color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' };
   return (
     <div style={{ marginTop: 18 }}>
-      <div style={{ display: 'flex' }}>
-        <div style={{ flex: '0 0 44%', paddingRight: 18, borderRight: `1px solid ${t.navy}` }}>
+      <div style={{ display: 'flex', gap: wide ? 56 : 24 }}>
+        <div style={{ flex: wide ? '0 0 30%' : '0 0 42%' }}>
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
             {data.mScore}–{data.oScore}
           </div>
@@ -161,30 +202,41 @@ function ScoreCard({ data, teamAbbr, t }) {
             {data.won ? 'Win' : 'Loss'}
           </div>
         </div>
-        <div style={{ flex: 1, paddingLeft: 18 }}>
+        <div style={{ flex: 1 }}>
           <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 10 }}>{data.oppName}</div>
           <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
             <div>{data.venue}</div>
             <div>{data.gameDate}</div>
           </div>
-          {data.startingPitcher && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 13, color: INK2 }}>
-              <span style={{ color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
-              {data.startingPitcher.name} · {data.startingPitcher.ip} IP · {data.startingPitcher.k} K · {data.startingPitcher.er} ER
+          {starter && !wide && (
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${ink(t.navy, HAIR)}`, fontSize: 13, color: INK2 }}>
+              <span style={starterLabel}>Starter: </span>
+              {starter.name} · {starter.ip} IP · {starter.k} K · {starter.er} ER
             </div>
           )}
         </div>
+        {wide && starter && (
+          <div style={{ flex: '0 0 26%' }}>
+            <div style={{ ...starterLabel, marginBottom: 8 }}>Starter</div>
+            <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, marginBottom: 4 }}>{starter.name}</div>
+            <div style={{ fontSize: 13, color: INK2 }}>{starter.ip} IP · {starter.k} K · {starter.er} ER</div>
+          </div>
+        )}
       </div>
-      <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
+      {!wide && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${ink(t.navy, RULE)}` }}>
+          <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
+        </div>
+      )}
     </div>
   );
 }
 
 function NarrativeCard({ text, t, columns = false }) {
   if (!text) return null;
-  // On desktop the recap flows in two newspaper columns with a hairline rule
+  // On desktop the recap flows in two newspaper columns, split by the gutter
   const columnStyle = columns
-    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    ? { columnCount: 2, columnGap: 44 }
     : {};
   return (
     <div>
@@ -202,14 +254,14 @@ function OffenseCard({ players, t, columns = false }) {
   // newspaper columns — same treatment as NarrativeCard. Each batter block is
   // kept whole so a name never splits from its stat boxes.
   const columnStyle = columns
-    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    ? { columnCount: 2, columnGap: 44 }
     : { display: 'flex', flexDirection: 'column' };
   return (
     <div>
       <SectionHead label="At the Plate" t={t} />
       <div style={columnStyle}>
         {players.map((p, i) => (
-          <div key={p.name} style={{ breakInside: 'avoid', paddingBottom: 12, marginBottom: i < players.length - 1 ? 12 : 0, borderBottom: i < players.length - 1 ? `1px solid ${PAPER2}` : 'none' }}>
+          <div key={p.name} style={{ breakInside: 'avoid', paddingBottom: 12, marginBottom: i < players.length - 1 ? 12 : 0, borderBottom: i < players.length - 1 ? `1px solid ${ink(t.navy, HAIR)}` : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
@@ -217,7 +269,7 @@ function OffenseCard({ players, t, columns = false }) {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 {p.stats.map(s => (
-                  <div key={s.lbl} style={{ border: `1px solid ${t.navy}`, padding: '2px 7px', textAlign: 'center', minWidth: 32 }}>
+                  <div key={s.lbl} style={{ border: `1px solid ${ink(t.navy, RULE)}`, padding: '2px 7px', textAlign: 'center', minWidth: 32 }}>
                     <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: t.navy, lineHeight: 1.1 }}>{s.val}</div>
                     <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
                   </div>
@@ -241,7 +293,7 @@ function OffenseCard({ players, t, columns = false }) {
 // the numbers carry it.
 function PitchMixRow({ p, isLast, t }) {
   return (
-    <div style={{ paddingBottom: 8, marginBottom: isLast ? 0 : 8, borderBottom: isLast ? 'none' : `1px solid ${PAPER2}` }}>
+    <div style={{ breakInside: 'avoid', paddingBottom: 8, marginBottom: isLast ? 0 : 8, borderBottom: isLast ? 'none' : `1px solid ${ink(t.navy, HAIR)}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
         <span style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: t.navy }}>{p.name}</span>
         {p.avgVelo != null && (
@@ -285,7 +337,7 @@ function PitchingCard({ data, t, columns = false }) {
   // flow together in two newspaper columns, which balances the card's height
   // instead of leaving the neighbouring column short.
   const columnStyle = columns
-    ? { columnCount: 2, columnGap: 32, columnRule: `1px solid ${PAPER2}` }
+    ? { columnCount: 2, columnGap: 44 }
     : {};
   return (
     <div>
@@ -313,15 +365,15 @@ function PitchingCard({ data, t, columns = false }) {
 
 // Archival-clipping treatment: hairline box on aged paper — double rules stay
 // exclusive to zone banners.
-function OnThisDayCard({ data, t, rail = false, first = false }) {
+function OnThisDayCard({ data, t, rail = false }) {
   if (!data) return null;
   const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric',
   });
   return (
     <div>
-      <SectionHead label="On This Day" t={t} rail={rail} first={first} />
-      <div style={{ background: PAPER2, border: `1px solid ${t.navy}`, padding: '16px 18px' }}>
+      <SectionHead label="On This Day" t={t} rail={rail} />
+      <div style={{ background: PAPER2, border: `1px solid ${ink(t.navy, RULE)}`, padding: '16px 18px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
           {dateLabel}, {data.year}
         </div>
@@ -339,7 +391,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
   // On desktop the card runs the full well width, so the body text flows in two
   // newspaper columns to keep the measure readable — same treatment as NarrativeCard.
   const columnStyle = columns
-    ? { columnCount: 2, columnGap: 28, columnRule: '1px solid rgba(168,200,200,0.2)' }
+    ? { columnCount: 2, columnGap: 40 }
     : {};
   return (
     <div>
@@ -360,7 +412,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
         </div>
 
         {(stat.value || stat.player) && (
-          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(168,200,200,0.2)' }}>
+          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(168,200,200,0.22)' }}>
             {stat.value && (
               <span style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: PAPER, lineHeight: 1, marginRight: 10, ...OPSZ9 }}>
                 {stat.value}
@@ -380,7 +432,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
           )}
 
           {stat.leagueContext && (
-            <div style={{ borderLeft: `3px solid ${t.lteal}`, paddingLeft: 10, marginBottom: 10, breakInside: 'avoid' }}>
+            <div style={{ marginBottom: 10, breakInside: 'avoid' }}>
               <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.7, color: t.lteal, fontStyle: 'italic', margin: 0 }}>{stat.leagueContext}</p>
             </div>
           )}
@@ -400,7 +452,7 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
   return (
     <div>
       <SectionHead label="Game Highlights" t={t} />
-      <div style={{ border: `1px solid ${t.navy}` }}>
+      <div style={{ border: `1px solid ${ink(t.navy, RULE)}` }}>
         {videoId ? (
           <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
             <iframe
@@ -417,7 +469,7 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
             <div style={{ fontSize: 12, color: t.lteal, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
           </a>
         )}
-        <div style={{ padding: '7px 12px', borderTop: `1px solid ${t.navy}`, fontSize: 12, color: MUTED, fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '7px 12px', borderTop: `1px solid ${ink(t.navy, RULE)}`, fontSize: 12, color: MUTED, fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Official MLB Highlights</span>
           {videoId && (
             <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: t.teal, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
@@ -462,7 +514,7 @@ function Sparkline({ data, color, width = 120, height = 24, fluid = false }) {
 // One standings section, two views. The tables and their data are unchanged —
 // the tabs just decide which one is on the page. Wild card leads, because the
 // race is the live question most days.
-function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = false, first = false }) {
+function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = false }) {
   const hasDivision = !!rows?.length;
   const hasWildCard = !!wildCardRows?.length;
   const [tab, setTab] = useState('wildcard');
@@ -477,9 +529,9 @@ function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = f
 
   return (
     <div>
-      <SectionHead label="Standings" t={t} rail={rail} first={first} />
+      <SectionHead label="Standings" t={t} rail={rail} />
       {tabs.length > 1 && (
-        <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${PAPER2}`, marginBottom: 12 }}>
+        <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${ink(t.navy, HAIR)}`, marginBottom: 12 }}>
           {tabs.map(tb => (
             <button
               key={tb.id}
@@ -516,7 +568,7 @@ function DivisionTable({ rows, t }) {
     <div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
+          <tr style={{ borderBottom: `1px solid ${ink(t.navy, RULE)}` }}>
             {['', 'Team', 'W', 'L', 'GB'].map(h => (
               <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
             ))}
@@ -524,7 +576,7 @@ function DivisionTable({ rows, t }) {
         </thead>
         <tbody>
           {rows.map((t2, i) => (
-            <tr key={t2.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
+            <tr key={t2.name} style={{ borderBottom: `1px solid ${ink(t.navy, HAIR)}` }}>
               <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, width: 20 }}>{i + 1}</td>
               <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: t2.isM ? 700 : 400, color: t2.isM ? t.navy : INK, fontFamily: t2.isM ? FRAUNCES : 'inherit', ...(t2.isM ? OPSZ9 : {}) }}>
                 {t2.isM ? <span>▸ {t2.name}</span> : t2.name}
@@ -622,7 +674,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
 
   const cell = { padding: '7px 4px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
   const row = r => (
-    <tr key={r.name} style={{ borderBottom: `1px solid ${PAPER2}` }}>
+    <tr key={r.name} style={{ borderBottom: `1px solid ${ink(t.navy, HAIR)}` }}>
       <td style={{ padding: '7px 4px', fontSize: 12, color: MUTED, width: 16 }}>{r.rank}</td>
       <td style={{ padding: '7px 4px', fontSize: 14, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
         {r.isM ? <span>▸ {r.name}</span> : r.name}
@@ -643,7 +695,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
       )}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ borderBottom: `1px solid ${t.navy}` }}>
+          <tr style={{ borderBottom: `1px solid ${ink(t.navy, RULE)}` }}>
             {['', 'Team', 'L10', 'W', 'L', 'WCGB'].map(h => (
               <th key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, padding: '4px 4px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : h === 'L10' ? 'center' : 'right' }}>{h}</th>
             ))}
@@ -683,7 +735,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
 // it came from. The teal bar is gone — it now means "aside" and nothing else —
 // so this card carries its own shape instead: a hero figure with the sparkline
 // running the full width beneath it, the way a paper prints a market table.
-function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
+function TitleOddsCard({ data, trend, t, rail = false }) {
   if (!data) return null;
   const pct = (data.impliedProb * 100).toFixed(1);
   const oddsStr = data.medianOdds > 0 ? `+${data.medianOdds}` : String(data.medianOdds);
@@ -695,7 +747,7 @@ function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
   const deltaSign = rising ? '+' : '';
   return (
     <div>
-      <SectionHead label="WS Odds" t={t} rail={rail} first={first} />
+      <SectionHead label="WS Odds" t={t} rail={rail} />
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FRAUNCES, fontSize: 32, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>{pct}%</span>
@@ -704,7 +756,7 @@ function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
         {haveTrend && (
           <div style={{ marginTop: 10 }}>
             <Sparkline data={trend} color={t.navy} fluid height={28} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, borderTop: `1px solid ${PAPER2}`, paddingTop: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, borderTop: `1px solid ${ink(t.navy, HAIR)}`, paddingTop: 5 }}>
               <span style={{ fontSize: 11, color: MUTED, fontFamily: INTER, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                 Last {trend.length} days
               </span>
@@ -726,7 +778,7 @@ function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
 // Forward-looking, so it opens the way a dispatch does: a dateline first — day
 // and first pitch, the two things you actually need — then the matchup, then
 // who's throwing. No teal bar; the dateline is what marks it as ahead in time.
-function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
+function NextGameCard({ data, teamAbbr, t, rail = false }) {
   if (!data) return null;
   const dayLabel = data.date
     ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString('en-US', {
@@ -736,7 +788,7 @@ function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
   const dateline = [dayLabel, data.time].filter(Boolean).join(' · ');
   return (
     <div>
-      <SectionHead label="Next Game" t={t} rail={rail} first={first} />
+      <SectionHead label="Next Game" t={t} rail={rail} />
       <div>
         {dateline && (
           <div style={{ fontFamily: INTER, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, marginBottom: 6 }}>
@@ -751,7 +803,7 @@ function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
           <div style={{ color: MUTED, fontSize: 13 }}>{data.venue}</div>
         </div>
         {data.pitcher && (
-          <div style={{ marginTop: 8, paddingTop: 7, borderTop: `1px solid ${PAPER2}`, fontSize: 13, color: INK2, fontFamily: INTER }}>
+          <div style={{ marginTop: 8, paddingTop: 7, borderTop: `1px solid ${ink(t.navy, HAIR)}`, fontSize: 13, color: INK2, fontFamily: INTER }}>
             <span style={{ color: t.teal, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable </span>
             {data.pitcher}
           </div>
@@ -769,12 +821,16 @@ function SkeletonLine({ w = '100%', h = 11, mt = 8 }) {
 // DESIGN.md always called for these; the `pulse` keyframe had been sitting in
 // the stylesheet unused while a spinner stood in, saying nothing.
 function LoadingEdition({ isDesktop }) {
+  const header = (
+    <>
+      <SkeletonLine w="88%" h={isDesktop ? 44 : 30} mt={26} />
+      <SkeletonLine w="58%" h={isDesktop ? 44 : 30} />
+      <SkeletonLine w="34%" h={54} mt={22} />
+    </>
+  );
   const well = (
     <>
-      <SkeletonLine w="88%" h={isDesktop ? 38 : 30} mt={26} />
-      <SkeletonLine w="58%" h={isDesktop ? 38 : 30} />
-      <SkeletonLine w="34%" h={54} mt={22} />
-      <div style={{ height: 1, background: PAPER2, margin: '20px 0' }} />
+      <div style={{ height: 1, background: PAPER2, margin: isDesktop ? '40px 0 20px' : '20px 0' }} />
       <SkeletonLine mt={0} />
       <SkeletonLine />
       <SkeletonLine />
@@ -783,7 +839,7 @@ function LoadingEdition({ isDesktop }) {
   );
   const rail = (
     <>
-      <SkeletonLine w="44%" h={13} mt={26} />
+      <SkeletonLine w="44%" h={13} mt={isDesktop ? 40 : 26} />
       <SkeletonLine h={92} mt={12} />
       <SkeletonLine w="44%" h={13} mt={28} />
       <SkeletonLine h={66} mt={12} />
@@ -791,10 +847,11 @@ function LoadingEdition({ isDesktop }) {
   );
   return (
     <div role="status">
+      {header}
       {isDesktop ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
-          <div style={{ paddingRight: 36 }}>{well}</div>
-          <div style={{ borderLeft: `1px solid ${PAPER2}`, paddingLeft: 36 }}>{rail}</div>
+          <div style={{ paddingRight: 44 }}>{well}</div>
+          <div style={{ paddingLeft: 44 }}>{rail}</div>
         </div>
       ) : well}
       <div style={{ textAlign: 'center', marginTop: 30, fontSize: 12, color: MUTED, fontFamily: INTER, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
@@ -869,7 +926,7 @@ function EditionPicker({ teams, team, t, onSelect, onClose }) {
       </div>
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
-        <div style={{ height: 2, background: t.navy, marginBottom: 14 }} />
+        <div style={{ height: 1, background: ink(t.navy, RULE), marginBottom: 14 }} />
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal, textAlign: 'center', marginBottom: 6, fontFamily: INTER }}>
           Choose Edition
         </div>
@@ -889,8 +946,8 @@ function EditionPicker({ teams, team, t, onSelect, onClose }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     width: '100%', minHeight: 64, padding: '14px 4px',
                     background: 'transparent', border: 'none',
-                    borderTop: i === 0 ? `1px solid ${PAPER2}` : 'none',
-                    borderBottom: `1px solid ${PAPER2}`,
+                    borderTop: i === 0 ? `1px solid ${ink(t.navy, HAIR)}` : 'none',
+                    borderBottom: `1px solid ${ink(t.navy, HAIR)}`,
                     cursor: 'pointer', textAlign: 'left',
                     fontFamily: INTER,
                   }}
@@ -1167,16 +1224,16 @@ export default function MsMinute() {
 
           {/* Masthead */}
           <div style={{ paddingTop: 28 }}>
-            <div style={{ height: 4, background: t.navy, marginBottom: 16 }} />
+            <div style={{ height: 1, background: ink(t.navy, RULE), marginBottom: 16 }} />
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
               <button
                 onClick={() => teams && setPickerOpen(true)}
                 disabled={!teams}
                 style={{
                   minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
-                  color: t.teal, borderTop: `1px solid ${t.teal}`, borderBottom: `1px solid ${t.teal}`,
-                  borderLeft: 'none', borderRight: 'none', background: 'transparent',
-                  padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 12,
+                  color: t.teal, border: 'none', borderBottom: `1px solid ${ink(t.teal, RULE)}`,
+                  background: 'transparent',
+                  padding: '12px 22px 10px', display: 'inline-flex', alignItems: 'center', gap: 12,
                   cursor: teams ? 'pointer' : 'default', fontFamily: INTER,
                 }}
                 // Name the edition that's loaded, then the action. The bare
@@ -1248,25 +1305,29 @@ export default function MsMinute() {
             </>
           )}
 
-          {/* Desktop: newspaper front page — main well + rail */}
+          {/* Desktop: newspaper front page — full-width header band, then main
+              well + rail. The lede and the score run clear across the page, the
+              way a broadsheet banners its top story; the two columns open below
+              them, so the rail's first flag sits level with Recap's. */}
           {data && isDesktop && (
             <>
+              {data.headline && (
+                <h2 style={{ fontFamily: FRAUNCES, fontSize: 46, fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                  {data.headline}
+                </h2>
+              )}
+              <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} wide />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
-                <div style={{ paddingRight: 36 }}>
-                  {data.headline && (
-                    <h2 style={{ fontFamily: FRAUNCES, fontSize: 40, fontWeight: 900, color: t.navy, lineHeight: 1.12, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
-                      {data.headline}
-                    </h2>
-                  )}
-                  <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
+                <div style={{ paddingRight: 44 }}>
                   <NarrativeCard text={data.narrative} t={t} columns />
+                  <LineScoreCard ls={data.gameData.lineScore} teamAbbr={data.teamAbbr} oppAbbr={data.gameData.oppAbbr} t={t} />
                   <OffenseCard players={data.offense} t={t} columns />
                   <PitchingCard data={data.pitching} t={t} columns />
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
-                <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
-                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} rail first />
+                <aside style={{ paddingLeft: 44 }}>
+                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} rail />
                   <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} rail />
                   <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} rail />
                   <OnThisDayCard data={data.onThisDay} t={t} rail />
@@ -1278,14 +1339,14 @@ export default function MsMinute() {
           {/* Footer (both layouts) */}
           {data && (
             <>
-              <div style={{ height: 2, background: t.navy, margin: '32px 0 12px' }} />
+              <div style={{ height: 1, background: ink(t.navy, RULE), margin: '32px 0 12px' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 12, color: MUTED, fontFamily: INTER }}>MLB data · Claude AI</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {import.meta.env.DEV && (
                     <button onClick={regenerateReport} title="Bust cache and regenerate today's report" style={{ background: 'transparent', border: 'none', color: MUTED, padding: '5px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: INTER }}>Regenerate</button>
                   )}
-                  <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${t.navy}`, color: t.navy, padding: '5px 12px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
+                  <button onClick={() => loadReport(team)} style={{ background: 'transparent', border: `1px solid ${ink(t.navy, RULE)}`, color: t.navy, padding: '5px 12px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Refresh</button>
                 </div>
               </div>
             </>
