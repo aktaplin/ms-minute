@@ -109,12 +109,20 @@ that gives every item identical billing is a list, not a front page:
 - **Rail** (`rail`): 1px navy rule, 12px label, 10px below. The sidebar reads as
   subordinate to the front page instead of competing with it.
 
-`first` pulls the top margin from 40px to 26px, matching the headline's top margin
-so the rail's opening rule registers against the lede across the vertical rule.
+Both weights take the same 40px top margin, so where the two columns open the
+rail's first rule registers against the well's across the vertical rule.
 
 **The score block has no flag at all.** It is the front page; labelling it "Last
 Game" told the reader something they could already see, and cost the page its
 top-of-page. The headline runs straight into the score.
+
+### The desktop header band
+
+On desktop the lede and the score card run the full page width; the main well and
+the rail open below them, so the columns start together at Recap / Standings. The
+score card takes a `wide` variant there: at 1,080px two panels would strand white
+space beside four short lines, so the meta splits in three — score, matchup,
+starter — with hairlines between, and the line score runs the full band beneath.
 
 ### Cards
 

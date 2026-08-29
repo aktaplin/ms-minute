@@ -50,12 +50,12 @@ function EmText({ text }) {
 
 // Section flag, in two weights. The main well gets the heavy flag (2px rule,
 // 15px label); the rail gets a lighter one, so the sidebar reads as subordinate
-// to the front page instead of claiming equal rank with it. `first` pulls the
-// top margin back to the headline's, so the rail's opening rule registers
-// against the lede across the vertical rule — the alignment a broadsheet lives on.
-function SectionHead({ label, t, rail = false, first = false }) {
+// to the front page instead of claiming equal rank with it. Both take the same
+// top margin, so the rail's opening rule registers against the well's across the
+// vertical rule where the two columns start — the alignment a broadsheet lives on.
+function SectionHead({ label, t, rail = false }) {
   return (
-    <div style={{ marginTop: first ? 26 : 40, marginBottom: rail ? 10 : 14 }}>
+    <div style={{ marginTop: 40, marginBottom: rail ? 10 : 14 }}>
       <div style={{ height: rail ? 1 : 2, background: t.navy }} />
       <div style={{ paddingTop: rail ? 6 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
@@ -142,12 +142,19 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
 
 // No section flag here: this is the front page, and the one block nobody needs
 // labelled. The headline runs straight into the score.
-function ScoreCard({ data, teamAbbr, t }) {
+//
+// `wide` is the desktop header band, where the card runs the full page width
+// instead of the main well's. Two panels stretched across 1,080px would strand
+// a column of white space beside four short lines, so the meta splits in three:
+// score, matchup, starter — each in its own measure, hairlines between.
+function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
+  const starter = data.startingPitcher;
+  const starterLabel = { color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' };
   return (
     <div style={{ marginTop: 18 }}>
       <div style={{ display: 'flex' }}>
-        <div style={{ flex: '0 0 44%', paddingRight: 18, borderRight: `1px solid ${t.navy}` }}>
+        <div style={{ flex: wide ? '0 0 32%' : '0 0 44%', paddingRight: 18, borderRight: `1px solid ${t.navy}` }}>
           <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
             {data.mScore}–{data.oScore}
           </div>
@@ -161,19 +168,26 @@ function ScoreCard({ data, teamAbbr, t }) {
             {data.won ? 'Win' : 'Loss'}
           </div>
         </div>
-        <div style={{ flex: 1, paddingLeft: 18 }}>
+        <div style={{ flex: 1, padding: wide ? '0 18px' : '0 0 0 18px', borderRight: wide && starter ? `1px solid ${t.navy}` : 'none' }}>
           <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 10 }}>{data.oppName}</div>
           <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
             <div>{data.venue}</div>
             <div>{data.gameDate}</div>
           </div>
-          {data.startingPitcher && (
+          {starter && !wide && (
             <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${PAPER2}`, fontSize: 13, color: INK2 }}>
-              <span style={{ color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Starter: </span>
-              {data.startingPitcher.name} · {data.startingPitcher.ip} IP · {data.startingPitcher.k} K · {data.startingPitcher.er} ER
+              <span style={starterLabel}>Starter: </span>
+              {starter.name} · {starter.ip} IP · {starter.k} K · {starter.er} ER
             </div>
           )}
         </div>
+        {wide && starter && (
+          <div style={{ flex: '0 0 30%', paddingLeft: 18 }}>
+            <div style={{ ...starterLabel, marginBottom: 8 }}>Starter</div>
+            <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, marginBottom: 4 }}>{starter.name}</div>
+            <div style={{ fontSize: 13, color: INK2 }}>{starter.ip} IP · {starter.k} K · {starter.er} ER</div>
+          </div>
+        )}
       </div>
       <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
     </div>
@@ -313,14 +327,14 @@ function PitchingCard({ data, t, columns = false }) {
 
 // Archival-clipping treatment: hairline box on aged paper — double rules stay
 // exclusive to zone banners.
-function OnThisDayCard({ data, t, rail = false, first = false }) {
+function OnThisDayCard({ data, t, rail = false }) {
   if (!data) return null;
   const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric',
   });
   return (
     <div>
-      <SectionHead label="On This Day" t={t} rail={rail} first={first} />
+      <SectionHead label="On This Day" t={t} rail={rail} />
       <div style={{ background: PAPER2, border: `1px solid ${t.navy}`, padding: '16px 18px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
           {dateLabel}, {data.year}
@@ -462,7 +476,7 @@ function Sparkline({ data, color, width = 120, height = 24, fluid = false }) {
 // One standings section, two views. The tables and their data are unchanged —
 // the tabs just decide which one is on the page. Wild card leads, because the
 // race is the live question most days.
-function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = false, first = false }) {
+function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = false }) {
   const hasDivision = !!rows?.length;
   const hasWildCard = !!wildCardRows?.length;
   const [tab, setTab] = useState('wildcard');
@@ -477,7 +491,7 @@ function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = f
 
   return (
     <div>
-      <SectionHead label="Standings" t={t} rail={rail} first={first} />
+      <SectionHead label="Standings" t={t} rail={rail} />
       {tabs.length > 1 && (
         <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${PAPER2}`, marginBottom: 12 }}>
           {tabs.map(tb => (
@@ -683,7 +697,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
 // it came from. The teal bar is gone — it now means "aside" and nothing else —
 // so this card carries its own shape instead: a hero figure with the sparkline
 // running the full width beneath it, the way a paper prints a market table.
-function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
+function TitleOddsCard({ data, trend, t, rail = false }) {
   if (!data) return null;
   const pct = (data.impliedProb * 100).toFixed(1);
   const oddsStr = data.medianOdds > 0 ? `+${data.medianOdds}` : String(data.medianOdds);
@@ -695,7 +709,7 @@ function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
   const deltaSign = rising ? '+' : '';
   return (
     <div>
-      <SectionHead label="WS Odds" t={t} rail={rail} first={first} />
+      <SectionHead label="WS Odds" t={t} rail={rail} />
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FRAUNCES, fontSize: 32, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>{pct}%</span>
@@ -726,7 +740,7 @@ function TitleOddsCard({ data, trend, t, rail = false, first = false }) {
 // Forward-looking, so it opens the way a dispatch does: a dateline first — day
 // and first pitch, the two things you actually need — then the matchup, then
 // who's throwing. No teal bar; the dateline is what marks it as ahead in time.
-function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
+function NextGameCard({ data, teamAbbr, t, rail = false }) {
   if (!data) return null;
   const dayLabel = data.date
     ? new Date(`${data.date}T12:00:00Z`).toLocaleDateString('en-US', {
@@ -736,7 +750,7 @@ function NextGameCard({ data, teamAbbr, t, rail = false, first = false }) {
   const dateline = [dayLabel, data.time].filter(Boolean).join(' · ');
   return (
     <div>
-      <SectionHead label="Next Game" t={t} rail={rail} first={first} />
+      <SectionHead label="Next Game" t={t} rail={rail} />
       <div>
         {dateline && (
           <div style={{ fontFamily: INTER, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, marginBottom: 6 }}>
@@ -769,12 +783,16 @@ function SkeletonLine({ w = '100%', h = 11, mt = 8 }) {
 // DESIGN.md always called for these; the `pulse` keyframe had been sitting in
 // the stylesheet unused while a spinner stood in, saying nothing.
 function LoadingEdition({ isDesktop }) {
+  const header = (
+    <>
+      <SkeletonLine w="88%" h={isDesktop ? 44 : 30} mt={26} />
+      <SkeletonLine w="58%" h={isDesktop ? 44 : 30} />
+      <SkeletonLine w="34%" h={54} mt={22} />
+    </>
+  );
   const well = (
     <>
-      <SkeletonLine w="88%" h={isDesktop ? 38 : 30} mt={26} />
-      <SkeletonLine w="58%" h={isDesktop ? 38 : 30} />
-      <SkeletonLine w="34%" h={54} mt={22} />
-      <div style={{ height: 1, background: PAPER2, margin: '20px 0' }} />
+      <div style={{ height: 1, background: PAPER2, margin: isDesktop ? '40px 0 20px' : '20px 0' }} />
       <SkeletonLine mt={0} />
       <SkeletonLine />
       <SkeletonLine />
@@ -783,7 +801,7 @@ function LoadingEdition({ isDesktop }) {
   );
   const rail = (
     <>
-      <SkeletonLine w="44%" h={13} mt={26} />
+      <SkeletonLine w="44%" h={13} mt={isDesktop ? 40 : 26} />
       <SkeletonLine h={92} mt={12} />
       <SkeletonLine w="44%" h={13} mt={28} />
       <SkeletonLine h={66} mt={12} />
@@ -791,6 +809,7 @@ function LoadingEdition({ isDesktop }) {
   );
   return (
     <div role="status">
+      {header}
       {isDesktop ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
           <div style={{ paddingRight: 36 }}>{well}</div>
@@ -1248,17 +1267,20 @@ export default function MsMinute() {
             </>
           )}
 
-          {/* Desktop: newspaper front page — main well + rail */}
+          {/* Desktop: newspaper front page — full-width header band, then main
+              well + rail. The lede and the score run clear across the page, the
+              way a broadsheet banners its top story; the two columns open below
+              them, so the rail's first flag sits level with Recap's. */}
           {data && isDesktop && (
             <>
+              {data.headline && (
+                <h2 style={{ fontFamily: FRAUNCES, fontSize: 46, fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                  {data.headline}
+                </h2>
+              )}
+              <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} wide />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
                 <div style={{ paddingRight: 36 }}>
-                  {data.headline && (
-                    <h2 style={{ fontFamily: FRAUNCES, fontSize: 40, fontWeight: 900, color: t.navy, lineHeight: 1.12, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
-                      {data.headline}
-                    </h2>
-                  )}
-                  <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
                   <NarrativeCard text={data.narrative} t={t} columns />
                   <OffenseCard players={data.offense} t={t} columns />
                   <PitchingCard data={data.pitching} t={t} columns />
@@ -1266,7 +1288,7 @@ export default function MsMinute() {
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
                 <aside style={{ borderLeft: `1px solid ${t.navy}`, paddingLeft: 36 }}>
-                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} rail first />
+                  <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} rail />
                   <NextGameCard data={data.nextGame} teamAbbr={data.teamAbbr} t={t} rail />
                   <TitleOddsCard data={data.titleOdds} trend={data.titleOddsTrend} t={t} rail />
                   <OnThisDayCard data={data.onThisDay} t={t} rail />

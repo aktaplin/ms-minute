@@ -17,8 +17,11 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   Plate, Pitching (Pitch Arsenal rides inside it), Game Highlights, Stat of the Game,
   On This Day, Standings, Next Game, WS Odds.
   mobile = that list in one column;
-  desktop = newspaper front page (main well + right rail with vertical rule).
-  In the main well every block below the score runs the full well width and flows in
+  desktop = newspaper front page: a full-width header band (Haiku lede + score card,
+  which splits its meta into three panels at that width) running clear across the page,
+  then main well + right rail with vertical rule below it — so the rail's first flag
+  (Standings) starts level with Recap.
+  In the main well every block below the header runs the full well width and flows in
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
   Daily Haiku headline as the Fraunces lede.
