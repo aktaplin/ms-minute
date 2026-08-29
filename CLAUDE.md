@@ -26,8 +26,13 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
   In the main well every block below the header runs the full well width and flows in
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
-  Rules are one 1px hairline at three inks (`RULE` / `RULE_SOFT` / `HAIR` via `ink()`),
-  and there are no vertical rules anywhere — gutters do that work. See DESIGN.md.
+  Rules are minimal: one 1px hairline at one ink (`RULE` via `ink()`), spent only on
+  the masthead, the footer, the main-well section flags, and the two buttons. The rail's
+  flags carry no rule (they rank by type alone); table rows, batters, pitch rows and
+  in-card asides are separated by space, and the stat chips, the On This Day outline and
+  the YouTube frame are gone. The only other horizontals are the wild card cut line and
+  the active tab's underline, both of which mark something rather than divide something.
+  No vertical rules anywhere — gutters do that work. See DESIGN.md.
   Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
