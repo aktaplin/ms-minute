@@ -13,22 +13,34 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
 - `client/src/components/MsMinute.jsx` — full UI, responsive at 900px. There are no
   lettered zones and no jump-nav: every card is a peer top-level section, each flagged
-  by `SectionHead` (full-width rule + small-caps label). Order: Last Game, Recap, Line Score
+  by `SectionHead` (full-width rule + small-caps label). Order: score line, Recap, Line Score
   (desktop only — on mobile it stays inside the score card), At the Plate, Pitching
   (Pitch Arsenal rides inside it), Game Highlights, Stat of the Game, On This Day,
   Standings, Next Game, WS Odds.
   mobile = that list in one column;
-  desktop = newspaper front page: a full-width header band (Haiku lede + score card,
-  which splits its meta into three panels at that width) running clear across the page,
+  desktop = newspaper front page: a full-width header band holding only the Haiku lede
+  and the score — a scoreboard line, `SEA 9–2 TEX` with the result tag, the abbreviations
+  flanking the figures — running clear across the page,
   then main well + right rail below it — so the rail's first flag (Standings) starts
   level with Recap. The line score leaves the score card on desktop and runs as its own
   flagged section in the well, under the Recap.
   In the main well every block below the header runs the full well width and flows in
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
-  Rules are one 1px hairline at three inks (`RULE` / `RULE_SOFT` / `HAIR` via `ink()`),
-  and there are no vertical rules anywhere — gutters do that work. See DESIGN.md.
-  Daily Haiku headline as the Fraunces lede.
+  Rules are minimal: one 1px hairline at one ink (`RULE` via `ink()`), spent only on
+  the masthead, the footer, the section flags (well and rail alike — the rail ranks by
+  its 12px label, not by a lighter rule) and the two buttons. Table rows, batters, pitch
+  rows and in-card asides are separated by space, and the stat chips, the On This Day
+  outline and the YouTube frame are gone. The only other horizontals are the wild card
+  cut line and the active tab's underline, both of which mark something rather than
+  divide something. No vertical rules anywhere — gutters do that work. See DESIGN.md.
+  The paper's name is a folio, not a nameplate: Fraunces 17 with the date beside it and
+  the edition picker at the right, above the frame's top rule. The daily Haiku headline is
+  the page's only display type (and its `<h1>`) at 54px desktop, balanced-wrapped, with the
+  score a step under it at 46px — one ladder instead of a nameplate, a headline and a score
+  all competing. The metadata the header used to carry
+  lives in the sections that own it: opponent/venue/date as a teal dateline opening the
+  Recap, the starter's line (name + IP/K/ER stat pairs) opening Pitching.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.
 `GET /api/dev/report?team=` regenerates on demand (open locally; Bearer REGEN_TOKEN in production);

@@ -9,18 +9,22 @@ const LGREY   = '#C8D4DC';
 const WIN_RED   = '#8B1A1A';
 const WIN_GREEN = '#245C3B';
 
-// Rules are structure, not content, so the page sets them at one hairline
-// weight and varies only the ink — the edition's own navy, dialled back, so a
-// rule separates the type on either side of it without competing with either.
-// Three steps, and no fourth: the frame of the page, the rail's subordinate
-// flags, and the hairlines inside a table or a card.
+// One weight, one ink, and a line only where it carries meaning. Structure is
+// the job of type and space — size, weight, case, tracking, and the room around
+// a block — not of a boundary drawn at every seam. What survives is the frame
+// (masthead and footer), the flag that opens a section in the main well, the
+// two buttons' affordances, and the two lines that report something rather than
+// divide something: the wild card cut line and the active tab's underline.
 //
-// Vertical rules are gone. Every column break on the page — the well from the
-// rail, the two newspaper columns inside a block, the innings from the totals —
-// is held by a gutter instead, which does the same work without the ink.
+// Everything a hairline used to separate — table rows, batters, pitch rows,
+// the asides inside a card — is separated by space now. Fifty-odd rules made
+// the page read as a form; a broadsheet sets a standings table on leading and
+// alignment alone, and so does this one.
+//
+// Vertical rules were already gone. Every column break on the page — the well
+// from the rail, the two newspaper columns inside a block, the innings from the
+// totals — is held by a gutter, which does the same work without the ink.
 const RULE = 0.55;
-const RULE_SOFT = 0.3;
-const HAIR = 0.14;
 function ink(hex, alpha) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
@@ -65,17 +69,19 @@ function EmText({ text }) {
   return parts.map((part, i) => (i % 2 === 1 ? <em key={i}>{part}</em> : part));
 }
 
-// Section flag, in two inks. Same hairline, same label face; the main well's
-// flag is set at full rule ink and 15px, the rail's at RULE_SOFT and 12px, so
-// the sidebar reads as subordinate to the front page instead of claiming equal
-// rank with it. Both take the same top margin, so where the two columns open
-// the rail's rule registers against the well's — the alignment a broadsheet
-// lives on, and the reason neither column needs a rule between them.
+// Section flag. Every section gets the hairline, well and rail alike, at the
+// one ink — a rail section is a table, a dispatch, a market quote and a
+// clipping stacked in a 340px column, and the 40px of air between them is not
+// enough on its own to say where one ends. Rank is carried by type instead of
+// by a second, weaker ink: 15px in the well against 12px in the rail, tracked
+// wider. Both take the same top margin, so where the two columns open the
+// rail's rule registers against the well's — the alignment a broadsheet lives
+// on, and the reason neither column needs a rule between them.
 function SectionHead({ label, t, rail = false }) {
   return (
-    <div style={{ marginTop: 40, marginBottom: rail ? 10 : 14 }}>
-      <div style={{ height: 1, background: ink(t.navy, rail ? RULE_SOFT : RULE) }} />
-      <div style={{ paddingTop: rail ? 6 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
+    <div style={{ marginTop: 40, marginBottom: rail ? 11 : 14 }}>
+      <div style={{ height: 1, background: ink(t.navy, RULE) }} />
+      <div style={{ paddingTop: rail ? 7 : 8, fontFamily: FRAUNCES, fontSize: rail ? 12 : 15, fontWeight: 900, letterSpacing: rail ? '0.18em' : '0.16em', textTransform: 'uppercase', color: t.navy, fontVariationSettings: "'opsz' 40" }}>
         {label}
       </div>
     </div>
@@ -96,11 +102,10 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
 
   const head = {
     fontFamily: INTER, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-    color: t.teal, padding: '0 0 7px', textAlign: 'center', minWidth: 22,
-    borderBottom: `1px solid ${ink(t.navy, HAIR)}`,
+    color: t.teal, padding: '0 0 10px', textAlign: 'center', minWidth: 22,
   };
   const cell = {
-    fontFamily: INTER, fontSize: 13, textAlign: 'center', padding: '5px 0',
+    fontFamily: INTER, fontSize: 13, textAlign: 'center', padding: '6px 0',
     fontVariantNumeric: 'tabular-nums',
   };
   const total = {
@@ -125,7 +130,7 @@ function LineScore({ ls, teamAbbr, oppAbbr, t }) {
               <td style={{
                 fontFamily: r.isMine ? FRAUNCES : INTER, fontSize: r.isMine ? 15 : 13,
                 fontWeight: r.isMine ? 900 : 600, color: r.isMine ? t.navy : INK2,
-                padding: '5px 0', whiteSpace: 'nowrap', ...(r.isMine ? OPSZ9 : {}),
+                padding: '6px 0', whiteSpace: 'nowrap', ...(r.isMine ? OPSZ9 : {}),
               }}>
                 {r.abbr}
               </td>
@@ -176,55 +181,54 @@ function LineScoreCard({ ls, teamAbbr, oppAbbr, t }) {
 // No section flag here: this is the front page, and the one block nobody needs
 // labelled. The headline runs straight into the score.
 //
-// `wide` is the desktop header band, where the card runs the full page width
-// instead of the main well's. Two panels stretched across 1,080px would strand
-// a column of white space beside four short lines, so the meta splits in three:
-// score, matchup, starter — held apart by the gutters between them, and the
-// line score drops out to run as its own section down in the well.
+// The header holds the headline and the score. That is the whole band. It used
+// to carry the opponent's name, the venue, the date and the starter's line as
+// well, in three panels that had to be shuffled to stop them stranding white
+// space — which was the tell: the band was holding four different kinds of
+// thing and composing none of them. The rest has gone to the sections that own
+// it (the venue, date and opponent to the Recap's dateline; the starter to the
+// top of Pitching), where a reader looking for it would think to look anyway.
+//
+// What is left is a scoreboard line: the team abbreviations flank the figures,
+// so the score says who as well as how many, and the result tag closes it. Ours
+// is set in navy, theirs in the secondary ink — the same ranking the score
+// order already makes, said twice so it survives a glance.
+//
+// The figures sit a step under the headline (46 against 54 on desktop) rather
+// than level with it. Two pieces of display Fraunces at the same size, a
+// hundred pixels apart, is the same argument the old nameplate was having with
+// the headline: the story is the page's voice, and the score is the fact it
+// reports. A numeral also reads optically smaller than a line of text at the
+// same size, so the gap is smaller than it measures.
 function ScoreCard({ data, teamAbbr, t, wide = false }) {
   if (!data) return null;
-  const starter = data.startingPitcher;
-  const starterLabel = { color: t.teal, fontWeight: 700, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' };
+  const abbr = (text, mine) => (
+    <span style={{
+      fontFamily: FRAUNCES, fontSize: wide ? 20 : 18, fontWeight: 900, letterSpacing: '0.02em',
+      color: mine ? t.navy : INK2, ...OPSZ9,
+    }}>
+      {text}
+    </span>
+  );
   return (
-    <div style={{ marginTop: 18 }}>
-      <div style={{ display: 'flex', gap: wide ? 56 : 24 }}>
-        <div style={{ flex: wide ? '0 0 30%' : '0 0 42%' }}>
-          <div style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1, marginBottom: 6, ...OPSZ9 }}>
-            {data.mScore}–{data.oScore}
-          </div>
-          <div style={{ fontSize: 13, color: INK2, marginBottom: 10 }}>{teamAbbr} vs. {data.oppAbbr}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
-            {data.won ? (
-              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            ) : (
-              <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-            )}
-            {data.won ? 'Win' : 'Loss'}
-          </div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: INTER, fontSize: 15, color: INK2, marginBottom: 10 }}>{data.oppName}</div>
-          <div style={{ fontSize: 13, color: MUTED, lineHeight: 2 }}>
-            <div>{data.venue}</div>
-            <div>{data.gameDate}</div>
-          </div>
-          {starter && !wide && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${ink(t.navy, HAIR)}`, fontSize: 13, color: INK2 }}>
-              <span style={starterLabel}>Starter: </span>
-              {starter.name} · {starter.ip} IP · {starter.k} K · {starter.er} ER
-            </div>
+    <div style={{ marginTop: wide ? 26 : 22 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+        {abbr(teamAbbr, true)}
+        <span style={{ fontFamily: FRAUNCES, fontSize: wide ? 46 : 40, fontWeight: 900, color: t.navy, lineHeight: 1, ...OPSZ9 }}>
+          {data.mScore}–{data.oScore}
+        </span>
+        {abbr(data.oppAbbr, false)}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 4, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: PAPER, background: data.won ? WIN_GREEN : WIN_RED, padding: '4px 10px 4px 8px' }}>
+          {data.won ? (
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6 L4.5 9 L10.5 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          ) : (
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           )}
-        </div>
-        {wide && starter && (
-          <div style={{ flex: '0 0 26%' }}>
-            <div style={{ ...starterLabel, marginBottom: 8 }}>Starter</div>
-            <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, marginBottom: 4 }}>{starter.name}</div>
-            <div style={{ fontSize: 13, color: INK2 }}>{starter.ip} IP · {starter.k} K · {starter.er} ER</div>
-          </div>
-        )}
+          {data.won ? 'Win' : 'Loss'}
+        </span>
       </div>
       {!wide && (
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${ink(t.navy, RULE)}` }}>
+        <div style={{ marginTop: 26 }}>
           <LineScore ls={data.lineScore} teamAbbr={teamAbbr} oppAbbr={data.oppAbbr} t={t} />
         </div>
       )}
@@ -232,7 +236,48 @@ function ScoreCard({ data, teamAbbr, t, wide = false }) {
   );
 }
 
-function NarrativeCard({ text, t, columns = false }) {
+// A dateline, in the paper's existing form — the same teal small caps Next Game
+// opens with. It carries what the header used to: who, where, when. Set on its
+// own line above the prose rather than run into it, because the Recap justifies
+// in two columns and a tracked uppercase run inside justified text pulls the
+// spacing apart on the line it lands in.
+function Dateline({ game, t }) {
+  const parts = [game?.oppName, game?.venue, game?.gameDate].filter(Boolean);
+  if (!parts.length) return null;
+  return (
+    <div style={{
+      fontFamily: INTER, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+      textTransform: 'uppercase', color: t.teal, marginBottom: 12, lineHeight: 1.6,
+    }}>
+      {/* Each part breaks as a unit, so a narrow measure wraps at a separator
+          instead of orphaning the day of the month onto a line of its own. */}
+      {parts.map((part, i) => (
+        <Fragment key={part}>
+          {i > 0 && ' · '}
+          <span style={{ whiteSpace: 'nowrap' }}>{part}</span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+// Value over its teal small-caps label, right-aligned, held apart by a gutter.
+// At the Plate opens each batter with these and Pitching opens with the
+// starter's, so the two player sections read in the same idiom.
+function StatPairs({ stats, t, gap = 18 }) {
+  return (
+    <div style={{ display: 'flex', gap, flexShrink: 0 }}>
+      {stats.map(s => (
+        <div key={s.lbl} style={{ textAlign: 'right' }}>
+          <div style={{ fontFamily: INTER, fontSize: 17, fontWeight: 700, color: t.navy, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
+          <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 3 }}>{s.lbl}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NarrativeCard({ text, game, t, columns = false }) {
   if (!text) return null;
   // On desktop the recap flows in two newspaper columns, split by the gutter
   const columnStyle = columns
@@ -241,6 +286,7 @@ function NarrativeCard({ text, t, columns = false }) {
   return (
     <div>
       <SectionHead label="Recap" t={t} />
+      <Dateline game={game} t={t} />
       <p style={{ fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK, textAlign: 'justify', hyphens: 'auto', ...columnStyle }}>
         <EmText text={text} />
       </p>
@@ -261,20 +307,13 @@ function OffenseCard({ players, t, columns = false }) {
       <SectionHead label="At the Plate" t={t} />
       <div style={columnStyle}>
         {players.map((p, i) => (
-          <div key={p.name} style={{ breakInside: 'avoid', paddingBottom: 12, marginBottom: i < players.length - 1 ? 12 : 0, borderBottom: i < players.length - 1 ? `1px solid ${ink(t.navy, HAIR)}` : 'none' }}>
+          <div key={p.name} style={{ breakInside: 'avoid', marginBottom: i < players.length - 1 ? 26 : 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{p.name}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: t.teal, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.pos}</span>
               </div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                {p.stats.map(s => (
-                  <div key={s.lbl} style={{ border: `1px solid ${ink(t.navy, RULE)}`, padding: '2px 7px', textAlign: 'center', minWidth: 32 }}>
-                    <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: t.navy, lineHeight: 1.1 }}>{s.val}</div>
-                    <div style={{ fontSize: 10, color: t.teal, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.lbl}</div>
-                  </div>
-                ))}
-              </div>
+              <StatPairs stats={p.stats} t={t} />
             </div>
             {p.note && (
               <p style={{ fontFamily: INTER, fontSize: 14, lineHeight: 1.65, color: INK2, fontStyle: 'italic', margin: 0 }}>
@@ -293,7 +332,7 @@ function OffenseCard({ players, t, columns = false }) {
 // the numbers carry it.
 function PitchMixRow({ p, isLast, t }) {
   return (
-    <div style={{ breakInside: 'avoid', paddingBottom: 8, marginBottom: isLast ? 0 : 8, borderBottom: isLast ? 'none' : `1px solid ${ink(t.navy, HAIR)}` }}>
+    <div style={{ breakInside: 'avoid', marginBottom: isLast ? 0 : 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
         <span style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: t.navy }}>{p.name}</span>
         {p.avgVelo != null && (
@@ -326,9 +365,10 @@ function PitchMixRow({ p, isLast, t }) {
   );
 }
 
-function PitchingCard({ data, t, columns = false }) {
+function PitchingCard({ data, starter, t, columns = false }) {
   const pitches = data?.arsenal?.pitches;
-  if (!data || (!data.starter && !data.bullpen && !pitches?.length)) return null;
+  const hasProse = data && (data.starter || data.bullpen || pitches?.length);
+  if (!hasProse && !starter) return null;
   const paragraph = {
     fontFamily: INTER, fontSize: 17, lineHeight: 1.85, color: INK,
     textAlign: 'justify', hyphens: 'auto', margin: 0,
@@ -342,6 +382,26 @@ function PitchingCard({ data, t, columns = false }) {
   return (
     <div>
       <SectionHead label="Pitching" t={t} />
+      {/* The starter's line, off the header band and onto the section that is
+          about him. It opens exactly the way a batter's row opens in At the
+          Plate — name at the left, figures over their labels at the right — so
+          the two player sections rhyme instead of each inventing a format.
+          Set above the column flow, as a header for the whole card — and grouped
+          left rather than pushed apart, because at the full width of the well
+          `space-between` would strand the figures 700px from the name. */}
+      {starter && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
+          <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: t.navy }}>{starter.name}</span>
+          <StatPairs
+            t={t}
+            stats={[
+              { val: starter.ip, lbl: 'IP' },
+              { val: starter.k, lbl: 'K' },
+              { val: starter.er, lbl: 'ER' },
+            ]}
+          />
+        </div>
+      )}
       <div style={columnStyle}>
         {data.starter && (
           <p style={{ ...paragraph, marginBottom: (pitches?.length || data.bullpen) ? 14 : 0 }}>
@@ -363,8 +423,9 @@ function PitchingCard({ data, t, columns = false }) {
   );
 }
 
-// Archival-clipping treatment: hairline box on aged paper — double rules stay
-// exclusive to zone banners.
+// Archival-clipping treatment: the aged-paper fill is what marks it as a
+// clipping. It carried an outline as well, which is a second way of saying the
+// same thing — the fill already ends where the clipping ends.
 function OnThisDayCard({ data, t, rail = false }) {
   if (!data) return null;
   const dateLabel = new Date(`2000-${data.monthDay}T12:00:00`).toLocaleDateString('en-US', {
@@ -373,7 +434,7 @@ function OnThisDayCard({ data, t, rail = false }) {
   return (
     <div>
       <SectionHead label="On This Day" t={t} rail={rail} />
-      <div style={{ background: PAPER2, border: `1px solid ${ink(t.navy, RULE)}`, padding: '16px 18px' }}>
+      <div style={{ background: PAPER2, padding: '16px 18px' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER, marginBottom: 8 }}>
           {dateLabel}, {data.year}
         </div>
@@ -412,7 +473,7 @@ function StatOfGameCard({ stat, t, columns = false }) {
         </div>
 
         {(stat.value || stat.player) && (
-          <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(168,200,200,0.22)' }}>
+          <div style={{ marginBottom: 20 }}>
             {stat.value && (
               <span style={{ fontFamily: FRAUNCES, fontSize: 36, fontWeight: 900, color: PAPER, lineHeight: 1, marginRight: 10, ...OPSZ9 }}>
                 {stat.value}
@@ -452,7 +513,9 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
   return (
     <div>
       <SectionHead label="Game Highlights" t={t} />
-      <div style={{ border: `1px solid ${ink(t.navy, RULE)}` }}>
+      {/* No outline: a 16:9 black player is already a hard-edged object, and a
+          rule around it only restates its own edge. */}
+      <div>
         {videoId ? (
           <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
             <iframe
@@ -469,7 +532,7 @@ function YouTubeCard({ videoId, oppName, teamName, t }) {
             <div style={{ fontSize: 12, color: t.lteal, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>Watch on MLB YouTube</div>
           </a>
         )}
-        <div style={{ padding: '7px 12px', borderTop: `1px solid ${ink(t.navy, RULE)}`, fontSize: 12, color: MUTED, fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ paddingTop: 8, fontSize: 12, color: MUTED, fontFamily: INTER, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Official MLB Highlights</span>
           {videoId && (
             <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ color: t.teal, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>YouTube ↗</a>
@@ -531,7 +594,7 @@ function StandingsCard({ rows, wildCardRows, divisionName, teamAbbr, t, rail = f
     <div>
       <SectionHead label="Standings" t={t} rail={rail} />
       {tabs.length > 1 && (
-        <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${ink(t.navy, HAIR)}`, marginBottom: 12 }}>
+        <div role="tablist" style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
           {tabs.map(tb => (
             <button
               key={tb.id}
@@ -568,22 +631,22 @@ function DivisionTable({ rows, t }) {
     <div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ borderBottom: `1px solid ${ink(t.navy, RULE)}` }}>
+          <tr>
             {['', 'Team', 'W', 'L', 'GB'].map(h => (
-              <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
+              <th key={h} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: t.teal, padding: '4px 6px 11px', textAlign: (h === 'Team' || h === '') ? 'left' : 'right' }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((t2, i) => (
-            <tr key={t2.name} style={{ borderBottom: `1px solid ${ink(t.navy, HAIR)}` }}>
-              <td style={{ padding: '7px 6px', fontSize: 12, color: MUTED, width: 20 }}>{i + 1}</td>
-              <td style={{ padding: '7px 6px', fontSize: 15, fontWeight: t2.isM ? 700 : 400, color: t2.isM ? t.navy : INK, fontFamily: t2.isM ? FRAUNCES : 'inherit', ...(t2.isM ? OPSZ9 : {}) }}>
+            <tr key={t2.name}>
+              <td style={{ padding: '9px 6px', fontSize: 12, color: MUTED, width: 20 }}>{i + 1}</td>
+              <td style={{ padding: '9px 6px', fontSize: 15, fontWeight: t2.isM ? 700 : 400, color: t2.isM ? t.navy : INK, fontFamily: t2.isM ? FRAUNCES : 'inherit', ...(t2.isM ? OPSZ9 : {}) }}>
                 {t2.isM ? <span>▸ {t2.name}</span> : t2.name}
               </td>
-              <td style={{ padding: '7px 6px', fontSize: 14, color: INK, textAlign: 'right', fontFamily: INTER }}>{t2.w}</td>
-              <td style={{ padding: '7px 6px', fontSize: 14, color: INK2, textAlign: 'right', fontFamily: INTER }}>{t2.l}</td>
-              <td style={{ padding: '7px 6px', fontSize: 13, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t2.gb}`}</td>
+              <td style={{ padding: '9px 6px', fontSize: 14, color: INK, textAlign: 'right', fontFamily: INTER }}>{t2.w}</td>
+              <td style={{ padding: '9px 6px', fontSize: 14, color: INK2, textAlign: 'right', fontFamily: INTER }}>{t2.l}</td>
+              <td style={{ padding: '9px 6px', fontSize: 13, color: MUTED, textAlign: 'right' }}>{i === 0 ? '—' : `+${t2.gb}`}</td>
             </tr>
           ))}
         </tbody>
@@ -672,14 +735,14 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
   const visible = rows.slice(0, WINDOW);
   const tail = mine && mine.rank > WINDOW ? mine : null;
 
-  const cell = { padding: '7px 4px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
+  const cell = { padding: '9px 4px', fontSize: 14, textAlign: 'right', fontFamily: INTER };
   const row = r => (
-    <tr key={r.name} style={{ borderBottom: `1px solid ${ink(t.navy, HAIR)}` }}>
-      <td style={{ padding: '7px 4px', fontSize: 12, color: MUTED, width: 16 }}>{r.rank}</td>
-      <td style={{ padding: '7px 4px', fontSize: 14, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
+    <tr key={r.name}>
+      <td style={{ padding: '9px 4px', fontSize: 12, color: MUTED, width: 16 }}>{r.rank}</td>
+      <td style={{ padding: '9px 4px', fontSize: 14, fontWeight: r.isM ? 700 : 400, color: r.isM ? t.navy : INK, fontFamily: r.isM ? FRAUNCES : 'inherit', ...(r.isM ? OPSZ9 : {}) }}>
         {r.isM ? <span>▸ {r.name}</span> : r.name}
       </td>
-      <td style={{ padding: '7px 4px', textAlign: 'center' }}><TrendGlyph trend={r.trend} /></td>
+      <td style={{ padding: '9px 4px', textAlign: 'center' }}><TrendGlyph trend={r.trend} /></td>
       <td style={{ ...cell, color: INK }}>{r.w}</td>
       <td style={{ ...cell, color: INK2 }}>{r.l}</td>
       <td style={{ ...cell, fontSize: 13, color: MUTED, fontFamily: 'inherit' }}>{r.gb}</td>
@@ -695,9 +758,9 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
       )}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ borderBottom: `1px solid ${ink(t.navy, RULE)}` }}>
+          <tr>
             {['', 'Team', 'L10', 'W', 'L', 'WCGB'].map(h => (
-              <th key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, padding: '4px 4px 7px', textAlign: (h === 'Team' || h === '') ? 'left' : h === 'L10' ? 'center' : 'right' }}>{h}</th>
+              <th key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.teal, padding: '4px 4px 11px', textAlign: (h === 'Team' || h === '') ? 'left' : h === 'L10' ? 'center' : 'right' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -707,7 +770,7 @@ function WildCardTable({ rows, divisionName, teamAbbr, t }) {
               {row(r)}
               {r.rank === SPOTS && (visible.length > SPOTS || tail) && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '3px 4px 5px' }}>
+                  <td colSpan={6} style={{ padding: '5px 4px 7px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.teal, fontFamily: INTER }}>Cut line</span>
                       <div style={{ flex: 1, height: 1, background: t.teal }} />
@@ -756,7 +819,7 @@ function TitleOddsCard({ data, trend, t, rail = false }) {
         {haveTrend && (
           <div style={{ marginTop: 10 }}>
             <Sparkline data={trend} color={t.navy} fluid height={28} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, borderTop: `1px solid ${ink(t.navy, HAIR)}`, paddingTop: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8 }}>
               <span style={{ fontSize: 11, color: MUTED, fontFamily: INTER, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                 Last {trend.length} days
               </span>
@@ -803,7 +866,7 @@ function NextGameCard({ data, teamAbbr, t, rail = false }) {
           <div style={{ color: MUTED, fontSize: 13 }}>{data.venue}</div>
         </div>
         {data.pitcher && (
-          <div style={{ marginTop: 8, paddingTop: 7, borderTop: `1px solid ${ink(t.navy, HAIR)}`, fontSize: 13, color: INK2, fontFamily: INTER }}>
+          <div style={{ marginTop: 14, fontSize: 13, color: INK2, fontFamily: INTER }}>
             <span style={{ color: t.teal, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Probable </span>
             {data.pitcher}
           </div>
@@ -823,9 +886,9 @@ function SkeletonLine({ w = '100%', h = 11, mt = 8 }) {
 function LoadingEdition({ isDesktop }) {
   const header = (
     <>
-      <SkeletonLine w="88%" h={isDesktop ? 44 : 30} mt={26} />
-      <SkeletonLine w="58%" h={isDesktop ? 44 : 30} />
-      <SkeletonLine w="34%" h={54} mt={22} />
+      <SkeletonLine w="88%" h={isDesktop ? 50 : 34} mt={30} />
+      <SkeletonLine w="62%" h={isDesktop ? 50 : 34} />
+      <SkeletonLine w="38%" h={isDesktop ? 46 : 40} mt={26} />
     </>
   );
   const well = (
@@ -926,7 +989,6 @@ function EditionPicker({ teams, team, t, onSelect, onClose }) {
       </div>
 
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '4px 20px 64px' }}>
-        <div style={{ height: 1, background: ink(t.navy, RULE), marginBottom: 14 }} />
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: t.teal, textAlign: 'center', marginBottom: 6, fontFamily: INTER }}>
           Choose Edition
         </div>
@@ -935,7 +997,7 @@ function EditionPicker({ teams, team, t, onSelect, onClose }) {
         </h2>
 
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {teams.map((tm, i) => {
+          {teams.map(tm => {
             const selected = team === tm.key;
             return (
               <li key={tm.key}>
@@ -944,10 +1006,8 @@ function EditionPicker({ teams, team, t, onSelect, onClose }) {
                   aria-current={selected ? 'true' : undefined}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    width: '100%', minHeight: 64, padding: '14px 4px',
+                    width: '100%', minHeight: 64, padding: '16px 4px',
                     background: 'transparent', border: 'none',
-                    borderTop: i === 0 ? `1px solid ${ink(t.navy, HAIR)}` : 'none',
-                    borderBottom: `1px solid ${ink(t.navy, HAIR)}`,
                     cursor: 'pointer', textAlign: 'left',
                     fontFamily: INTER,
                   }}
@@ -1222,18 +1282,34 @@ export default function MsMinute() {
       <div style={{ background: PAPER, minHeight: '100vh', color: INK }}>
         <div style={{ maxWidth: isDesktop ? 1140 : 520, margin: '0 auto', padding: isDesktop ? '0 28px 64px' : '0 20px 64px' }}>
 
-          {/* Masthead */}
-          <div style={{ paddingTop: 28 }}>
-            <div style={{ height: 1, background: ink(t.navy, RULE), marginBottom: 16 }} />
-            <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          {/* Masthead, as a folio rather than a nameplate.
+
+              A 64px centred nameplate and a 46px headline are two pieces of
+              display Fraunces stacked one on top of the other, and the reader
+              has to decide which one is the page. The paper's name is the same
+              every morning; the headline is the only thing on the page that is
+              new. So the name runs as a folio — the small line a newspaper sets
+              along the top of a page — and the headline takes the display.
+
+              It also loses the page its one centred element, so everything now
+              hangs off the same left margin as the columns beneath it. */}
+          <div style={{ paddingTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FRAUNCES, fontSize: 17, fontWeight: 900, color: t.navy, letterSpacing: '-0.2px', ...OPSZ9 }}>
+                  {brandTitle}
+                </span>
+                <span style={{ fontSize: 12, color: MUTED, fontFamily: INTER }}>
+                  {todayFormatted()}
+                </span>
+              </div>
               <button
                 onClick={() => teams && setPickerOpen(true)}
                 disabled={!teams}
                 style={{
-                  minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
-                  color: t.teal, border: 'none', borderBottom: `1px solid ${ink(t.teal, RULE)}`,
-                  background: 'transparent',
-                  padding: '12px 22px 10px', display: 'inline-flex', alignItems: 'center', gap: 12,
+                  minHeight: 44, fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                  color: t.teal, border: 'none', background: 'transparent',
+                  padding: '10px 0', display: 'inline-flex', alignItems: 'center', gap: 8,
                   cursor: teams ? 'pointer' : 'default', fontFamily: INTER,
                 }}
                 // Name the edition that's loaded, then the action. The bare
@@ -1241,26 +1317,24 @@ export default function MsMinute() {
                 // reader never learned which paper it was reading.
                 aria-label={editionLabel ? `${editionLabel} edition — choose a different edition` : 'Choose edition'}
               >
-                {editionLabel || ' '}
+                {editionLabel || ' '}
                 {teams && (
                   <svg
                     aria-hidden="true"
-                    width="18" height="18" viewBox="0 0 24 24"
+                    width="16" height="16" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor"
                     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ marginLeft: 4, flexShrink: 0 }}
+                    style={{ flexShrink: 0 }}
                   >
                     <polyline points="6 9 12 16 18 9" />
                   </svg>
                 )}
               </button>
             </div>
-            <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(40px, 12vw, 64px)', fontWeight: 900, color: t.navy, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px', margin: '0 0 10px', ...OPSZ9 }}>
-              {brandTitle}
-            </h1>
-            <div style={{ textAlign: 'center', fontSize: 13, color: MUTED, fontFamily: INTER }}>
-              {todayFormatted()}
-            </div>
+            {/* The frame's top rule sits under the folio, not over it — a folio
+                runs above the rule, and this way the one line at the top of the
+                page is also what opens the headline. */}
+            <div style={{ height: 1, background: ink(t.navy, RULE), marginTop: 8 }} />
           </div>
 
           {/* Error — nothing loaded. Say what happened in the reader's terms and
@@ -1286,14 +1360,14 @@ export default function MsMinute() {
           {data && !isDesktop && (
             <>
               {data.headline && (
-                <h2 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(26px, 7.5vw, 34px)', fontWeight: 900, color: t.navy, lineHeight: 1.15, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                <h1 style={{ fontFamily: FRAUNCES, fontSize: 'clamp(30px, 8.5vw, 40px)', fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '30px 0 0', textWrap: 'balance', ...OPSZ9 }}>
                   {data.headline}
-                </h2>
+                </h1>
               )}
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} />
-              <NarrativeCard text={data.narrative} t={t} />
+              <NarrativeCard text={data.narrative} game={data.gameData} t={t} />
               <OffenseCard players={data.offense} t={t} />
-              <PitchingCard data={data.pitching} t={t} />
+              <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} />
               <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <OnThisDayCard data={data.onThisDay} t={t} />
@@ -1312,17 +1386,17 @@ export default function MsMinute() {
           {data && isDesktop && (
             <>
               {data.headline && (
-                <h2 style={{ fontFamily: FRAUNCES, fontSize: 46, fontWeight: 900, color: t.navy, lineHeight: 1.1, letterSpacing: '-0.5px', margin: '26px 0 2px', ...OPSZ9 }}>
+                <h1 style={{ fontFamily: FRAUNCES, fontSize: 54, fontWeight: 900, color: t.navy, lineHeight: 1.08, letterSpacing: '-0.8px', margin: '34px 0 0', textWrap: 'balance', ...OPSZ9 }}>
                   {data.headline}
-                </h2>
+                </h1>
               )}
               <ScoreCard data={data.gameData} teamAbbr={data.teamAbbr} t={t} wide />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px' }}>
                 <div style={{ paddingRight: 44 }}>
-                  <NarrativeCard text={data.narrative} t={t} columns />
+                  <NarrativeCard text={data.narrative} game={data.gameData} t={t} columns />
                   <LineScoreCard ls={data.gameData.lineScore} teamAbbr={data.teamAbbr} oppAbbr={data.gameData.oppAbbr} t={t} />
                   <OffenseCard players={data.offense} t={t} columns />
-                  <PitchingCard data={data.pitching} t={t} columns />
+                  <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} columns />
                   <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>

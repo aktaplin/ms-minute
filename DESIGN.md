@@ -3,8 +3,10 @@
 ## Concept
 
 Broadsheet newspaper aesthetic in each edition's team colors. The visual goal is
-"Sunday sports section" — serif headlines, column rules, structured layouts, cream
-paper. It should feel curated and editorial, not like an app.
+"Sunday sports section" — serif headlines, flagged sections, structured layouts,
+cream paper. It should feel curated and editorial, not like an app. It gets there
+on type and space: the page spends one rule where a section opens and almost
+nowhere else (see "Rules", below).
 
 The frame is borrowed from newspapers; the *specifics* are borrowed from baseball.
 Where a choice is free, spend it on something that comes from the sport — the line
@@ -21,9 +23,9 @@ substitute their own and were chosen to hold the same contrast relationships.
 | Name | Token | Mariners hex | Use |
 |------|-------|--------------|-----|
 | Paper | `PAPER` | `#F6F1E7` | Main background — aged newsprint cream |
-| Paper 2 | `PAPER2` | `#EDE7D8` | Hairline dividers, skeleton loaders, On This Day fill |
-| Navy | `t.navy` | `#0C2340` | Headlines, section rules, structural borders, Stat of the Game fill |
-| Teal | `t.teal` | `#005C5C` | Small-caps labels, focus ring, accent rules |
+| Paper 2 | `PAPER2` | `#EDE7D8` | Skeleton loaders, pitch-usage bar track, On This Day fill |
+| Navy | `t.navy` | `#0C2340` | Headlines, section rules, button outlines, Stat of the Game fill |
+| Teal | `t.teal` | `#005C5C` | Small-caps labels, focus ring, the wild card cut line |
 | Light teal | `t.lteal` | `#A8C8C8` | Labels and asides on navy backgrounds |
 | Ink | `INK` | `#1A1A1A` | Primary body copy |
 | Ink 2 | `INK2` | `#444444` | Secondary copy |
@@ -73,11 +75,11 @@ in the Fraunces stack.
 
 | Role | Face | Weight | Size | Notes |
 |------|------|--------|------|-------|
-| Nameplate | Fraunces | 900 | clamp(40px, 12vw, 64px) | `opsz` 9, −1px tracking |
-| Daily headline (lede) | Fraunces | 900 | 40px desktop / clamp(26px, 7.5vw, 34px) mobile | `opsz` 9 |
+| Folio (paper name) | Fraunces | 900 | 17px | `opsz` 9; a running head, not a nameplate |
+| Daily headline (lede) | Fraunces | 900 | 54px desktop / clamp(30px, 8.5vw, 40px) mobile | `opsz` 9, `text-wrap: balance` |
 | Section label | Fraunces | 900 | 15px well / 12px rail | Uppercase, `opsz` 40, 0.16em / 0.18em tracking |
 | Card headline | Fraunces | 900 | 22px | On This Day, Next Game matchup |
-| Score | Fraunces | 900 | 54px | `opsz` 9 |
+| Score | Fraunces | 900 | 46px desktop / 40px mobile | `opsz` 9; flanked by 20/18px team abbreviations |
 | Line score totals (R) | Fraunces | 900 | 15px | Tabular; H/E fall back to Inter |
 | Body copy | Inter | 400 | 17px | Justified with `hyphens: auto` in column flow |
 | Player note / league context | Inter | 400 italic | 14px | The only italic on the page — see below |
@@ -100,67 +102,175 @@ which is how italic stopped meaning anything.
 
 ## Layout patterns
 
-### Rules: one weight, three inks, horizontal only
+### Rules: one weight, one ink, and only where a line means something
 
-Every rule on the page is a 1px hairline. What changes is the ink — the edition's
-own navy, dialled back by `ink(hex, alpha)` so a rule separates the type on either
-side of it without competing with either:
+Every rule on the page is a 1px hairline in the edition's own navy at a single
+alpha — `RULE` (0.55) via `ink(hex, alpha)`. There is no second or third step,
+because a hierarchy built on alphas the eye cannot rank is not a hierarchy; it
+is just more ink.
 
-| Token | Alpha | Used for |
-|---|---|---|
-| `RULE` | 0.55 | The frame of the page: masthead, section flags, footer, table heads, box outlines |
-| `RULE_SOFT` | 0.30 | Rail section flags, so the sidebar stays subordinate |
-| `HAIR` | 0.14 | Hairlines inside a table or card: data rows, in-card separators |
+The page used to carry more than fifty rules: a hairline between every standings
+row, every batter, every pitch, a box around each of twelve stat chips, a divider
+above every aside. Each was defensible on its own and the sum read as a form.
+Structure is the job of type and space — size, weight, case, tracking, and the
+room around a block — and a rule is spent only where nothing else can do the
+work:
 
-**No vertical rules.** Every column break — the well from the rail, the two
-newspaper columns inside a block, the innings from the R/H/E totals, the score from
-the matchup — is held by a gutter instead. A gutter does the same work without
-adding ink, and a page with a rule at every boundary reads as a form, not a paper.
-Boxes (On This Day, the YouTube frame) keep their outline; a frame is an object,
-not a boundary, and it is set at `RULE` like everything else.
+| Where | What it is |
+|---|---|
+| Under the folio, and the footer | The frame of the paper |
+| Section flags, well and rail (`SectionHead`) | The one line that opens a section |
+| Edition button, Refresh button | Affordances — this is a control |
+| Error box | A state, and a rare one |
+| Wild card cut line (teal) | A **report**, not a boundary: the playoff line itself |
+| Active standings tab (2px) | A state, not a boundary |
 
-The one 2px line left is the active standings tab's underline, which marks a state
-rather than a boundary.
+Everything else is separated by space. Tables run on leading and alignment — 9px
+row padding and tabular figures, the way a paper sets a standings block. Batters
+are held apart by 26px, pitch rows by 18px, in-card asides by 18–20px: the gap
+between blocks is several times the gap inside one, so proximity does the
+grouping a hairline used to.
 
-### Section flags, in two inks
+**No vertical rules, and none of the old boxes.** Every column break — the well
+from the rail, the two newspaper columns inside a block, the innings from the
+R/H/E totals, the score from the matchup — is held by a gutter. On This Day keeps
+its PAPER2 fill but loses its outline (the fill already ends where the clipping
+ends); the YouTube player loses its frame (a 16:9 black rectangle is its own
+edge); the stat chips lose their boxes (see At the Plate).
+
+### Section flags: same rule, different type
 
 `SectionHead` renders every section flag, because a front page that gives every
 item identical billing is a list, not a front page:
 
 - **Main well** (default): hairline at `RULE`, 15px Fraunces label, 14px below.
-- **Rail** (`rail`): hairline at `RULE_SOFT`, 12px label, 10px below. The sidebar
-  reads as subordinate to the front page instead of competing with it.
+- **Rail** (`rail`): the same hairline at the same ink, 12px label tracked wider
+  at 0.18em, 11px below.
 
-Both take the same 40px top margin, so where the two columns open the rail's first
-rule registers against the well's — the alignment that lets the gutter between them
-go unruled.
+Every section is flagged and every flag is ruled. The rail briefly ran unruled —
+type alone was meant to rank it below the well — and it does not hold up: a rail
+section is a table, a dispatch, a market quote and a clipping stacked in a 340px
+column, and 40px of air between them does not say where one ends and the next
+begins when the content inside them is also separated by air. Rank is carried by
+the label instead: 15px against 12px.
+
+Both flags take the same 40px top margin and set their labels on the same line,
+so where the two columns open, the rail's rule registers against the well's —
+the alignment that lets the gutter between them go unruled.
 
 **The score block has no flag at all.** It is the front page; labelling it "Last
 Game" told the reader something they could already see, and cost the page its
 top-of-page. The headline runs straight into the score.
 
-### The desktop header band
+### One display voice: the folio and the headline
 
-On desktop the lede and the score card run the full page width; the main well and
-the rail open below them, so the columns start together at Recap / Standings. The
-score card takes a `wide` variant there: at 1,080px two panels would strand white
-space beside four short lines, so the meta splits in three — score, matchup,
-starter — held apart by 56px gutters.
+The page used to open with a 64px centred nameplate and then a 46px headline —
+two pieces of display Fraunces stacked one on the other, so the reader had to
+work out which one was the page. The score, at 54px, was larger than both. Three
+things competing to be the loudest, and the one that was actually new — the
+headline — was the smallest of them.
 
-The band carries no closing rule. The Recap and Standings flags sit at the same
-height directly beneath it and read as one broken line across the page, which is
-the boundary; a rule above them would be a second one saying the same thing.
+The paper's name is the same every morning. The headline is the only thing on
+the page that is new, so it takes the display and the name runs as a **folio**:
+the small line a newspaper sets along the top of a page. Paper name in Fraunces
+17, today's date beside it in Inter 12, the edition button at the right, and the
+frame's rule underneath — a folio runs *above* the rule, which also means the
+one line at the top of the page is the line that opens the headline.
+
+The result is a single ladder, each step visibly under the one above it:
+
+| Step | Size | What it is |
+|---|---|---|
+| Headline | 54 / clamp(30–40) | The day's story — the page's voice |
+| Score | 46 / 40 | The fact it reports |
+| Section flag | 15 well / 12 rail | Where you are |
+| Folio | 17 (Fraunces), 12 (date) | Which paper, which day |
+
+The folio outranks the section flags in raw point size and still reads below
+them, because it is one line at the top of the page above the frame rule rather
+than a flag opening a column — position and rule do that work, not size.
+
+`text-wrap: balance` sets the headline, so a two-line head breaks into two even
+lines instead of a long line and an orphan. The headline is also the page's
+`<h1>` now; the paper's name is a plain wordmark in the folio, which is the
+right semantic order for a page about one game.
+
+It costs the page its one centred element, so everything hangs off the same left
+margin as the columns beneath it.
+
+### The header: the headline and the score, nothing else
+
+On desktop the lede and the score run the full page width; the main well and the
+rail open below them, so the columns start together at Recap / Standings.
+
+The header holds two things. It used to carry the opponent's name, the venue,
+the date and the starter's line as well, in three panels that had to be
+rebalanced twice to stop them stranding white space — which was the tell. The
+band was holding four different kinds of thing and composing none of them: a
+result, an identity, a time and place, and a pitcher's stat line, each wanting a
+different treatment and all of them set as columns of small grey type beside a
+54px numeral.
+
+Everything but the score moved to the section that owns it:
+
+| What | Where it went |
+|---|---|
+| Opponent, venue, date | The Recap's **dateline** |
+| Starter's line | The top of **Pitching**, the section about him |
+
+A reader looking for the venue is reading the recap; a reader looking for the
+starter's line is reading about the pitching. Neither was ever looking at the
+top of the page for it.
+
+### Score block
+
+A scoreboard line: the team abbreviations flank the figures — `SEA 9–2 TEX` —
+with the result tag closing it, all on one baseline. The abbreviations are
+Fraunces 22 against the 54px score; ours sets in navy and theirs in INK2, the
+same ranking the score order already makes, said a second way so it survives a
+glance.
+
+Flanking the score with the abbreviations is what let the header lose everything
+else: the block now says who as well as how many, so it no longer needs a
+matchup line under it. It wraps at the tag on a very narrow phone, and on mobile
+the **line score** sits 26px beneath; on desktop the line score leaves the card
+and runs as its own flagged section in the well (see below).
+
+### The Recap dateline
+
+The Recap opens the way a wire story does, with a teal small-caps dateline —
+opponent, venue, date — set on its own line above the prose. It is the same
+device Next Game uses to mark itself as ahead in time; here it marks what game
+the prose is about, which is exactly the metadata the header used to spend three
+panels on.
+
+Set on its own line, not run into the first sentence. The authentic form runs it
+in, but the Recap justifies in two columns and a tracked uppercase run inside
+justified text pulls the word spacing apart on whatever line it lands in. Each
+part is `white-space: nowrap` so a narrow measure breaks at a middot rather than
+orphaning the day of the month.
+
+### Pitching
+
+Opens with the starter's line — name at the left, then IP / K / ER as stat
+pairs, grouped beside the name rather than pushed to the far edge of the well.
+It is the same idiom a batter's row uses in At the Plate, so the two player
+sections rhyme instead of each inventing a format. The line sits above the
+column flow, as a header for the whole card; the starter prose, the pitch
+arsenal rows and the bullpen note flow in two columns beneath it.
 
 ### Cards
 
-No rounded corners, no drop shadows. Sections are delineated by rules and
-whitespace, not boxes. The only boxed elements:
+No rounded corners, no drop shadows. Sections are delineated by their flag and by
+whitespace, not by boxes. What is left is two fills and one outline:
 
-- Stat chips (`RULE` border)
 - Stat of the Game (full navy fill)
-- On This Day (PAPER2 fill, `RULE` border — an archival clipping)
-- The YouTube player (`RULE` border)
-- Error states (1px red border)
+- On This Day (PAPER2 fill — an archival clipping; no outline, the fill is the edge)
+- Error states (1px red border — a state, and a rare one)
+
+Outlines that have been retired: the stat chips (now typographic pairs), the
+YouTube player (a black 16:9 rectangle is its own edge), and On This Day's. The
+two buttons keep a line because a line is what says "control".
 
 ### The 3px accent bar — retired
 
@@ -172,8 +282,9 @@ as an aside. Use type, not a bar.
 ### Score block
 
 Big serif score and win/loss tag at the left, opponent, venue, date and starter at
-the right, split by a gutter. On mobile the **line score** sits beneath it under a
-`RULE` hairline; on desktop it leaves the card entirely (see below).
+the right, split by a gutter. The starter line is set off by space and its teal
+small-caps label, not a rule. On mobile the **line score** sits 26px beneath the
+card; on desktop it leaves the card entirely (see below).
 
 ### Line score
 
@@ -183,8 +294,9 @@ the grid beneath answers it. That keeps the header band to what a reader wants i
 one second — what happened, and the final — and keeps the table at a readable
 measure. Spread across the full 1,080px band the innings lost their row.
 
-Innings across, R/H/E at the right behind a 26px gutter. Away team on top,
-home below, always. Scoring innings set in navy bold; zeros recede to MUTED, so a
+Innings across, R/H/E at the right behind a 26px gutter, no rule under the inning
+heads — teal small-caps against navy figures is already two different things.
+Away team on top, home below, always. Scoring innings set in navy bold; zeros recede to MUTED, so a
 six-run first is visible at a glance instead of collapsing into the final. A half
 inning the home side never needed to bat prints `x`. Horizontally scrollable so
 extra innings don't break the page. Data comes free from the `linescore` hydration
@@ -192,9 +304,15 @@ already on the schedule call in `getLastGame`.
 
 ### At the Plate
 
-Player rows: name + position left, up to three stat chips right, one italic
-annotation below. Separated by `HAIR` hairlines. No top padding on any row, so both
-newspaper columns start level with the section flag.
+Player rows: name + position left, up to three stat pairs right, one italic
+annotation below. Blocks are separated by 26px of space, not by a rule, and carry
+no top padding, so both newspaper columns start level with the section flag.
+
+The stat pairs were stat *chips* — a 1px box around each figure. Twelve boxes on
+a page of four batters was the densest ink in the paper, and a boxed numeral is
+no easier to read than a bold one. Now the figure sets in 17px Inter bold navy
+with tabular figures over its 10px teal small-caps label, and an 18px gutter holds
+the pairs apart.
 
 ### Stat of the Game
 
@@ -205,8 +323,9 @@ In column flow the prose breaks across the gutter normally; only the aside sets
 
 ### Standings
 
-Tabbed — Division / Wild Card, defaulting to Wild Card. The active tab is navy with
-a 2px navy underline; the inactive tab is MUTED. Teal is *not* used for the
+Tabbed — Division / Wild Card, defaulting to Wild Card. The tab row carries no
+rule under it, so the active tab's 2px navy underline is unmistakably a state and
+not a boundary; the inactive tab is MUTED. Teal is *not* used for the
 inactive state: teal means "label" everywhere else, and spending it on the
 unselected tab said the opposite of what it meant.
 
@@ -215,17 +334,26 @@ loss), intensity in three redundant channels (arrowhead size, ink depth, doubled
 head at ±3), with the L10 record and a compact streak token (`W5` / `L5`) rendered
 as visible text — never in a `title` tooltip, which never opens on touch.
 
+Neither table is ruled: no head rule, no row hairlines, just 9px of row padding
+and tabular figures. That leaves the teal **cut line** as the only line in the
+block, which is the point — it is the one horizontal on the page that reports
+something rather than divides something, and it now reads that way.
+
 ### Next Game
 
-Opens like a dispatch: a teal small-caps **dateline** (day · first pitch), then the
-matchup in Fraunces 22, then opponent and venue, then the probable pitcher behind a
-hairline. The dateline is what marks it as ahead in time — no accent bar.
+Opens like a dispatch: a teal small-caps **dateline** (day · first pitch) — the
+same device the Recap opens with — then the
+matchup in Fraunces 22, then opponent and venue, then the probable pitcher after a
+14px gap, opened by its own teal `PROBABLE` label. The dateline is what marks the
+card as ahead in time — no accent bar.
 
 ### WS Odds
 
 A market quote: the percentage as a 32px Fraunces hero, a full-width sparkline
 beneath it, then the window and the change in percentage points (green rising, red
-falling) split across a hairline, with the median line and book count as a footnote.
+falling) on one line 8px below, with the median line and book count as a footnote.
+Nothing is ruled here: a hairline directly under a sparkline is two lines saying
+different things in the same weight.
 
 ## Motion and the quality floor
 
