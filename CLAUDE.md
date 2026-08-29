@@ -13,17 +13,21 @@ Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/
 - `server/lib/history.js` + `server/content/history/{teamKey}.json` — "On This Day" curated franchise moments
 - `client/src/components/MsMinute.jsx` — full UI, responsive at 900px. There are no
   lettered zones and no jump-nav: every card is a peer top-level section, each flagged
-  by `SectionHead` (full-width rule + small-caps label). Order: Last Game, Recap, At the
-  Plate, Pitching (Pitch Arsenal rides inside it), Game Highlights, Stat of the Game,
-  On This Day, Standings, Next Game, WS Odds.
+  by `SectionHead` (full-width rule + small-caps label). Order: Last Game, Recap, Line Score
+  (desktop only — on mobile it stays inside the score card), At the Plate, Pitching
+  (Pitch Arsenal rides inside it), Game Highlights, Stat of the Game, On This Day,
+  Standings, Next Game, WS Odds.
   mobile = that list in one column;
   desktop = newspaper front page: a full-width header band (Haiku lede + score card,
   which splits its meta into three panels at that width) running clear across the page,
-  then main well + right rail with vertical rule below it — so the rail's first flag
-  (Standings) starts level with Recap.
+  then main well + right rail below it — so the rail's first flag (Standings) starts
+  level with Recap. The line score leaves the score card on desktop and runs as its own
+  flagged section in the well, under the Recap.
   In the main well every block below the header runs the full well width and flows in
   two newspaper columns — Recap, At the Plate, Pitching, Stat of the Game — stacked
   vertically so a long Pitching card can't strand white space beside a short one.
+  Rules are one 1px hairline at three inks (`RULE` / `RULE_SOFT` / `HAIR` via `ink()`),
+  and there are no vertical rules anywhere — gutters do that work. See DESIGN.md.
   Daily Haiku headline as the Fraunces lede.
 
 Phase 6 (phone signup + Twilio SMS) is next; Phase 7 (live game watcher) after that.

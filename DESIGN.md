@@ -100,17 +100,40 @@ which is how italic stopped meaning anything.
 
 ## Layout patterns
 
-### Section flags, in two weights
+### Rules: one weight, three inks, horizontal only
 
-`SectionHead` renders every section flag. It has two weights, because a front page
-that gives every item identical billing is a list, not a front page:
+Every rule on the page is a 1px hairline. What changes is the ink — the edition's
+own navy, dialled back by `ink(hex, alpha)` so a rule separates the type on either
+side of it without competing with either:
 
-- **Main well** (default): 2px navy rule, 15px Fraunces label, 14px below.
-- **Rail** (`rail`): 1px navy rule, 12px label, 10px below. The sidebar reads as
-  subordinate to the front page instead of competing with it.
+| Token | Alpha | Used for |
+|---|---|---|
+| `RULE` | 0.55 | The frame of the page: masthead, section flags, footer, table heads, box outlines |
+| `RULE_SOFT` | 0.30 | Rail section flags, so the sidebar stays subordinate |
+| `HAIR` | 0.14 | Hairlines inside a table or card: data rows, in-card separators |
 
-Both weights take the same 40px top margin, so where the two columns open the
-rail's first rule registers against the well's across the vertical rule.
+**No vertical rules.** Every column break — the well from the rail, the two
+newspaper columns inside a block, the innings from the R/H/E totals, the score from
+the matchup — is held by a gutter instead. A gutter does the same work without
+adding ink, and a page with a rule at every boundary reads as a form, not a paper.
+Boxes (On This Day, the YouTube frame) keep their outline; a frame is an object,
+not a boundary, and it is set at `RULE` like everything else.
+
+The one 2px line left is the active standings tab's underline, which marks a state
+rather than a boundary.
+
+### Section flags, in two inks
+
+`SectionHead` renders every section flag, because a front page that gives every
+item identical billing is a list, not a front page:
+
+- **Main well** (default): hairline at `RULE`, 15px Fraunces label, 14px below.
+- **Rail** (`rail`): hairline at `RULE_SOFT`, 12px label, 10px below. The sidebar
+  reads as subordinate to the front page instead of competing with it.
+
+Both take the same 40px top margin, so where the two columns open the rail's first
+rule registers against the well's — the alignment that lets the gutter between them
+go unruled.
 
 **The score block has no flag at all.** It is the front page; labelling it "Last
 Game" told the reader something they could already see, and cost the page its
@@ -122,35 +145,45 @@ On desktop the lede and the score card run the full page width; the main well an
 the rail open below them, so the columns start together at Recap / Standings. The
 score card takes a `wide` variant there: at 1,080px two panels would strand white
 space beside four short lines, so the meta splits in three — score, matchup,
-starter — with hairlines between, and the line score runs the full band beneath.
+starter — held apart by 56px gutters.
+
+The band carries no closing rule. The Recap and Standings flags sit at the same
+height directly beneath it and read as one broken line across the page, which is
+the boundary; a rule above them would be a second one saying the same thing.
 
 ### Cards
 
 No rounded corners, no drop shadows. Sections are delineated by rules and
 whitespace, not boxes. The only boxed elements:
 
-- Stat chips (1px navy border)
+- Stat chips (`RULE` border)
 - Stat of the Game (full navy fill)
-- On This Day (PAPER2 fill, 1px navy border — an archival clipping)
-- The YouTube player (1px navy border)
+- On This Day (PAPER2 fill, `RULE` border — an archival clipping)
+- The YouTube player (`RULE` border)
 - Error states (1px red border)
 
-### The 3px accent bar
+### The 3px accent bar — retired
 
-`border-left: 3px solid` marks **an aside, and only an aside** — currently just the
-league-context callout inside Stat of the Game. It previously also marked Next Game
-and WS Odds, which put one device on three unrelated meanings and made two adjacent
-rail cards look like the same kind of object.
+`border-left: 3px solid` marked an aside — the league-context callout inside Stat of
+the Game, the last one standing. It was also the last vertical rule on the page, and
+the callout was never relying on it: light-teal italic on the navy fill already reads
+as an aside. Use type, not a bar.
 
 ### Score block
 
-Two columns split by a vertical navy rule — big serif score and win/loss tag on the
-left, opponent, venue, date and starter line on the right — with the **line score**
-beneath, full width, under a 1px navy rule.
+Big serif score and win/loss tag at the left, opponent, venue, date and starter at
+the right, split by a gutter. On mobile the **line score** sits beneath it under a
+`RULE` hairline; on desktop it leaves the card entirely (see below).
 
 ### Line score
 
-Innings across, R/H/E at the right behind a navy vertical rule. Away team on top,
+On desktop it is a section of its own in the main well, flagged `LINE SCORE` and
+set under the Recap: the prose says two in the first and four in the second, and
+the grid beneath answers it. That keeps the header band to what a reader wants in
+one second — what happened, and the final — and keeps the table at a readable
+measure. Spread across the full 1,080px band the innings lost their row.
+
+Innings across, R/H/E at the right behind a 26px gutter. Away team on top,
 home below, always. Scoring innings set in navy bold; zeros recede to MUTED, so a
 six-run first is visible at a glance instead of collapsing into the final. A half
 inning the home side never needed to bat prints `x`. Horizontally scrollable so
@@ -160,14 +193,14 @@ already on the schedule call in `getLastGame`.
 ### At the Plate
 
 Player rows: name + position left, up to three stat chips right, one italic
-annotation below. Separated by 1px PAPER2 rules. No top padding on any row, so both
+annotation below. Separated by `HAIR` hairlines. No top padding on any row, so both
 newspaper columns start level with the section flag.
 
 ### Stat of the Game
 
 Inverts the palette — navy fill, cream and light-teal text. Huge stat value, the
-abbreviation and full name, an explanation, and a bordered context aside. In column
-flow the prose breaks across the rule normally; only the bordered aside sets
+abbreviation and full name, an explanation, and a light-teal italic context aside.
+In column flow the prose breaks across the gutter normally; only the aside sets
 `break-inside: avoid`.
 
 ### Standings
