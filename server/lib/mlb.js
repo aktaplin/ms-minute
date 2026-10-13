@@ -10,13 +10,7 @@ const TEAM_CONFIGS = {
     edition: 'Seattle Mariners',
     theme: { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' },
   },
-  giants: {
-    id: 137, divisionId: 203, leagueId: 104,
-    abbr: 'SF', name: 'San Francisco Giants', divisionName: 'NL West',
-    brandTitle: "The Giants' Glance",
-    edition: 'San Francisco Giants',
-    theme: { navy: '#27251F', teal: '#7B2D00', lteal: '#FD5A1E' },
-  },
+  // 2026 postseason final four (ALCS: Rays–Guardians, NLCS: Brewers–Dodgers).
   dodgers: {
     id: 119, divisionId: 203, leagueId: 104,
     abbr: 'LAD', name: 'Los Angeles Dodgers', divisionName: 'NL West',
@@ -24,26 +18,26 @@ const TEAM_CONFIGS = {
     edition: 'Los Angeles Dodgers',
     theme: { navy: '#005A9C', teal: '#A5132A', lteal: '#FFFFFF' },
   },
-  angels: {
-    id: 108, divisionId: 200, leagueId: 103,
-    abbr: 'LAA', name: 'Los Angeles Angels', divisionName: 'AL West',
-    brandTitle: 'The Halo Headlines',
-    edition: 'Los Angeles Angels',
-    theme: { navy: '#003263', teal: '#BA0021', lteal: '#C4CED3' },
+  brewers: {
+    id: 158, divisionId: 205, leagueId: 104,
+    abbr: 'MIL', name: 'Milwaukee Brewers', divisionName: 'NL Central',
+    brandTitle: 'The Brew Crew Bulletin',
+    edition: 'Milwaukee Brewers',
+    theme: { navy: '#12284B', teal: '#7A5A00', lteal: '#FFC52F' },
   },
-  royals: {
-    id: 118, divisionId: 202, leagueId: 103,
-    abbr: 'KC', name: 'Kansas City Royals', divisionName: 'AL Central',
-    brandTitle: 'The Royal Rundown',
-    edition: 'Kansas City Royals',
-    theme: { navy: '#004687', teal: '#7A5C28', lteal: '#FFFFFF' },
+  rays: {
+    id: 139, divisionId: 201, leagueId: 103,
+    abbr: 'TB', name: 'Tampa Bay Rays', divisionName: 'AL East',
+    brandTitle: 'The Rays Report',
+    edition: 'Tampa Bay Rays',
+    theme: { navy: '#092C5C', teal: '#1F5A8F', lteal: '#8FBCE6' },
   },
-  yankees: {
-    id: 147, divisionId: 201, leagueId: 103,
-    abbr: 'NYY', name: 'New York Yankees', divisionName: 'AL East',
-    brandTitle: 'The Bronx Brief',
-    edition: 'New York Yankees',
-    theme: { navy: '#0C2340', teal: '#1C2841', lteal: '#C4CED3' },
+  guardians: {
+    id: 114, divisionId: 202, leagueId: 103,
+    abbr: 'CLE', name: 'Cleveland Guardians', divisionName: 'AL Central',
+    brandTitle: 'The Guardians Gazette',
+    edition: 'Cleveland Guardians',
+    theme: { navy: '#00385D', teal: '#B5001C', lteal: '#C4CED3' },
   },
 };
 
