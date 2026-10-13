@@ -6,7 +6,7 @@ A daily Seattle Mariners briefing: game recap, player highlights, stat explained
 
 ## Current state
 
-Phases 0–5 are done (multi-team: 6 editions via `TEAM_CONFIGS` in `server/lib/mlb.js`):
+Phases 0–5 are done (multi-team: 5 editions — Mariners plus the 2026 final four (Dodgers, Brewers, Rays, Guardians) — via `TEAM_CONFIGS` in `server/lib/mlb.js`):
 - `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, wild card, play-by-play, live feed, pitch arsenal)
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
 - `server/lib/db.js` — SQLite cache (`reports`, `odds_history`); `server/lib/cron.js` — 5am PT daily job
