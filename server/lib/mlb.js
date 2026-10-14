@@ -39,6 +39,17 @@ const TEAM_CONFIGS = {
     edition: 'Cleveland Guardians',
     theme: { navy: '#00385D', teal: '#B5001C', lteal: '#C4CED3' },
   },
+  // Fictional team with a static report (server/content/demo/report.json) —
+  // keeps the site readable when there are no MLB games, e.g. the offseason.
+  // `demo: true` routes it around the generator, the cron and the MLB API.
+  demo: {
+    id: 9001, divisionId: null, leagueId: null,
+    abbr: 'HCH', name: 'Harbor City Herons', divisionName: 'Coastal Division',
+    brandTitle: 'The Heron Herald',
+    edition: 'Demo edition · sample data',
+    demo: true,
+    theme: { navy: '#1D3B4F', teal: '#A8471B', lteal: '#E9C3A6' },
+  },
 };
 
 const DEFAULT_TEAM_KEY = 'mariners';

@@ -7,6 +7,7 @@ const express = require('express');
 const mlb = require('./lib/mlb');
 const { TEAM_CONFIGS, resolveTeamKey } = mlb;
 const { generateDailyReport } = require('./lib/generate');
+const { buildDemoReport } = require('./lib/demo');
 const db = require('./lib/db');
 const { startCron } = require('./lib/cron');
 const { ptDateToday } = require('./lib/util');
@@ -76,6 +77,7 @@ app.get('/api/teams', (req, res) => {
     brandTitle: c.brandTitle,
     edition: c.edition,
     theme: c.theme,
+    demo: !!c.demo,
   }));
   res.json({ teams });
 });
@@ -83,6 +85,7 @@ app.get('/api/teams', (req, res) => {
 // Dev-only: smoke test all MLB lib functions
 app.get('/api/dev/mlb', requireDevAccess, async (req, res) => {
   const tc = TEAM_CONFIGS[resolveTeamKey(req.query.team)];
+  if (tc.demo) return res.status(400).json({ error: 'The demo edition has no MLB data' });
   try {
     const lastGame = await mlb.getLastGame(tc.id);
     const [boxScore, nextGame, standings] = await Promise.all([
@@ -96,16 +99,24 @@ app.get('/api/dev/mlb', requireDevAccess, async (req, res) => {
   }
 });
 
+// The demo edition is a stamped fixture; every real team goes to the generator.
+function buildReport(teamKey) {
+  const tc = TEAM_CONFIGS[teamKey];
+  return tc.demo ? Promise.resolve(buildDemoReport(tc)) : generateDailyReport(tc);
+}
+
 // Serve today's report from cache, generating on miss. Concurrent misses for
 // the same team share one in-flight generation instead of each paying for it.
 const inflight = new Map();
 function getOrGenerateReport(teamKey) {
+  // Free to build, and skipping the cache means fixture edits show on reload
+  if (TEAM_CONFIGS[teamKey].demo) return buildReport(teamKey);
   const cacheKey = `${ptDateToday()}-${teamKey}`;
   const cached = db.getReport(cacheKey);
   if (cached) return Promise.resolve(cached);
   if (inflight.has(cacheKey)) return inflight.get(cacheKey);
 
-  const p = generateDailyReport(TEAM_CONFIGS[teamKey])
+  const p = buildReport(teamKey)
     .then(report => {
       db.saveReport(cacheKey, report);
       return report;
@@ -131,12 +142,12 @@ app.post('/api/report/regenerate', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const teamKeys = req.query.team === 'all'
-    ? Object.keys(TEAM_CONFIGS)
+    ? Object.keys(TEAM_CONFIGS).filter(k => !TEAM_CONFIGS[k].demo)
     : [resolveTeamKey(req.query.team)];
   const results = [];
   for (const key of teamKeys) {
     try {
-      const report = await generateDailyReport(TEAM_CONFIGS[key]);
+      const report = await buildReport(key);
       db.saveReport(`${ptDateToday()}-${key}`, report);
       results.push({ team: key, ok: true, generatedAt: report.generatedAt });
     } catch (err) {
@@ -151,7 +162,7 @@ app.post('/api/report/regenerate', async (req, res) => {
 app.get('/api/dev/report', requireDevAccess, async (req, res) => {
   const teamKey = resolveTeamKey(req.query.team);
   try {
-    const report = await generateDailyReport(TEAM_CONFIGS[teamKey]);
+    const report = await buildReport(teamKey);
     res.json(report);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1227,6 +1227,7 @@ export default function MsMinute() {
             }
           : null,
         ytVideoId: report.ytVideoId,
+        demo: !!report.demo,
       });
     } catch (err) {
       // The reader gets plain language; the detail goes here, where it helps.
@@ -1243,6 +1244,7 @@ export default function MsMinute() {
   const t = teamConfig?.theme ?? { navy: '#0C2340', teal: '#005C5C', lteal: '#A8C8C8' };
   const brandTitle = teamConfig?.brandTitle ?? "The M's Minute";
   const editionLabel = teamConfig?.edition ?? '';
+  const demoKey = teams?.find(x => x.demo)?.key ?? null;
 
   // Keep the tab title in sync with the active edition. Declared here, after
   // teamConfig exists — a dependency array referencing it above would read it
@@ -1349,7 +1351,15 @@ export default function MsMinute() {
               {import.meta.env.DEV && (
                 <div style={{ marginTop: 10, fontSize: 12, color: MUTED, fontFamily: INTER }}>{error}</div>
               )}
-              <button onClick={() => loadReport(team)} style={{ marginTop: 12, background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Try again</button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                <button onClick={() => loadReport(team)} style={{ background: t.navy, color: PAPER, border: 'none', padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Try again</button>
+                {/* No games to report (offseason, All-Star break) looks the same
+                    as a jammed press from here — either way, the sample edition
+                    still shows what the paper looks like. */}
+                {demoKey && demoKey !== team && (
+                  <button onClick={() => selectTeam(demoKey)} style={{ background: 'transparent', color: t.navy, border: `1px solid ${t.navy}`, padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Read the demo edition</button>
+                )}
+              </div>
             </div>
           )}
 
@@ -1368,7 +1378,8 @@ export default function MsMinute() {
               <NarrativeCard text={data.narrative} game={data.gameData} t={t} />
               <OffenseCard players={data.offense} t={t} />
               <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} />
-              <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+              {/* A fictional team has no highlights to search for */}
+              {!data.demo && <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />}
               <StatOfGameCard stat={data.statOfGame} t={t} />
               <OnThisDayCard data={data.onThisDay} t={t} />
               <StandingsCard rows={data.standings} wildCardRows={data.wildCard} divisionName={data.divisionName} teamAbbr={data.teamAbbr} t={t} />
@@ -1397,7 +1408,8 @@ export default function MsMinute() {
                   <LineScoreCard ls={data.gameData.lineScore} teamAbbr={data.teamAbbr} oppAbbr={data.gameData.oppAbbr} t={t} />
                   <OffenseCard players={data.offense} t={t} columns />
                   <PitchingCard data={data.pitching} starter={data.gameData.startingPitcher} t={t} columns />
-                  <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />
+                  {/* A fictional team has no highlights to search for */}
+                  {!data.demo && <YouTubeCard videoId={data.ytVideoId} oppName={data.gameData.oppName} teamName={data.teamName} t={t} />}
                   <StatOfGameCard stat={data.statOfGame} t={t} columns />
                 </div>
                 <aside style={{ paddingLeft: 44 }}>

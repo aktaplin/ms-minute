@@ -6,7 +6,7 @@ A daily Seattle Mariners briefing: game recap, player highlights, stat explained
 
 ## Current state
 
-Phases 0–5 are done (multi-team: 5 editions — Mariners plus the 2026 final four (Dodgers, Brewers, Rays, Guardians) — via `TEAM_CONFIGS` in `server/lib/mlb.js`):
+Phases 0–5 are done (multi-team: 5 editions — Mariners plus the 2026 final four (Dodgers, Brewers, Rays, Guardians) — plus a fictional demo edition, via `TEAM_CONFIGS` in `server/lib/mlb.js`):
 - `server/lib/mlb.js` — MLB Stats API (schedule, box score, standings, wild card, play-by-play, live feed, pitch arsenal)
 - `server/lib/generate.js` — daily report generator (Claude Haiku, YouTube API, Odds API)
 - `server/lib/db.js` — SQLite cache (`reports`, `odds_history`); `server/lib/cron.js` — 5am PT daily job
@@ -78,6 +78,17 @@ Steps 1–5 = real production app (done). Steps 6–7 = killer feature.
   hides for teams/dates with no entry.
 - **Hitter Spotlight** — removed from the live app (July 2026) to cut API calls/compute; code is
   preserved in `archive/hitter-spotlight/` with restore instructions if it's worth bringing back.
+
+### Demo edition (shipped October 2026)
+
+- **Demo** — `TEAM_CONFIGS.demo` is a fictional sixth edition, the Harbor City Herons ("The Heron
+  Herald", labelled "Demo edition · sample data"), so the site still has something to show when
+  MLB has no games (offseason) and something to develop against for free. `demo: true` routes it
+  around everything paid or live: `/api/report` serves `buildDemoReport()` (`server/lib/demo.js`)
+  from the fixture `server/content/demo/report.json` (uncached), with every date stamped relative
+  to today; the cron and `regenerate?team=all` skip it; Game Highlights hides for it. When a real
+  edition fails to load, the error box offers "Read the demo edition". Every team, player and
+  number in the fixture is invented — keep the recap, line score and box score consistent if you edit it.
 
 ### Wild Card standings (shipped August 2026)
 

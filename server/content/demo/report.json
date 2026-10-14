@@ -1,0 +1,463 @@
+{
+  "_comment": "Fixture for the demo edition (TEAM_CONFIGS.demo). Every team, player and number here is invented. Dates are placeholders: server/lib/demo.js stamps lastGame/nextGame/onThisDay/titleOddsTrend relative to today on every request, so the edition always reads as this morning's paper.",
+  "lastGame": {
+    "gamePk": 0,
+    "teamSide": "home",
+    "teamScore": 6,
+    "opponentScore": 3,
+    "opponentName": "Ridgeline Foxes",
+    "opponentAbbr": "RDG",
+    "venue": "Tidewater Park",
+    "win": true,
+    "lineScore": {
+      "teamIsHome": true,
+      "innings": [
+        {
+          "num": 1,
+          "team": 0,
+          "opponent": 1
+        },
+        {
+          "num": 2,
+          "team": 2,
+          "opponent": 0
+        },
+        {
+          "num": 3,
+          "team": 0,
+          "opponent": 0
+        },
+        {
+          "num": 4,
+          "team": 0,
+          "opponent": 0
+        },
+        {
+          "num": 5,
+          "team": 1,
+          "opponent": 2
+        },
+        {
+          "num": 6,
+          "team": 1,
+          "opponent": 0
+        },
+        {
+          "num": 7,
+          "team": 0,
+          "opponent": 0
+        },
+        {
+          "num": 8,
+          "team": 2,
+          "opponent": 0
+        },
+        {
+          "num": 9,
+          "team": null,
+          "opponent": 0
+        }
+      ],
+      "team": {
+        "runs": 6,
+        "hits": 10,
+        "errors": 0
+      },
+      "opponent": {
+        "runs": 3,
+        "hits": 7,
+        "errors": 1
+      }
+    }
+  },
+  "boxScore": {
+    "offense": [
+      {
+        "name": "Mateo Varga",
+        "position": "SS",
+        "atBats": 4,
+        "hits": 2,
+        "homeRuns": 1,
+        "rbi": 3,
+        "runs": 1,
+        "avg": ".281",
+        "obp": ".352",
+        "slg": ".498",
+        "ops": ".850"
+      },
+      {
+        "name": "June Okafor",
+        "position": "CF",
+        "atBats": 4,
+        "hits": 3,
+        "homeRuns": 0,
+        "rbi": 1,
+        "runs": 2,
+        "avg": ".302",
+        "obp": ".371",
+        "slg": ".445",
+        "ops": ".816"
+      },
+      {
+        "name": "Dell Brannigan",
+        "position": "1B",
+        "atBats": 3,
+        "hits": 1,
+        "homeRuns": 1,
+        "rbi": 1,
+        "runs": 1,
+        "avg": ".247",
+        "obp": ".330",
+        "slg": ".512",
+        "ops": ".842"
+      },
+      {
+        "name": "Ravi Castellanos",
+        "position": "C",
+        "atBats": 4,
+        "hits": 2,
+        "homeRuns": 0,
+        "rbi": 1,
+        "runs": 0,
+        "avg": ".259",
+        "obp": ".311",
+        "slg": ".402",
+        "ops": ".713"
+      }
+    ],
+    "startingPitcher": {
+      "id": 900101,
+      "name": "Sam Whitlock",
+      "inningsPitched": "6.0",
+      "strikeOuts": 7,
+      "earnedRuns": 3,
+      "hits": 5,
+      "walks": 2,
+      "seasonEra": "3.41",
+      "seasonWhip": "1.12",
+      "seasonK9": "9.40"
+    },
+    "relievers": [
+      {
+        "id": 900102,
+        "name": "Theo Marchetti",
+        "inningsPitched": "1.0",
+        "strikeOuts": 1,
+        "earnedRuns": 0,
+        "hits": 1,
+        "walks": 0,
+        "seasonEra": "2.88",
+        "seasonWhip": "1.05",
+        "seasonK9": "10.10"
+      },
+      {
+        "id": 900103,
+        "name": "Alana Reyes",
+        "inningsPitched": "1.0",
+        "strikeOuts": 2,
+        "earnedRuns": 0,
+        "hits": 0,
+        "walks": 1,
+        "seasonEra": "3.02",
+        "seasonWhip": "1.18",
+        "seasonK9": "11.30"
+      },
+      {
+        "id": 900104,
+        "name": "Gus Pemberton",
+        "inningsPitched": "1.0",
+        "strikeOuts": 1,
+        "earnedRuns": 0,
+        "hits": 1,
+        "walks": 0,
+        "seasonEra": "2.45",
+        "seasonWhip": "0.98",
+        "seasonK9": "9.80"
+      }
+    ]
+  },
+  "standings": [
+    {
+      "teamId": 9002,
+      "team": "Ridgeline Foxes",
+      "wins": 84,
+      "losses": 58,
+      "pct": ".592",
+      "gb": "-",
+      "divisionRank": 1
+    },
+    {
+      "teamId": 9001,
+      "team": "Harbor City Herons",
+      "wins": 81,
+      "losses": 61,
+      "pct": ".570",
+      "gb": "3.0",
+      "divisionRank": 2
+    },
+    {
+      "teamId": 9003,
+      "team": "Bayport Gulls",
+      "wins": 72,
+      "losses": 70,
+      "pct": ".507",
+      "gb": "12.0",
+      "divisionRank": 3
+    },
+    {
+      "teamId": 9004,
+      "team": "Copper Valley Miners",
+      "wins": 66,
+      "losses": 76,
+      "pct": ".465",
+      "gb": "18.0",
+      "divisionRank": 4
+    },
+    {
+      "teamId": 9005,
+      "team": "Summit Owls",
+      "wins": 58,
+      "losses": 84,
+      "pct": ".408",
+      "gb": "26.0",
+      "divisionRank": 5
+    }
+  ],
+  "wildCard": [
+    {
+      "teamId": 9001,
+      "team": "Harbor City Herons",
+      "abbr": "HCH",
+      "wins": 81,
+      "losses": 61,
+      "pct": ".570",
+      "wildCardRank": 1,
+      "inSpot": true,
+      "gb": "+4.0",
+      "trend": {
+        "tier": 2,
+        "wins": 7,
+        "losses": 3,
+        "games": 10,
+        "streakType": "wins",
+        "streakNumber": 3
+      }
+    },
+    {
+      "teamId": 9006,
+      "team": "Lakeshore Admirals",
+      "abbr": "LKS",
+      "wins": 79,
+      "losses": 63,
+      "pct": ".556",
+      "wildCardRank": 2,
+      "inSpot": true,
+      "gb": "+2.0",
+      "trend": {
+        "tier": 0,
+        "wins": 5,
+        "losses": 5,
+        "games": 10,
+        "streakType": "losses",
+        "streakNumber": 1
+      }
+    },
+    {
+      "teamId": 9007,
+      "team": "Granite Peak Rams",
+      "abbr": "GPR",
+      "wins": 78,
+      "losses": 64,
+      "pct": ".549",
+      "wildCardRank": 3,
+      "inSpot": true,
+      "gb": "+1.0",
+      "trend": {
+        "tier": -2,
+        "wins": 3,
+        "losses": 7,
+        "games": 10,
+        "streakType": "losses",
+        "streakNumber": 4
+      }
+    },
+    {
+      "teamId": 9008,
+      "team": "Pinewood Lumberjacks",
+      "abbr": "PWL",
+      "wins": 77,
+      "losses": 65,
+      "pct": ".542",
+      "wildCardRank": 4,
+      "inSpot": false,
+      "gb": "1.0",
+      "trend": {
+        "tier": 3,
+        "wins": 8,
+        "losses": 2,
+        "games": 10,
+        "streakType": "wins",
+        "streakNumber": 6
+      }
+    },
+    {
+      "teamId": 9009,
+      "team": "Delmar Tides",
+      "abbr": "DMT",
+      "wins": 75,
+      "losses": 67,
+      "pct": ".528",
+      "wildCardRank": 5,
+      "inSpot": false,
+      "gb": "3.0",
+      "trend": {
+        "tier": 1,
+        "wins": 6,
+        "losses": 4,
+        "games": 10,
+        "streakType": "wins",
+        "streakNumber": 1
+      }
+    },
+    {
+      "teamId": 9003,
+      "team": "Bayport Gulls",
+      "abbr": "BPG",
+      "wins": 72,
+      "losses": 70,
+      "pct": ".507",
+      "wildCardRank": 6,
+      "inSpot": false,
+      "gb": "6.0",
+      "trend": {
+        "tier": -1,
+        "wins": 4,
+        "losses": 6,
+        "games": 10,
+        "streakType": "losses",
+        "streakNumber": 2
+      }
+    },
+    {
+      "teamId": 9010,
+      "team": "Ironwood Smelters",
+      "abbr": "IWS",
+      "wins": 70,
+      "losses": 72,
+      "pct": ".493",
+      "wildCardRank": 7,
+      "inSpot": false,
+      "gb": "8.0",
+      "trend": {
+        "tier": -3,
+        "wins": 2,
+        "losses": 8,
+        "games": 10,
+        "streakType": "losses",
+        "streakNumber": 5
+      }
+    }
+  ],
+  "nextGame": {
+    "opponentName": "Lakeshore Admirals",
+    "opponentAbbr": "LKS",
+    "venue": "Lakefront Field",
+    "gameTime": "7:10 PM PT",
+    "probablePitcher": "Nolan Achebe"
+  },
+  "headline": "Varga's early blast and an eighth-inning rally sink the Foxes",
+  "narrative": "The Foxes scored first on a two-out double in the top of the first. <em>Mateo Varga</em> answered with a two-run homer in the second, and after the Foxes went back ahead in the fifth, <em>June Okafor</em> singled in the tying run and <em>Dell Brannigan</em> broke the tie with a solo shot in the sixth. In the eighth, <em>Ravi Castellanos</em> singled home a run and <em>Varga</em> added a sacrifice fly to stretch the lead to three. <em>Gus Pemberton</em> worked around a single in the ninth to close out a 6–3 win at Tidewater Park.",
+  "playerNotes": [
+    {
+      "name": "Mateo Varga",
+      "note": "Mateo Varga drove in half the offense — a two-run homer in the second and a sacrifice fly in the eighth."
+    },
+    {
+      "name": "June Okafor",
+      "note": "June Okafor reached three times, singled in the tying run in the fifth and scored twice from the leadoff spot."
+    },
+    {
+      "name": "Dell Brannigan",
+      "note": "Dell Brannigan's only hit was the one that mattered: a solo homer that put the Herons ahead for good."
+    },
+    {
+      "name": "Ravi Castellanos",
+      "note": "Ravi Castellanos added two hits, including the RBI single that opened the eighth-inning cushion."
+    }
+  ],
+  "pitching": {
+    "starter": "<em>Sam Whitlock</em> went six innings and struck out seven, leaning harder on his slider than usual. He gave up three runs on five hits, two of them in a fifth inning that briefly put the Foxes back in front. That kept him close to his season form — a 3.41 ERA and a 1.12 WHIP.",
+    "bullpen": "<em>Theo Marchetti</em>, <em>Alana Reyes</em> and <em>Gus Pemberton</em> each took one inning and combined for three scoreless frames on two hits. <em>Reyes</em> struck out two in the eighth before <em>Pemberton</em> closed it out.",
+    "arsenal": {
+      "totalPitches": 94,
+      "hasSeasonMix": true,
+      "pitches": [
+        {
+          "code": "FF",
+          "name": "Four-Seam Fastball",
+          "count": 41,
+          "gamePct": 44,
+          "avgVelo": 95.1,
+          "maxVelo": 97.3,
+          "whiffs": 6,
+          "seasonPct": 47,
+          "deltaPts": -3
+        },
+        {
+          "code": "SL",
+          "name": "Slider",
+          "count": 28,
+          "gamePct": 30,
+          "avgVelo": 86.4,
+          "maxVelo": 88.0,
+          "whiffs": 7,
+          "seasonPct": 24,
+          "deltaPts": 6
+        },
+        {
+          "code": "CH",
+          "name": "Changeup",
+          "count": 15,
+          "gamePct": 16,
+          "avgVelo": 87.9,
+          "maxVelo": 89.2,
+          "whiffs": 3,
+          "seasonPct": 17,
+          "deltaPts": -1
+        },
+        {
+          "code": "CU",
+          "name": "Curveball",
+          "count": 10,
+          "gamePct": 11,
+          "avgVelo": 79.2,
+          "maxVelo": 80.6,
+          "whiffs": 1,
+          "seasonPct": 12,
+          "deltaPts": -1
+        }
+      ]
+    }
+  },
+  "statOfGame": {
+    "statName": "Strikeouts per 9 Innings",
+    "abbr": "K/9",
+    "player": "Sam Whitlock",
+    "value": "9.40",
+    "leagueContext": "League average K/9 for starters sits around 8.5; anything above 10 marks a true strikeout pitcher.",
+    "definition": "K/9 stands for strikeouts per nine innings. It scales a pitcher's strikeouts to a full game, so a five-inning start and a seven-inning start can be compared on the same footing.",
+    "todayContext": "Whitlock struck out 7 in 6 innings, a 10.5 K/9 pace for the night — a notch above his 9.40 season rate, helped by 7 whiffs on the slider."
+  },
+  "onThisDay": {
+    "year": 1987,
+    "headline": "The Herons' first no-hitter",
+    "story": "Rookie left-hander Ellis Moran needed 112 pitches to no-hit the Summit Owls at old Harborview Grounds, walking three and striking out nine. The final out was a soft liner to second, caught on the run."
+  },
+  "titleOdds": {
+    "impliedProb": 0.084,
+    "medianOdds": 1000,
+    "bookmakerCount": 6
+  },
+  "ytVideoId": null,
+  "verification": []
+}

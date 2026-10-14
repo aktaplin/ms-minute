@@ -30,7 +30,8 @@ async function runOneTeam(teamKey, maxAttempts = 3) {
 }
 
 async function runAllTeams() {
-  for (const teamKey of Object.keys(TEAM_CONFIGS)) {
+  // The demo edition is a static fixture — nothing to generate
+  for (const teamKey of Object.keys(TEAM_CONFIGS).filter(k => !TEAM_CONFIGS[k].demo)) {
     await runOneTeam(teamKey);
   }
 }
